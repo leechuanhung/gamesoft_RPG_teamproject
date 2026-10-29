@@ -1,0 +1,2 @@
+Mode: built-in image_gen. One generation, no retries.
+Single simple pixel-art game sprite: Joseon Korean seonbi scholar, black gat with chin straps, pale ivory dopo robe, dark sash and black shoes. Full-body right-facing side view, neutral idle standing pose, hands empty. Coarse crisp square pixels, limited 12-color palette, dark outline, approximately 32x48-pixel aesthetic enlarged with hard edges. True transparent background. One character only, no text, scenery, shadows, border or sprite sheet. Center entire figure with padding.

@@ -1,0 +1,9 @@
+Pixel Monster Pack — Iphigenia Pixels
+https://assetstore.unity.com/packages/2d/characters/pixel-monster-pack-75508
+
+사용자가 Unity Asset Store에서 프로젝트로 가져온 에셋입니다.
+원본: Assets/Pixel Monster Pack/32x32 monsters/
+사용 그림: rat-brown, wolf-black, slime-blue, ooze-green
+실행 중 불러올 수 있도록 선택한 PNG만 이 폴더에 복사했습니다.
+원본은 변경하지 않았습니다. 정지 그림이며 동작 효과는 게임 코드에서 추가합니다.
+에셋 이용 조건은 구매/등록 시 제공된 Unity Asset Store 라이선스를 따릅니다.
