@@ -139,7 +139,9 @@ public class PrototypeCombat : MonoBehaviour
                 arrow.color = Color.white;
                 arrow.flipX = attackFacing < 0;
                 arrow.sortingOrder = 4;
-                arrow.transform.position = player.transform.position;
+                // Use the same foot reference as SeonbiVisual, including during jumps.
+                arrow.transform.position = new Vector3(player.transform.position.x + attackFacing * 1.1f,
+                    playerArt.bounds.min.y + JinaArt.BowArrowHeight, 0);
                 arrows.Add(new FlyingArrow { art = arrow, direction = attackFacing });
             }
             else

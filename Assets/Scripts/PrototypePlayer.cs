@@ -11,6 +11,9 @@ public class PrototypePlayer : MonoBehaviour
     private Vector3 spawn;
     public int Facing { get; private set; } = 1;
     public bool CanMove { get; set; } = true;
+    public bool IsGrounded { get; private set; }
+    public float HorizontalSpeed => body == null ? 0 : body.velocity.x;
+    public float VerticalSpeed => body == null ? 0 : body.velocity.y;
     private readonly RaycastHit2D[] groundHits = new RaycastHit2D[8];
 
     void Awake()
@@ -45,10 +48,12 @@ public class PrototypePlayer : MonoBehaviour
         for (int i = 0; i < count; i++)
             if (groundHits[i].normal.y > 0.65f) grounded = true;
 
+        IsGrounded = grounded && body.velocity.y <= 0.1f;
         body.velocity = new Vector2(horizontal * moveSpeed, body.velocity.y);
         if (jumpRequestedUntil > Time.time && grounded && body.velocity.y <= 0.1f)
         {
             body.velocity = new Vector2(body.velocity.x, jumpSpeed);
+            IsGrounded = false;
             jumpRequestedUntil = 0f;
         }
     }
@@ -58,6 +63,7 @@ public class PrototypePlayer : MonoBehaviour
         transform.position = spawn;
         body.velocity = Vector2.zero;
         jumpRequestedUntil = 0f;
+        IsGrounded = true;
         Facing = 1;
         CanMove = true;
     }

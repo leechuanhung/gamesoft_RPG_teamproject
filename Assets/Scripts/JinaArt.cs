@@ -3,6 +3,8 @@ using UnityEngine;
 public static class JinaArt
 {
     public const string Player="01_Player/player_idle", Boss="05_Boss_Brainwashed/boss_brainwashed_idle", Purified="06_Boss_Purified/boss_purified_idle", Ghost="07_Ghost/ghost_guard_idle", Elder="08_Village_Elder/village_elder_idle";
+    // Match the v6 drawn bow (~440 px) and nocked arrow (312 px above feet).
+    public const float BowHeight=440f/(510f/1.9f), BowArrowHeight=312f/(510f/1.9f);
     private static readonly Dictionary<string,Sprite> cache=new Dictionary<string,Sprite>();
     public static Sprite Load(string path)
     {
@@ -15,36 +17,28 @@ public static class JinaArt
         { l=Mathf.Min(l,x); r=Mathf.Max(r,x); b=Mathf.Min(b,y); top=Mathf.Max(top,y); }
         Rect rect=new Rect(l,b,r-l+1,top-b+1);
         Vector2 anchor=new Vector2(rect.center.x,b); float ppu=rect.height/1.9f;
-        if(path.Contains("Player_Attack"))
+        // V6 files use separate canvas sizes; anchors are measured in source pixels.
+        if(path.Contains("Player_Attack") || path.Contains("Player_Jump") || path.Contains("Player_Walk") || path.Contains("boss_attack") || path.Contains("boss_walk"))
         {
-            rect=new Rect(0,0,t.width,t.height); int f=int.Parse(path.Substring(path.Length-2));
-            bool sword=path.Contains("Sword");
-            anchor=new Vector2(sword ? new[]{350f,330f,330f,340f}[f] : 340f,t.height-(sword ? new[]{689f,689f,680f,679f}[f] : 679f));
-            ppu=550f/1.9f;
+            rect=new Rect(0,0,t.width,t.height);
+            anchor=new Vector2(t.width*.5f,8);
+            if(path.Contains("Player_Attack_Sword")) { anchor.x=270; ppu=450f/1.9f; }
+            else if(path.Contains("Player_Attack_Bow")) { anchor.x=300; ppu=510f/1.9f; }
+            else if(path.Contains("Player_Jump")) ppu=535f/1.9f;
+            else if(path.Contains("Player_Walk")) ppu=546f/1.9f;
+            else if(path.Contains("boss_attack")) { anchor=new Vector2(260,b); ppu=480f/2.6f; }
+            else ppu=586f/2.6f;
         }
-        else if(path.Contains("boss_attack"))
-        {
-            int f=int.Parse(path.Substring(path.Length-2));
-            rect=new Rect(0,0,f==0 ? 610 : f==1 ? 540 : 768,768);
-            anchor=new Vector2(335,24); ppu=500f/2.6f;
-        }
-        else if(path==Boss || path==Purified) { anchor.x=530; ppu=rect.height/2.6f; }
+        else if(path==Boss || path==Purified) { anchor.x=rect.center.x; ppu=rect.height/2.6f; }
         else if(path==Ghost) { anchor.x=650; ppu=rect.height/1.65f; }
         else if(path==Elder) { anchor.x=600; ppu=rect.height/1.8f; }
         else if(path.StartsWith("04_Weapons"))
         {
-            anchor=rect.center; ppu=path.EndsWith("bow") ? rect.height : rect.width/(path.EndsWith("arrow") ? .7f : 1f);
-            if(path.EndsWith("hwando")) anchor=new Vector2(180,t.height-445);
+            anchor=rect.center; ppu=path.EndsWith("bow") ? rect.height/BowHeight : rect.width/(path.EndsWith("arrow") ? .7f : 1f);
+            if(path.EndsWith("hwando")) anchor=new Vector2(95,95);
         }
         result=Sprite.Create(t,rect,new Vector2((anchor.x-rect.x)/rect.width,(anchor.y-rect.y)/rect.height),ppu,0,SpriteMeshType.FullRect);
         result.name=path;
-        if(path.EndsWith("boss_attack_03"))
-        {
-            // Hide a disconnected neighboring-frame fragment without changing the PNG.
-            Vector2[] v={new Vector2(0,0),new Vector2(768,0),new Vector2(768,318),new Vector2(0,318),new Vector2(230,318),new Vector2(768,318),new Vector2(768,768),new Vector2(230,768)};
-            for(int i=0;i<v.Length;i++) v[i]=(v[i]-anchor)/ppu;
-            result.OverrideGeometry(v,new ushort[]{0,1,2,0,2,3,4,5,6,4,6,7});
-        }
         cache[path]=result; return result;
     }
     public static Sprite[] Frames(string prefix)
