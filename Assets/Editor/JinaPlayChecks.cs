@@ -36,7 +36,7 @@ public static class JinaPlayChecks
             if(stage==1)
             {
                 foreach(string p in new[]{JinaArt.Player,JinaArt.Boss,JinaArt.Purified,JinaArt.Ghost,JinaArt.Elder,"04_Weapons/arrow","04_Weapons/bow","04_Weapons/hwando"}) Check(JinaArt.Load(p)!=null,"Load "+p);
-                foreach(string prefix in new[]{"02_Player_Attack_Sword/sword_attack_","03_Player_Attack_Bow/bow_attack_","05_Boss_Brainwashed/boss_attack_","09_Player_Jump/jump_","10_Player_Walk/player_walk_","05_Boss_Brainwashed/boss_walk_"}) Check(JinaArt.Frames(prefix).Length==4,"Animation frames");
+                foreach(string prefix in new[]{"02_Player_Attack_Sword/sword_attack_","03_Player_Attack_Bow/bow_attack_","05_Boss_Brainwashed/boss_attack_","09_Player_Jump/jump_","10_Player_Walk/player_walk_","11_Player_Run/player_run_","05_Boss_Brainwashed/boss_walk_"}) Check(JinaArt.Frames(prefix).Length==4,"Animation frames");
                 Capture("village",new Vector3(-1,1,-10),3);
                 var visual=combat.player.GetComponent<SeonbiVisual>();
                 visual.ResetPose();
@@ -60,6 +60,14 @@ public static class JinaPlayChecks
                     Check(Field<SpriteRenderer>(visual,"body").sprite.name.Contains("player_walk_"),"Player walks while moving");
                     Capture("player-walk-"+i,new Vector3(0,1,-10),2);
                 }
+                Set(combat.player,"<IsRunning>k__BackingField",true); rb.velocity=Vector2.right*combat.player.runSpeed;
+                for(int i=0;i<4;i++)
+                {
+                    Set(visual,"walkTime",i*.08f+.01f); visual.SendMessage("LateUpdate");
+                    Check(Field<SpriteRenderer>(visual,"body").sprite.name.EndsWith("player_run_"+i.ToString("00")),"Player runs while sprinting");
+                    Capture("player-run-"+i,new Vector3(0,1,-10),2);
+                }
+                Set(combat.player,"<IsRunning>k__BackingField",false);
                 rb.velocity=Vector2.zero; visual.SendMessage("LateUpdate");
                 Check(Field<SpriteRenderer>(visual,"body").sprite.name==JinaArt.Player,"Stop restores idle");
                 for(int i=0;i<4;i++)

@@ -18,14 +18,15 @@ public static class JinaArt
         Rect rect=new Rect(l,b,r-l+1,top-b+1);
         Vector2 anchor=new Vector2(rect.center.x,b); float ppu=rect.height/1.9f;
         // V6 files use separate canvas sizes; anchors are measured in source pixels.
-        if(path.Contains("Player_Attack") || path.Contains("Player_Jump") || path.Contains("Player_Walk") || path.Contains("boss_attack") || path.Contains("boss_walk"))
+        if(path.Contains("Player_Attack") || path.Contains("Player_Jump") || path.Contains("Player_Walk") || path.Contains("Player_Run") || path.Contains("boss_attack") || path.Contains("boss_walk"))
         {
             rect=new Rect(0,0,t.width,t.height);
             anchor=new Vector2(t.width*.5f,8);
             if(path.Contains("Player_Attack_Sword")) { anchor.x=270; ppu=450f/1.9f; }
             else if(path.Contains("Player_Attack_Bow")) { anchor.x=300; ppu=510f/1.9f; }
             else if(path.Contains("Player_Jump")) ppu=535f/1.9f;
-            else if(path.Contains("Player_Walk")) ppu=546f/1.9f;
+            // Run frames are built from the walk frames, so they share its scale and feet line.
+            else if(path.Contains("Player_Walk") || path.Contains("Player_Run")) ppu=546f/1.9f;
             else if(path.Contains("boss_attack")) { anchor=new Vector2(260,b); ppu=480f/2.6f; }
             else ppu=586f/2.6f;
         }

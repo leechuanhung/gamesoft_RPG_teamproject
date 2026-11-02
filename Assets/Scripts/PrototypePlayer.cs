@@ -3,6 +3,8 @@ using UnityEngine;
 public class PrototypePlayer : MonoBehaviour
 {
     public float moveSpeed = 6f;
+    public float runSpeed = 10f;
+    public KeyCode runKey = KeyCode.LeftShift;
     public float jumpSpeed = 11f;
     private Rigidbody2D body;
     private BoxCollider2D hitbox;
@@ -12,6 +14,7 @@ public class PrototypePlayer : MonoBehaviour
     public int Facing { get; private set; } = 1;
     public bool CanMove { get; set; } = true;
     public bool IsGrounded { get; private set; }
+    public bool IsRunning { get; private set; }
     public float HorizontalSpeed => body == null ? 0 : body.velocity.x;
     public float VerticalSpeed => body == null ? 0 : body.velocity.y;
     private readonly RaycastHit2D[] groundHits = new RaycastHit2D[8];
@@ -26,8 +29,9 @@ public class PrototypePlayer : MonoBehaviour
     void Update()
     {
         horizontal = Input.GetAxisRaw("Horizontal");
-        if (!CanMove) { horizontal = 0; return; }
+        if (!CanMove) { horizontal = 0; IsRunning = false; return; }
         if (horizontal != 0) Facing = horizontal > 0 ? 1 : -1;
+        IsRunning = horizontal != 0 && (Input.GetKey(runKey) || Input.GetKey(KeyCode.RightShift));
         if (Input.GetKeyDown(KeyCode.Space)) jumpRequestedUntil = Time.time + 0.12f;
         if (Input.GetKeyDown(KeyCode.R) || transform.position.y < -8f)
         {
@@ -49,7 +53,7 @@ public class PrototypePlayer : MonoBehaviour
             if (groundHits[i].normal.y > 0.65f) grounded = true;
 
         IsGrounded = grounded && body.velocity.y <= 0.1f;
-        body.velocity = new Vector2(horizontal * moveSpeed, body.velocity.y);
+        body.velocity = new Vector2(horizontal * (IsRunning ? runSpeed : moveSpeed), body.velocity.y);
         if (jumpRequestedUntil > Time.time && grounded && body.velocity.y <= 0.1f)
         {
             body.velocity = new Vector2(body.velocity.x, jumpSpeed);
@@ -64,6 +68,7 @@ public class PrototypePlayer : MonoBehaviour
         body.velocity = Vector2.zero;
         jumpRequestedUntil = 0f;
         IsGrounded = true;
+        IsRunning = false;
         Facing = 1;
         CanMove = true;
     }
