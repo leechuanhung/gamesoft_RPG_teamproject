@@ -4,7 +4,8 @@ public class JinaActorVisual : MonoBehaviour
     private SpriteRenderer source,picture;
     private PrototypeCombat combat;
     private string kind;
-    private Sprite[] attacks;
+    private Sprite[] attacks,walks;
+    private float walkTime;
     private int facing=1;
     private Vector3 last;
     public static JinaActorVisual Attach(SpriteRenderer source,string kind,PrototypeCombat combat)
@@ -13,7 +14,11 @@ public class JinaActorVisual : MonoBehaviour
         v.source=source; v.kind=kind; v.combat=combat; v.last=source.transform.position;
         var child=new GameObject("표시 이미지"); child.transform.SetParent(source.transform,false);
         v.picture=child.AddComponent<SpriteRenderer>(); v.picture.sortingOrder=3;
-        if(kind==JinaArt.Boss) v.attacks=JinaArt.Frames("05_Boss_Brainwashed/boss_attack_");
+        if(kind==JinaArt.Boss)
+        {
+            v.attacks=JinaArt.Frames("05_Boss_Brainwashed/boss_attack_");
+            v.walks=JinaArt.Frames("05_Boss_Brainwashed/boss_walk_");
+        }
         source.forceRenderingOff=true; v.Refresh(); return v;
     }
     void LateUpdate() { Refresh(); }
@@ -29,6 +34,9 @@ public class JinaActorVisual : MonoBehaviour
         if(kind==JinaArt.Boss && combat!=null)
         {
             facing=combat.BossFacing; int frame=combat.BossAttackFrame;
+            bool moving=Mathf.Abs(dx)>.001f && Mathf.Abs(dx)<3 && !combat.EnemyDefeated;
+            if(!combat.Paused) walkTime=moving ? walkTime+Time.deltaTime : 0;
+            if(!purified && moving && frame<0) picture.sprite=walks[(int)(walkTime/.14f)%4];
             if(!purified && frame>=0) picture.sprite=attacks[frame];
         }
         JinaArt.Place(picture,new Vector3(transform.position.x,source.bounds.min.y,0),transform,facing<0);

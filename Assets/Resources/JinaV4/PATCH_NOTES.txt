@@ -1,0 +1,14 @@
+PATCH NOTES (v4 + corrected motions + jump)
+
+Only the following PNG files were replaced:
+02_Player_Attack_Sword/sword_attack_00..03.png
+03_Player_Attack_Bow/bow_attack_00..03.png
+05_Boss_Brainwashed/boss_attack_00..03.png
+
+Only the following PNG files were added:
+09_Player_Jump/jump_00..03.png
+
+All other v4 asset bytes and relative paths are unchanged.
+All replaced/added animation frames have matching 1024x1024 transparent RGBA canvases.
+Please note: Source sheets were already close to the frame edges and had some details crossing frame boundaries; blank margins prevent *new* Unity crop, but cannot reconstruct details already cut in the source. Review sword tip, club, and bow arrow visually in Unity before using as final production animation.
+Unity: set Texture Type Sprite (2D and UI), Filter Mode Point, Compression None, and consistent pivot (usually Bottom Center).
