@@ -3,7 +3,8 @@
 #   elder_startle  recoil, cane still in hand
 #   elder_draw_00  the cane cut away (one outline row closes his fist); elder_draw_01 leaning in, sword ready
 #   elder_hit_00   recoil; elder_hit_01 knees buckle (both without the cane, since the alarm always comes first)
-#   elder_corpse   the caneless body turned a quarter (lossless), lying on his back with his feet where he stood
+#   elder_down     his hat slid down over his face as he falls (rows above the brim moved down two art pixels)
+#   elder_corpse   elder_down turned a quarter (lossless), lying on his back with his feet where he stood
 # Usage: python make_elder.py Assets/Resources/JinaV4   [--preview DIR]
 import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
@@ -18,6 +19,10 @@ cane = np.zeros_like(elder); cane[780:1170, 755:860] = elder[780:1170, 755:860]
 cane[780:803, 760:815] = ink
 bare = elder.copy(); bare[780:1170, 755:860] = 0
 bare[778:803, 755:840] = ink
+BRIM = 365                                       # the hat ends at the bottom outline of its brim
+down = bare.copy(); down[:BRIM] = 0
+hat = bare[:BRIM]; m = hat[:, :, 3] > 0
+down[2 * E:BRIM + 2 * E][m] = hat[m]
 
 frames = {
     "elder_cane": cane,
@@ -25,7 +30,8 @@ frames = {
     "elder_draw_00": bare,
     "elder_draw_01": clean(bend(bare, 25, 500, 860, E)),
     # Feet (x 600, bottom edge 1166 from the top) land at x 1166, 600 from the bottom of the turned canvas.
-    "elder_corpse": np.rot90(bare, 1),
+    "elder_down": down,
+    "elder_corpse": np.rot90(down, 1),
     "elder_hit_00": clean(bend(bare, -50, 500, 860, E)),
     "elder_hit_01": clean(bend(bare, -75, 500, 900, E, (960, 1035))),
 }

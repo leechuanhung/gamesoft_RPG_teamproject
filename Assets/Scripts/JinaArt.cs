@@ -47,13 +47,18 @@ public static class JinaArt
         }
         // Frames cut from an idle keep that idle's scale and feet line (see Tools/ArtGen).
         else if(path.Contains("boss_death")) { rect=canvas; anchor=new Vector2(351,8); ppu=Load(Boss).pixelsPerUnit; }
-        // The corpse is cropped to the body; its pivot is where his feet were, so it rests on the ground below that.
-        else if(path.EndsWith("elder_corpse")) { anchor=new Vector2(1166,600); ppu=Load(Elder).pixelsPerUnit; }
-        // Elder frames keep the idle canvas; the cut-out cane pivots on its own tip.
-        else if(path.StartsWith("08_Village_Elder/elder_"))
+        else if(path.Contains("boss_grieve")) { rect=canvas; anchor=new Vector2(351,8); ppu=Load(Purified).pixelsPerUnit; }
+        // Frames on an idle's own canvas (widened by `pad` px each side) keep its feet; corpses are that canvas
+        // turned a quarter, cropped to the body, with the pivot where his feet were so he rests on the ground below.
+        else if(CutFrom(path,out string idlePath,out int pad))
         {
-            var idle=Load(Elder);
-            rect=canvas; anchor=new Vector2(path.EndsWith("cane") ? 818 : 600,idle.rect.y); ppu=idle.pixelsPerUnit;
+            var idle=Load(idlePath);
+            var feet=new Vector2(idle.rect.x+idle.pivot.x+pad,idle.rect.y+idle.pivot.y);
+            if(path.EndsWith("_corpse")) anchor=new Vector2(t.width-feet.y,feet.x);
+            else { rect=canvas; anchor=feet; }
+            // The cut-out cane pivots on its own tip.
+            if(path.EndsWith("elder_cane")) anchor.x=818;
+            ppu=idle.pixelsPerUnit;
         }
         // Run frames add one 12 px block on each side and above the idle box.
         else if(path.Contains("peddler_run")) { rect=canvas; anchor=new Vector2(108+12,0); ppu=Load(Peddler).pixelsPerUnit; }
@@ -70,6 +75,15 @@ public static class JinaArt
         }
         return Sprite.Create(t,rect,new Vector2((anchor.x-rect.x)/rect.width,(anchor.y-rect.y)/rect.height),ppu,0,SpriteMeshType.FullRect);
     });
+    // Which idle a cut frame comes from (see Tools/ArtGen) and how far its canvas was widened.
+    static bool CutFrom(string path,out string idle,out int pad)
+    {
+        idle=null; pad=0;
+        if(path.StartsWith("01_Player/player_hit_") || path=="01_Player/player_corpse") { idle=Player; pad=48; }
+        else if(path.StartsWith("07_Ghost/ghost_death_")) idle=Ghost;
+        else if(path.StartsWith("08_Village_Elder/elder_")) idle=Elder;
+        return idle!=null;
+    }
     // The box of pixels more than slightly opaque; the V6 art has a faint halo around it.
     static Rect Opaque(Texture2D t)
     {
@@ -105,9 +119,12 @@ public static class JinaArt
         return Sprite.Create(t,new Rect(0,0,t.width,t.height),new Vector2(.5f,.5f),t.width/DotSize,0,SpriteMeshType.FullRect);
     });
 
-    // Stands `art` (a child of `parent`) on `feet`, undoing the parent's scale.
-    public static void Place(SpriteRenderer art,Vector3 feet,Transform parent,bool flip)
+    // Stands `art` on `feet` at its own size, undoing the scale of whatever it hangs under. Pictures that tip over
+    // hang under nothing, since rotating under a non-uniformly scaled placeholder would shear them.
+    public static void Place(SpriteRenderer art,Vector3 feet,bool flip)
     {
-        art.flipX=flip; art.transform.localScale=new Vector3(1/parent.lossyScale.x,1/parent.lossyScale.y,1); art.transform.position=feet;
+        var parent=art.transform.parent;
+        art.flipX=flip; art.transform.position=feet;
+        art.transform.localScale=parent==null ? Vector3.one : new Vector3(1/parent.lossyScale.x,1/parent.lossyScale.y,1);
     }
 }

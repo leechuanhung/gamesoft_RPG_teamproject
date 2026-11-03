@@ -1,7 +1,7 @@
 using UnityEngine;
 // The tavern keeper is a prop sprite (one texel per art pixel, drawn facing left), so she changes frames on her
 // own renderer: run frames while moving (slower steps on the way home), otherwise she stands as drawn
-// or turns to the customer she is serving.
+// or turns to the customer she is serving, or to the fallen elder while mourning.
 public class KeeperVisual : MonoBehaviour
 {
     private PrototypeCombat combat;
@@ -33,6 +33,8 @@ public class KeeperVisual : MonoBehaviour
         }
         walkTime=0;
         art.sprite=idle;
-        art.flipX=combat!=null && combat.Tavern!=null && combat.Tavern.IsOpen && combat.player.transform.position.x>transform.position.x;
+        // She faces the fallen elder while mourning, otherwise the customer she is serving.
+        if(combat!=null && combat.Village!=null && combat.Village.IsMourning(art)) art.flipX=PrototypeWorld.Elder.x>transform.position.x;
+        else art.flipX=combat!=null && combat.Tavern!=null && combat.Tavern.IsOpen && combat.player.transform.position.x>transform.position.x;
     }
 }

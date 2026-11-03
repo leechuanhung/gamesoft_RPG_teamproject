@@ -2,6 +2,7 @@ using UnityEngine;
 
 // When the boss walks into the village the elder calls out and draws his sword, and the keeper and the peddler
 // run into the house. Once the boss is slain or purified they come back out and walk slowly to their places.
+// If the elder fell, they first stand by his body for a while and speak their grief.
 // This moves them; KeeperVisual, PeddlerVisual and ElderVisual pick their frames.
 public class PrototypeVillage : MonoBehaviour
 {
@@ -12,6 +13,8 @@ public class PrototypeVillage : MonoBehaviour
     public const float Shelter = 4.5f, DoorFade = .5f;
     // Seconds after the alarm (they hear the elder first) and after the boss falls (its motion plays first).
     public const float FleeDelay = .6f, ReturnDelay = 2.5f;
+    // How long each stands by the fallen elder, and how long their words stay up after they arrive.
+    public const float MournLength = 8f, MournLineLength = 4f;
 
     // The alarm and the all-clear happen once per run; the times drive the motions.
     public bool Alarmed { get; private set; }
@@ -19,11 +22,15 @@ public class PrototypeVillage : MonoBehaviour
     public float AlarmAt { get; private set; }
     public float ClearAt { get; private set; }
 
-    public enum State { Home, Fleeing, Hidden, Returning }
+    public enum State { Home, Fleeing, Hidden, Returning, Mourning }
     public class Villager
     {
         public SpriteRenderer art;
-        public float home, stagger;
+        public string name, grief;
+        public float home, stagger, bubble;
+        // Where they stand by the fallen elder, when they arrived there and when their words start
+        // (negative until then); they speak one after the other, each for MournLineLength.
+        public float mourn, mournedAt = -1, speakAt = -1;
         public State state;
     }
     public Villager Keeper { get; private set; }
@@ -31,6 +38,8 @@ public class PrototypeVillage : MonoBehaviour
     public bool KeeperHome => Keeper == null || Keeper.state == State.Home;
     public bool PeddlerHome => Peddler == null || Peddler.state == State.Home;
     private KeeperVisual keeperVisual;
+    // When the next mourner may start speaking (after the one before has finished).
+    private float lineFree;
 
     // The keeper is built by PrototypeWorld and the peddler by PrototypePeddler.Start, so find them lazily.
     void Bind()
@@ -40,12 +49,22 @@ public class PrototypeVillage : MonoBehaviour
             var keeper = GameObject.Find("주막 주모");
             if (keeper != null)
             {
-                Keeper = new Villager { art = keeper.GetComponent<SpriteRenderer>(), home = PrototypeWorld.Tavern.x, stagger = 0 };
+                Keeper = new Villager
+                {
+                    art = keeper.GetComponent<SpriteRenderer>(), home = PrototypeWorld.Tavern.x, stagger = 0,
+                    name = "주모", bubble = 1.4f, mourn = PrototypeWorld.Elder.x - 2.4f,
+                    grief = "노인장… 이리 허망하게 가시다니요.",
+                };
                 keeperVisual = KeeperVisual.Attach(Keeper.art, combat);
             }
         }
         if (Peddler == null && combat.Peddler != null && combat.Peddler.Marker != null)
-            Peddler = new Villager { art = combat.Peddler.Marker, home = PrototypeWorld.Peddler.x, stagger = .25f };
+            Peddler = new Villager
+            {
+                art = combat.Peddler.Marker, home = PrototypeWorld.Peddler.x, stagger = .25f,
+                name = "보부상", bubble = 1.55f, mourn = PrototypeWorld.Elder.x - 3.3f,
+                grief = "장터마다 노인장 덕담을 전했는데… 이제 누구에게 길을 묻겠소.",
+            };
     }
 
     public void ResetVillage()
@@ -55,9 +74,11 @@ public class PrototypeVillage : MonoBehaviour
         {
             if (v == null) continue;
             v.state = State.Home;
+            v.mournedAt = v.speakAt = -1;
             Move(v, v.home, 1);
             v.art.enabled = true;
         }
+        lineFree = 0;
         if (keeperVisual != null) keeperVisual.ResetPose();
     }
 
@@ -72,7 +93,14 @@ public class PrototypeVillage : MonoBehaviour
             if (v != null) Step(v);
     }
 
-    // Home → (alarm) run to the door → hidden → (all clear) walk back out → home.
+    bool ElderDead => combat.Quest != null && combat.Quest.progress.ElderDead;
+    // Walking back out, they go to the fallen elder first (once), then home.
+    float Target(Villager v) => ElderDead && v.mournedAt < 0 ? v.mourn : v.home;
+    // Standing by the fallen elder; their visuals turn them toward him.
+    public bool IsMourning(SpriteRenderer art) =>
+        (Keeper != null && Keeper.art == art && Keeper.state == State.Mourning) || (Peddler != null && Peddler.art == art && Peddler.state == State.Mourning);
+
+    // Home → (alarm) run to the door → hidden → (all clear) walk back out → (elder fallen: mourn) → home.
     void Step(Villager v)
     {
         float x = v.art.transform.position.x;
@@ -89,11 +117,25 @@ public class PrototypeVillage : MonoBehaviour
                 if (Cleared && Time.time >= ClearAt + ReturnDelay + v.stagger * 4) { v.state = State.Returning; v.art.enabled = true; }
                 break;
             case State.Returning:
-                x = Mathf.Min(v.home, x + WalkSpeed * Time.deltaTime);
-                if (x >= v.home) v.state = State.Home;
+                float target = Target(v);
+                x = Mathf.MoveTowards(x, target, WalkSpeed * Time.deltaTime);
+                if (x == target && target == v.home) v.state = State.Home;
+                else if (x == target) Arrive(v);
+                break;
+            case State.Mourning:
+                // They stay at least until their own words have been read.
+                if (Time.time >= Mathf.Max(v.mournedAt + MournLength, v.speakAt + MournLineLength + 1)) v.state = State.Returning;
                 break;
         }
         Move(v, x, Mathf.Clamp01((x - Shelter) / DoorFade));
+    }
+
+    void Arrive(Villager v)
+    {
+        v.state = State.Mourning;
+        v.mournedAt = Time.time;
+        v.speakAt = Mathf.Max(Time.time, lineFree);
+        lineFree = v.speakAt + MournLineLength;
     }
 
     void Move(Villager v, float x, float alpha)
@@ -104,8 +146,13 @@ public class PrototypeVillage : MonoBehaviour
 
     void OnGUI()
     {
-        if (combat == null || combat.Quest == null || !Alarmed || Time.time - AlarmAt >= AlarmBubbleLength) return;
-        if (combat.Quest.progress.ElderDead || combat.Quest.IsDialogOpen) return;
-        SpeechBubble.Draw(new Vector3(PrototypeWorld.Elder.x, 1.45f, 0), "마을 노인", AlarmLine);
+        if (combat == null || combat.Quest == null || combat.Paused) return;
+        if (Alarmed && Time.time - AlarmAt < AlarmBubbleLength && !ElderDead)
+            SpeechBubble.Draw(new Vector3(PrototypeWorld.Elder.x, 1.45f, 0), "마을 노인", AlarmLine);
+        // One mourner speaks at a time: the first to arrive, then the other once the first has finished.
+        foreach (var v in new[] { Keeper, Peddler })
+            if (v != null && v.state == State.Mourning && Time.time >= v.speakAt && Time.time < v.speakAt + MournLineLength
+                && SpeechBubble.OnScreen(v.art.transform.position))
+                SpeechBubble.Draw(new Vector3(v.art.transform.position.x, v.bubble, 0), v.name, v.grief);
     }
 }

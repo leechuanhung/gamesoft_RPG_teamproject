@@ -1,9 +1,10 @@
 using UnityEngine;
-// The dokkaebi: walk and attack frames while hostile, the death motion when slain, the transition when purified.
+// The dokkaebi: walk and attack frames while hostile, the death motion when slain, the transition when purified,
+// and, if it had killed the elder, kneeling in grief afterwards (BossRemorse times it).
 public class BossVisual : JinaActorVisual
 {
     public const float DeathLength=1.7f, PurifyLength=1.6f;
-    private Sprite[] attacks,walks,deaths;
+    private Sprite[] attacks,walks,deaths,grieves;
     private SpriteRenderer charm;
     private SpriteRenderer[] dots;
 
@@ -12,6 +13,7 @@ public class BossVisual : JinaActorVisual
         attacks=JinaArt.Frames("05_Boss_Brainwashed/boss_attack_");
         walks=JinaArt.Frames("05_Boss_Brainwashed/boss_walk_");
         deaths=JinaArt.Frames("05_Boss_Brainwashed/boss_death_",5);
+        grieves=JinaArt.Frames("06_Boss_Purified/boss_grieve_",2);
         charm=Child("정화 부적",JinaArt.Prop("charm"));
         dots=new SpriteRenderer[16];
         for(int i=0;i<dots.Length;i++) dots[i]=Child("정화 빛",JinaArt.Dot());
@@ -39,6 +41,28 @@ public class BossVisual : JinaActorVisual
         f.hitTint=!purified && !slain;
         if(slain) Die(ref f,Time.time-combat.BossDownAt);
         else if(purified && Time.time-combat.PurifiedAt<PurifyLength) Purify(ref f,Time.time-combat.PurifiedAt);
+        else if(purified && combat.Remorse!=null && combat.Remorse.Active) Grieve(ref f,combat.Remorse.Elapsed);
+    }
+
+    // He turns to the elder's body, sinks to his knees and stays there, trembling, tears falling from his shut eye.
+    void Grieve(ref Frame f,float t)
+    {
+        facing=Toward(PrototypeWorld.Elder.x);
+        if(t<BossRemorse.Realise) return;
+        f.sprite=grieves[t<BossRemorse.Realise+BossRemorse.Kneel ? 0 : 1];
+        if(t<BossRemorse.Realise+BossRemorse.Kneel) return;
+        if((t%.6f)<.12f) f.feet.x+=((int)(t/.04f)%2==0 ? 1 : -1)*ArtPixel;
+        // His shut eye in boss_grieve_01: .465 forward and 1.61 up from the feet.
+        var eye=f.feet+new Vector3(facing*.465f,1.61f,0);
+        for(int i=0;i<2;i++)
+        {
+            float life=((t+i*.5f)%1)/.8f;
+            if(life>=1) continue;
+            var d=dots[i]; d.enabled=true;
+            Unscale(d.transform);
+            d.transform.position=Snap(eye+new Vector3(facing*ArtPixel*i,-life*1.1f,0));
+            d.color=new Color(.75f,.9f,1,1-life*life);
+        }
     }
 
     // Recoil, knees buckle, a shudder on the knees, then the body crumbles away.

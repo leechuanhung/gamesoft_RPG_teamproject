@@ -9,6 +9,15 @@ public static class SpeechBubble
 
     static void Fill(Rect r, Color c) { GUI.color = c; GUI.DrawTexture(r, Texture2D.whiteTexture); }
 
+    // Whether a speaker is within the camera's width; bubbles clamp to the screen, so off-screen speakers stay quiet.
+    public static bool OnScreen(Vector3 head)
+    {
+        var cam = Camera.main;
+        if (cam == null) return false;
+        var v = cam.WorldToViewportPoint(head);
+        return v.x > 0 && v.x < 1;
+    }
+
     public static void Draw(Vector3 head, string speaker, string message, string hint = null)
     {
         var cam = Camera.main;

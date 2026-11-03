@@ -7,7 +7,7 @@ using UnityEngine;
 
 // Plays MovementTest and checks the art and motions in the running scene, leaving renders in validation/.
 // Stage 1 runs right after the intro; stage 2 runs a moment later, after the purified boss has had time to act.
-// The checks themselves are split by subject: Player, Boss, Elder and Village.
+// The checks themselves are split by subject: Player, Boss, Camp, Elder, Village and Ending.
 [InitializeOnLoad]
 public static partial class JinaPlayChecks
 {
@@ -53,11 +53,16 @@ public static partial class JinaPlayChecks
                 combat.Restart();
                 Check(!combat.Quest.progress.ElderDead,"Restart revives the elder");
                 Village(elderVisual);
+                GhostDeath();
+                Mourning(elderVisual);
+                Remorse();
+                PlayerFall();
+                Endings();
                 Check(!combat.BossPurified && !combat.EnemyDefeated && combat.EnemyHealth==30,"Restart restores hostile boss");
                 Check(combat.Quest.progress.Honor==0,"Restart resets honor");
                 combat.AddArrows(-5); Check(combat.Arrows==15,"Arrows spent");
                 combat.Restart(); Check(combat.Arrows==ShopRules.MaxArrows,"Restart refills quiver");
-                Debug.Log("JINA_PLAY_CHECKS_PASSED: v6 assets, attack/jump/walk frames, boss death, purify and elder fall motions, talk facing, alarm, evacuation and return, movement/idle transitions, purification visibility, immunity, no damage, reset");
+                Debug.Log("JINA_PLAY_CHECKS_PASSED: v6 assets, attack/jump/walk frames, boss death, purify and elder fall motions, talk facing, alarm, evacuation and return, ghost and seonbi deaths, mourning, remorse, endings, movement/idle transitions, purification visibility, immunity, no damage, reset");
                 SessionState.SetBool(Key,false); EditorApplication.Exit(0);
             }
         }
@@ -84,6 +89,8 @@ public static partial class JinaPlayChecks
     static T Field<T>(object obj,string name) => (T)obj.GetType().GetField(name,BindingFlags.NonPublic|BindingFlags.Instance).GetValue(obj);
     static void Set(object obj,string name,object value) => obj.GetType().GetField(name,BindingFlags.NonPublic|BindingFlags.Instance).SetValue(obj,value);
     static SpriteRenderer Picture(JinaActorVisual v) => Field<SpriteRenderer>(v,"picture");
+    // Purifying takes the charm: hear the clue and read the stele (moon, river, mountain).
+    static QuestProgress WithCharm(QuestProgress q) { q.HearClue(); q.ChooseSymbol(2); q.ChooseSymbol(1); q.ChooseSymbol(3); return q; }
     static void Check(bool ok,string reason) { if(!ok) throw new Exception(reason); }
     static void Capture(string name,Vector3 position,float size)
     {

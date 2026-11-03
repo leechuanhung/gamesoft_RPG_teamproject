@@ -1,7 +1,7 @@
 using UnityEngine;
 // Draws a Jina character over its hidden placeholder square: each LateUpdate picks a frame, stands it on the
 // placeholder's feet, faces it, tints it and lays a white silhouette over it for flashes.
-// The ghosts use this as is; the boss, the elder and the peddler add their own motions in subclasses.
+// Each character adds its own motions in a subclass (BossVisual, ElderVisual, PeddlerVisual, GhostVisual).
 public class JinaActorVisual : MonoBehaviour
 {
     // One character art pixel in world units (12 px at 546 px per 1.9 units); motions move in whole art pixels.
@@ -30,6 +30,7 @@ public class JinaActorVisual : MonoBehaviour
     {
         var obj=source.gameObject;
         JinaActorVisual v=kind==JinaArt.Boss ? obj.AddComponent<BossVisual>()
+            : kind==JinaArt.Ghost ? obj.AddComponent<GhostVisual>()
             : kind==JinaArt.Elder ? obj.AddComponent<ElderVisual>()
             : kind==JinaArt.Peddler ? obj.AddComponent<PeddlerVisual>()
             : obj.AddComponent<JinaActorVisual>();
@@ -66,8 +67,7 @@ public class JinaActorVisual : MonoBehaviour
         last=transform.position;
         if(f.hidden) { picture.enabled=false; return; }
         picture.sprite=f.sprite;
-        JinaArt.Place(picture,f.feet,transform,facing!=native);
-        if(picture.transform.parent==null) picture.transform.localScale=Vector3.one;
+        JinaArt.Place(picture,f.feet,facing!=native);
         picture.transform.rotation=Quaternion.Euler(0,0,f.rotation);
         picture.color=f.tint;
         if(f.hitTint && source.color.r>.9f && source.color.g>.4f && source.color.g<.8f) picture.color=new Color(1,.7f,.4f);

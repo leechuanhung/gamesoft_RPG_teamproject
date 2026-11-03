@@ -15,6 +15,8 @@ public class PrototypeCombat : MonoBehaviour
     // Start times of the boss's death and purification motions (see JinaActorVisual).
     public float BossDownAt { get; private set; } = -1;
     public float PurifiedAt { get; private set; } = -1;
+    // When the seonbi was struck down (SeonbiVisual plays his fall from it).
+    public float PlayerDownAt { get; private set; } = -1;
     private float bossRecoveryUntil;
     public int BossAttackFrame => EnemyDefeated ? -1 : windupUntil >= 0
         ? (windupUntil - Time.time > .3f ? 0 : 1)
@@ -39,6 +41,7 @@ public class PrototypeCombat : MonoBehaviour
     public PrototypeTavern Tavern { get; private set; }
     public PrototypePeddler Peddler { get; private set; }
     public PrototypeVillage Village { get; private set; }
+    public BossRemorse Remorse { get; private set; }
     public Vector3 BossPosition => enemy != null ? enemy.transform.position : Vector3.zero;
     // A provoked boss that has followed the player past the forest edge.
     public bool BossInVillage => alerted && !EnemyDefeated && enemy != null && enemy.transform.position.x < PrototypeWorld.ForestStart;
@@ -46,7 +49,8 @@ public class PrototypeCombat : MonoBehaviour
     private float noArrowsUntil;
     public void AddArrows(int amount) { Arrows = Mathf.Clamp(Arrows + amount, 0, ShopRules.MaxArrows); }
     public PrototypeIntro Intro { get; private set; }
-    public bool Paused => (Intro != null && Intro.IsPlaying) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen);
+    public PrototypeEnding Ending { get; private set; }
+    public bool Paused => (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen);
     public void RestoreHealth(int amount) { if (PlayerHealth > 0) PlayerHealth = Mathf.Clamp(PlayerHealth + amount, 1, 5); }
     private class FlyingArrow
     {
@@ -74,10 +78,14 @@ public class PrototypeCombat : MonoBehaviour
         Peddler.combat = this;
         Village = gameObject.AddComponent<PrototypeVillage>();
         Village.combat = this;
+        Remorse = gameObject.AddComponent<BossRemorse>();
+        Remorse.combat = this;
         playerVisual = SeonbiVisual.Attach(player, this);
         Restart();
         Intro = gameObject.AddComponent<PrototypeIntro>();
         Intro.combat = this;
+        Ending = gameObject.AddComponent<PrototypeEnding>();
+        Ending.combat = this;
     }
 
     SpriteRenderer MakeSprite(string label, Vector2 size, Color color)
@@ -104,7 +112,7 @@ public class PrototypeCombat : MonoBehaviour
         bossRecoveryUntil = 0;
         playerImpactAt = -1;
         BossFacing = -1;
-        BossDownAt = PurifiedAt = -1;
+        BossDownAt = PurifiedAt = PlayerDownAt = -1;
         playerArt.color = playerColor;
         player.Respawn();
         UsingBow = false;
@@ -118,6 +126,7 @@ public class PrototypeCombat : MonoBehaviour
         if (Tavern != null) Tavern.ResetShop();
         if (Peddler != null) Peddler.ResetShop();
         if (Village != null) Village.ResetVillage();
+        if (Ending != null) Ending.ResetEnding();
         if (playerVisual != null) playerVisual.ResetPose();
     }
 
@@ -262,7 +271,9 @@ public class PrototypeCombat : MonoBehaviour
         PlayerHealth--;
         invulnerableUntil = Time.time + 1;
         if (PlayerHealth > 0) return;
+        PlayerDownAt = Time.time;
         player.CanMove = false;
+        player.Downed = true;
         playerImpactAt = -1;
         playerArt.color = Color.gray;
         slash.enabled = false;

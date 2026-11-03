@@ -13,6 +13,8 @@ public class PrototypePlayer : MonoBehaviour
     private Vector3 spawn;
     public int Facing { get; private set; } = 1;
     public bool CanMove { get; set; } = true;
+    // Struck down: no control, but gravity still brings him to the ground.
+    public bool Downed { get; set; }
     public bool IsGrounded { get; private set; }
     public bool IsRunning { get; private set; }
     public float HorizontalSpeed => body == null ? 0 : body.velocity.x;
@@ -43,7 +45,7 @@ public class PrototypePlayer : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (!CanMove) { body.velocity = Vector2.zero; return; }
+        if (!CanMove) { body.velocity = Downed ? new Vector2(0, body.velocity.y) : Vector2.zero; return; }
         var filter = new ContactFilter2D();
         filter.SetLayerMask(1 << 8);
         filter.useTriggers = false;
@@ -71,6 +73,7 @@ public class PrototypePlayer : MonoBehaviour
         IsRunning = false;
         Facing = 1;
         CanMove = true;
+        Downed = false;
     }
 
     public void SetSpawn(Vector2 position)

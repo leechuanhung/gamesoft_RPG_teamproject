@@ -9,7 +9,11 @@
 - `PrototypeCombat`이 중심이다. 보스, 화살, 체력, 재시작, `Paused`를 맡고 `Quest`, `Camp`, `Tavern`, `Peddler`, `Village`, `Intro`를 붙인다.
 - `PrototypeVillage`는 보스가 마을에 들어오면(`BossInVillage`) 경보를 울리고(`Alarmed`/`AlarmAt`), 주모·보부상을 기와집(`Shelter`)으로 대피시킨다. 보스가 쓰러지면(`Cleared`/`ClearAt`) 걸어서 돌아오게 한다. 대피 중에는 `Tavern.Near`와 `Peddler.Near`가 false다. 이 클래스는 위치만 옮기고, 프레임은 각 인물의 Visual이 고른다.
 - 대화 중인 인물은 선비 쪽을 본다. `JinaActorVisual.native`는 그림이 원래 보는 방향이다(보부상 −1, 나머지 +1).
-- `Paused`는 인트로·대화·상점 중에 true다. 그동안 보스와 몬스터가 멈추고, `SeonbiVisual`이 자세를 초기화한다.
+- 인트로(`PrototypeIntro`)와 결말(`PrototypeEnding`)은 `PrototypeNarration`(검은 화면에 한 줄씩, 스페이스 길게 눌러 건너뛰기)을 함께 쓴다. 결말은 보스를 처리하고 `GoalX`에 닿으면 시작되고, R을 누를 때까지 `Active`다.
+- 죄책감: 노인이 죽은 뒤 정화하면 `BossRemorse`가 정화 연출 뒤(`Start`)부터 대사를 띄우고, `BossVisual.Grieve`가 무릎 꿇기(`06_Boss_Purified/boss_grieve_00~01`, 눈 감고 입 벌림)와 눈물을 그린다.
+- 말풍선은 화면 밖 인물이면 띄우지 않는다(`SpeechBubble.OnScreen`). 애도 대사는 `PrototypeVillage.Villager.speakAt`으로 한 사람씩 이어진다.
+- 쓰러짐 시각: 선비 `PrototypeCombat.PlayerDownAt`(이때 `PrototypePlayer.Downed`로 중력만 받는다), 유령 `GhostVisual.DownAt`.
+- `Paused`는 인트로·결말·대화·상점 중에 true다. 그동안 보스와 몬스터가 멈추고, `SeonbiVisual`이 자세를 초기화한다.
 - 선악과 퀘스트 상태는 `QuestProgress`(Unity에 의존하지 않음)에 있다. 수치: 토벌 +10, 정화 +30, 노인 사망 −40.
 - 가격과 판매 규칙은 `TavernWallet.cs`의 `ShopRules`에 있다.
 - UI는 전부 IMGUI(`OnGUI`)다. 글꼴은 `PrototypeKoreanUI.Apply()`로 맑은 고딕을 쓴다. 인물의 대사는 `SpeechBubble.Draw`(말풍선), 비석과 쪽지는 기존 상자로 표시한다.
@@ -17,7 +21,8 @@
 - 화면 표시는 원래 사각형 스프라이트 위에 자식 SpriteRenderer를 얹는 방식이다.
   - `SeonbiVisual`: 플레이어.
   - `JinaActorVisual`: 공통 바탕(프레임 배치, 방향, 피격 색, 섬광). 유령은 이것을 그대로 쓴다. `Attach`가 종류에 맞는 하위 클래스를 붙인다.
-  - `BossVisual`(걷기·공격·죽음·정화), `ElderVisual`(대화 시선·경보·칼·쓰러짐·시체), `PeddlerVisual`(달리기·대화 시선): 각자 `Pose`에서 이번 프레임(`Frame`)을 고친다.
+  - `BossVisual`(걷기·공격·죽음·정화·죄책감), `ElderVisual`(대화 시선·경보·칼·쓰러짐·시체), `PeddlerVisual`(달리기·시선), `GhostVisual`(죽음): 각자 `Pose`에서 이번 프레임(`Frame`)을 고친다.
+  - 쓰러져 기우는 그림(노인, 선비의 몸과 무기)은 부모 없이 둔다. 크기가 비균일한 사각형 아래에서 돌리면 찌그러지기 때문이다. `JinaArt.Place`는 그림의 실제 부모 크기를 되돌린다.
   - `KeeperVisual`: 주모는 기물 스프라이트("주막 주모")라서 자기 렌더러의 프레임을 직접 바꾼다.
 
 ## 그림 규칙 (화풍 일치)
@@ -36,7 +41,11 @@
   - `python Tools/ArtGen/make_peddler.py Assets/Resources/JinaV4/12_Peddler/peddler_idle.png`
   - `python Tools/ArtGen/make_run.py Assets/Resources/JinaV4/10_Player_Walk Assets/Resources/JinaV4/11_Player_Run`
   - `python Tools/ArtGen/make_boss_death.py Assets/Resources/JinaV4` (보스 죽음)
-  - `python Tools/ArtGen/make_elder.py Assets/Resources/JinaV4` (노인 경보·칼 뽑기·피격·시체, 잘라 낸 지팡이)
+  - `python Tools/ArtGen/make_elder.py Assets/Resources/JinaV4` (노인 경보·칼 뽑기·피격·갓 덮인 시체, 잘라 낸 지팡이)
+  - `python Tools/ArtGen/make_player_down.py Assets/Resources/JinaV4` (선비 쓰러짐. 캔버스를 좌우 48px 넓힘)
+  - `python Tools/ArtGen/make_ghost_death.py Assets/Resources/JinaV4` (유령 죽음)
+  - `python Tools/ArtGen/make_boss_remorse.py Assets/Resources/JinaV4` (정화된 도깨비의 무릎 꿇기. 눈과 송곳니만 기존 색으로 덮어 표정을 바꿈)
+  - 대기 그림에서 잘라 낸 프레임의 발 위치·배율은 `JinaArt.CutFrom`이 정한다. `_corpse`는 그 캔버스를 90° 돌린 것으로 본다.
   - `make_peddler.py`는 `peddler_run_00~03`을, `make_props.py`는 `keeper_run_00~03`을 함께 만든다. 달리기 프레임은 대기 그림의 상자에 한 칸씩 여백을 둔 같은 캔버스를 쓴다.
 - 결과를 확인할 때는 확대 미리보기(`--preview`)나 기존 캐릭터와 나란히 놓은 비교 시트를 scratchpad에 만들어 본다.
 - 텍스처 임포트 설정(Point, 무압축, Readable)은 `Assets/Editor/JinaTextureImport.cs`가 `Resources/JinaV4/` 아래에 자동 적용한다.
@@ -58,7 +67,7 @@
 - 규칙 검사(장면 없이): `Unity.exe -batchmode -quit -projectPath <프로젝트> -executeMethod PlayerArtChecks.Run -logFile <log>`
   - Tavern → Morality → World → Arrow → Quest → KoreanUI 검사가 이어서 실행된다. 성공하면 로그에 `*_PASSED`가 찍힌다.
 - 플레이 검사: `-executeMethod JinaPlayChecks.Begin`(`-quit` 없음, 스스로 종료). 장면 렌더 캡처를 프로젝트 루트의 `validation/`에 남기므로, 확인한 뒤 지운다. IMGUI(말풍선, 연출)는 캡처에 찍히지 않는다.
-  - `JinaPlayChecks`는 partial 클래스다. `JinaPlayChecks.cs`(실행 순서·헬퍼)와 주제별 파일 `.Player`·`.Boss`·`.Elder`·`.Village`로 나뉜다.
+  - `JinaPlayChecks`는 partial 클래스다. `JinaPlayChecks.cs`(실행 순서·헬퍼)와 주제별 파일 `.Player`·`.Boss`·`.Camp`·`.Elder`·`.Village`·`.Ending`으로 나뉜다.
   - 리팩토링 전후 비교: 캡처를 scratchpad에 복사해 두고 픽셀 단위로 비교한다. 화살 발사와 경보 장면의 보스 가장자리는 프레임 시간에 따라 1~2px씩 달라질 수 있다.
 - Unity 경로: `C:/Program Files/Unity/Hub/Editor/2022.3.62f1/Editor/Unity.exe`. 오래 걸리므로 백그라운드로 실행한다.
 - 에디터가 열려 있을 때 컴파일만 확인하려면 `Library/Bee/artifacts/*/Assembly-CSharp.rsp`의 참조로 `Editor/Data/DotNetSdkRoslyn/csc.dll`을 `Editor/Data/NetCoreRuntime/dotnet.exe`로 실행한다. 이때 `MSYS_NO_PATHCONV=1`이 필요하다.

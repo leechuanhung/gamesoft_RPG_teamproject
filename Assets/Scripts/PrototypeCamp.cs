@@ -7,6 +7,7 @@ public class PrototypeCamp : MonoBehaviour
     public class Mob
     {
         public SpriteRenderer art;
+        public GhostVisual visual;
         public int hp = 3;
         public float home, ready, windup = -1;
         public Vector2 strike;
@@ -25,8 +26,8 @@ public class PrototypeCamp : MonoBehaviour
             obj.transform.localScale = new Vector3(1, 1.4f, 1);
             var art = obj.AddComponent<SpriteRenderer>();
             art.sprite = sprite;
-            JinaActorVisual.Attach(art, JinaArt.Ghost, owner);
-            mobs.Add(new Mob { art = art, home = x });
+            var visual = (GhostVisual)JinaActorVisual.Attach(art, JinaArt.Ghost, owner);
+            mobs.Add(new Mob { art = art, visual = visual, home = x });
         }
         gate = new GameObject("비석 길 봉인");
         gate.transform.SetParent(transform);
@@ -46,6 +47,7 @@ public class PrototypeCamp : MonoBehaviour
             m.hp = 3; m.windup = -1; m.ready = Time.time + 1;
             m.art.transform.position = new Vector3(m.home, .2f, 0);
             m.art.enabled = true;
+            m.visual.Revive();
             m.art.color = new Color(.65f,.35f,.22f);
         }
         if (gate != null) gate.SetActive(true);
@@ -54,7 +56,8 @@ public class PrototypeCamp : MonoBehaviour
     {
         if (m == null || m.hp <= 0) return;
         m.hp = Mathf.Max(0, m.hp - damage);
-        if (m.hp == 0) { m.art.enabled = false; m.windup = -1; }
+        // The placeholder stays on while GhostVisual plays the death motion; a felled ghost no longer acts or gets hit.
+        if (m.hp == 0) { m.visual.Down(); m.windup = -1; }
         if (Remaining == 0) gate.SetActive(false);
     }
     public void Slash(Bounds bounds)

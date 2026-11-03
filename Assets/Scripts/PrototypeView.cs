@@ -54,12 +54,5 @@ public class PrototypeView : MonoBehaviour
             GUI.color = savedColor;
             GUI.Label(new Rect(x + 15, 68, 315, 50), "일반 몬스터: " + (combat.Camp == null ? 3 : combat.Camp.Remaining) + "마리 남음\n" + (progress.ElderDead ? "노인 희생 −40 · 보스에게 마지막 반격 10" : "노인 생존 · 토벌 +10 / 정화 +30"));
         }
-        if (target != null && target.position.x > PrototypeWorld.GoalX - 1 && combat != null && combat.EnemyDefeated)
-            GUI.Box(new Rect(Screen.width / 2f - 220, 280, 440, 95),
-                combat.Quest != null && combat.Quest.progress.ElderDead
-                ? "결말 · 희생 위의 승리\n도깨비의 위협은 사라졌으나 노인은 돌아오지 않았다.\n선비의 선택은 마을에 깊은 상처를 남겼다.\nR: 처음부터 다시 시작"
-                : combat.Quest != null && combat.Quest.progress.Outcome == EncounterOutcome.Purified
-                ? "결말 · 자비로운 해결사\n저주가 풀리고, 도깨비는 선비에게 고개를 숙였다.\n선비는 다시 한양으로 발길을 옮겼다.\nR: 처음부터 다시 시작"
-                : "결말 · 토벌의 영웅\n도깨비는 쓰러지고, 마을에는 평온이 돌아왔다.\n선비는 다시 한양으로 발길을 옮겼다.\nR: 처음부터 다시 시작");
     }
 }

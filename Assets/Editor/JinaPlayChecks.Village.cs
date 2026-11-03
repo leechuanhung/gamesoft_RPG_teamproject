@@ -67,6 +67,39 @@ public static partial class JinaPlayChecks
         Check(!village.Alarmed && village.KeeperHome && keeper.enabled && keeper.color.a==1,"Restart resets the village");
     }
 
+    // After the elder falls, the villagers walk out to his body first, face him and grieve, then go home.
+    static void Mourning(JinaActorVisual elderVisual)
+    {
+        var village=combat.Village;
+        var keeper=village.Keeper; var peddler=village.Peddler;
+        var keeperVisual=keeper.art.GetComponent<KeeperVisual>(); var peddlerVisual=peddler.art.GetComponent<JinaActorVisual>();
+        boss.transform.position=new Vector3(PrototypeWorld.Elder.x+1.5f,boss.transform.position.y,0);
+        combat.Quest.progress.SacrificeElder(); combat.Quest.ShowElderDeath();
+        Set(combat.Quest,"<ElderStruckAt>k__BackingField",Time.time-5); elderVisual.Refresh();
+        Set(village,"<Alarmed>k__BackingField",true); Set(village,"<Cleared>k__BackingField",true);
+        foreach(var v in new[]{keeper,peddler})
+        {
+            v.state=PrototypeVillage.State.Returning;
+            v.art.enabled=true;
+            v.art.transform.position=new Vector3(v.mourn,v.art.transform.position.y,0);
+        }
+        village.SendMessage("Update");
+        Check(keeper.state==PrototypeVillage.State.Mourning && peddler.state==PrototypeVillage.State.Mourning,"Villagers stop by the fallen elder");
+        // Arriving together, the second speaks only once the first has finished.
+        var first=keeper.speakAt<=peddler.speakAt ? keeper : peddler; var second=first==keeper ? peddler : keeper;
+        Check(Mathf.Abs(second.speakAt-(first.speakAt+PrototypeVillage.MournLineLength))<.001f,"Mourners speak one after the other");
+        Check(!combat.Tavern.Near && !combat.Peddler.Near,"No trade while they mourn");
+        Set(keeperVisual,"last",keeper.art.transform.position); keeperVisual.Refresh();
+        Set(peddlerVisual,"last",peddler.art.transform.position); peddlerVisual.Refresh();
+        Check(keeper.art.flipX && Picture(peddlerVisual).flipX,"Mourners face the elder");
+        Capture("villagers-mourn",new Vector3(PrototypeWorld.Elder.x-2,1,-10),3);
+        foreach(var v in new[]{keeper,peddler}) { v.mournedAt=Time.time-PrototypeVillage.MournLength; v.speakAt=Time.time-PrototypeVillage.MournLineLength-1; }
+        village.SendMessage("Update");
+        Check(keeper.state==PrototypeVillage.State.Returning && peddler.state==PrototypeVillage.State.Returning,"After a while they head home");
+        combat.Restart();
+        Check(village.KeeperHome && village.PeddlerHome && keeper.mournedAt<0,"Restart resets the mourning");
+    }
+
     // Each villager turns to the player on either side while talking, and back to their usual way after.
     static void TalkFacing(JinaActorVisual elderVisual,JinaActorVisual peddlerVisual,KeeperVisual keeperVisual,SpriteRenderer keeper)
     {

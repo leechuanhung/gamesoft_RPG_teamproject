@@ -14,7 +14,7 @@ public static partial class JinaPlayChecks
         {
             Set(combat.Quest,"<ElderStruckAt>k__BackingField",Time.time-t); elderVisual.Refresh();
             Check(t<.45f ? body.sprite.name.Contains("elder_hit_0"+(t<.2f ? 0 : 1))
-                : body.sprite.name.EndsWith(t<ElderVisual.FallLength ? "elder_draw_00" : "elder_corpse"),"Elder hit frames, then the fall");
+                : body.sprite.name.EndsWith(t<ElderVisual.FallLength ? "elder_down" : "elder_corpse"),"Elder hit frames, then the fall");
             Check(t<ElderVisual.FallLength || (body.sprite.name.EndsWith("elder_corpse") && Mathf.Abs(body.transform.eulerAngles.z)<.01f && body.color==Color.gray),"Elder ends as the corpse drawing");
             Capture("elder-fall-"+t.ToString("0.0"),new Vector3(PrototypeWorld.Elder.x,1,-10),2.5f);
         }

@@ -7,6 +7,7 @@ public class ElderVisual : JinaActorVisual
     // He puts the sword away this long after the village is safe (the boss's own motion plays first).
     public const float SheatheDelay=1.8f;
     private Sprite[] hits,draws;
+    private Sprite down;
     private SpriteRenderer sword,cane;
     // The body keeps the direction he faced when struck, whoever moves or reads his note (0 while alive).
     private int deadFacing;
@@ -15,6 +16,7 @@ public class ElderVisual : JinaActorVisual
     {
         hits=JinaArt.Frames("08_Village_Elder/elder_hit_",2);
         draws=JinaArt.Frames("08_Village_Elder/elder_draw_",2);
+        down=JinaArt.Load("08_Village_Elder/elder_down");
         // He is drawn tipped over; rotating under the non-uniformly scaled marker would shear him flat.
         picture.transform.SetParent(null,false);
         sword=Prop("노인의 환도","04_Weapons/hwando",4);
@@ -54,14 +56,14 @@ public class ElderVisual : JinaActorVisual
         Hold(cane,Cane(f.feet),-90*fall*fall);
     }
 
-    // Flash and reel back, knees give way, then he tips a quarter turn about his feet, rising as he goes so his
-    // back lands on the ground, and lies as the corpse drawing (the same body, already turned).
+    // Flash and reel back, knees give way, then he tips a quarter turn about his feet (his hat sliding down over
+    // his face), rising as he goes so his back lands on the ground, and lies as the corpse drawing (the same, turned).
     void Fall(ref Frame f,float t,bool hadSword)
     {
         var feet=f.feet;
         var corpse=JinaArt.Load("08_Village_Elder/elder_corpse");
         float rest=corpse.pivot.y/corpse.pixelsPerUnit;
-        f.sprite=draws[0]; f.tint=Color.gray;
+        f.sprite=down; f.tint=Color.gray;
         if(t<.45f) { f.sprite=hits[t<.2f ? 0 : 1]; f.tint=Color.white; f.flash=t<.2f ? .9f*(1-t/.2f) : 0; }
         else if(t<FallLength)
         {
