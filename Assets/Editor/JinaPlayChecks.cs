@@ -41,6 +41,7 @@ public static class JinaPlayChecks
                 foreach(string p in new[]{JinaArt.Player,JinaArt.Boss,JinaArt.Purified,JinaArt.Ghost,JinaArt.Elder,JinaArt.Peddler,"04_Weapons/arrow","04_Weapons/bow","04_Weapons/hwando"}) Check(JinaArt.Load(p)!=null,"Load "+p);
                 foreach(string prefix in new[]{"02_Player_Attack_Sword/sword_attack_","03_Player_Attack_Bow/bow_attack_","05_Boss_Brainwashed/boss_attack_","09_Player_Jump/jump_","10_Player_Walk/player_walk_","11_Player_Run/player_run_","05_Boss_Brainwashed/boss_walk_"}) Check(JinaArt.Frames(prefix).Length==4,"Animation frames");
                 Capture("village",new Vector3(-1,1,-10),3);
+                Capture("elder-peddler",new Vector3(PrototypeWorld.Elder.x-2,1,-10),3);
                 Check(combat.Peddler!=null && combat.Arrows==ShopRules.MaxArrows,"Peddler placed and quiver full");
                 Capture("tavern-peddler",new Vector3(PrototypeWorld.Peddler.x-3,1,-10),3);
                 Capture("props-village",new Vector3(8,1.8f,-10),5);
@@ -130,6 +131,19 @@ public static class JinaPlayChecks
                 Set(combat,"windupUntil",Time.time+.2f);
                 boss.GetComponent<JinaActorVisual>().Refresh();
                 Capture("boss-windup",new Vector3(boss.transform.position.x,1,-10),3);
+                Set(combat,"windupUntil",-1f); Set(combat,"bossRecoveryUntil",0f);
+                Set(combat,"<EnemyHealth>k__BackingField",0);
+                float[] deathTimes={.1f,.3f,.8f,1.2f,1.5f};
+                for(int i=0;i<5;i++)
+                {
+                    Set(combat,"<BossDownAt>k__BackingField",Time.time-deathTimes[i]); bossVisual.Refresh();
+                    Check(Field<SpriteRenderer>(bossVisual,"picture").sprite.name.EndsWith("boss_death_0"+i),"Boss death frame "+i);
+                    Capture("boss-death-"+i,new Vector3(boss.transform.position.x,1,-10),3);
+                }
+                Set(combat,"<BossDownAt>k__BackingField",Time.time-JinaActorVisual.BossDeathLength); bossVisual.Refresh();
+                Check(boss.enabled && !Field<SpriteRenderer>(bossVisual,"picture").enabled,"Boss vanishes after the death motion");
+                Set(combat,"<EnemyHealth>k__BackingField",30); Set(combat,"<BossDownAt>k__BackingField",-1f); bossVisual.Refresh();
+                Check(Field<SpriteRenderer>(bossVisual,"picture").enabled,"Boss visible again while alive");
                 combat.Quest.progress.HearClue(); combat.Quest.progress.ChooseSymbol(2); combat.Quest.progress.ChooseSymbol(1); combat.Quest.progress.ChooseSymbol(3);
                 Set(combat.Quest,"charmReveal",0f);
                 Check(combat.Quest.RevealingCharm,"Charm reveal plays");
@@ -143,6 +157,16 @@ public static class JinaPlayChecks
                 typeof(PrototypeCombat).GetMethod("DamageEnemy",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(combat,new object[]{5});
                 Check(combat.EnemyHealth==30,"Purified boss ignores damage");
                 Check(!combat.TryPurifyBoss() && combat.Quest.progress.Honor==30,"No duplicate reward");
+                foreach(float t in new[]{.3f,.65f,.8f,1.2f})
+                {
+                    Set(combat,"<PurifiedAt>k__BackingField",Time.time-t); bossVisual.Refresh();
+                    Check(Field<SpriteRenderer>(bossVisual,"picture").sprite.name==(t<.7f ? JinaArt.Boss : JinaArt.Purified),"Purify motion swaps the form at its flash");
+                    Check(Field<SpriteRenderer>(bossVisual,"glow").enabled,"Purify flash shows");
+                    Check(Field<SpriteRenderer>(bossVisual,"charm").enabled==(t<.9f),"Charm shows while the curse lifts");
+                    Capture("purify-"+t.ToString("0.00"),new Vector3(boss.transform.position.x,1,-10),3);
+                }
+                Set(combat,"<PurifiedAt>k__BackingField",Time.time-JinaActorVisual.PurifyLength); bossVisual.Refresh();
+                Check(!Field<SpriteRenderer>(bossVisual,"glow").enabled && !Field<SpriteRenderer>(bossVisual,"charm").enabled,"Purify motion ends cleanly");
                 Capture("purified",new Vector3(.5f,1,-10),3);
                 stage=2; due=EditorApplication.timeSinceStartup+1.2;
             }
@@ -150,11 +174,23 @@ public static class JinaPlayChecks
             {
                 Check(combat.PlayerHealth==hp && !combat.Quest.progress.ElderDead,"Purified boss never harms player or elder");
                 combat.Restart();
+                var elderVisual=GameObject.Find("Village Elder").GetComponent<JinaActorVisual>();
+                combat.Quest.progress.SacrificeElder(); combat.Quest.ShowElderDeath();
+                foreach(float t in new[]{.1f,.3f,.6f,.8f,1f})
+                {
+                    Set(combat.Quest,"<ElderStruckAt>k__BackingField",Time.time-t); elderVisual.Refresh();
+                    var pic=Field<SpriteRenderer>(elderVisual,"picture");
+                    Check(t<.45f ? pic.sprite.name.Contains("elder_hit_0"+(t<.2f ? 0 : 1)) : pic.sprite.name==JinaArt.Elder,"Elder hit frames, then the fall");
+                    Check(t<JinaActorVisual.ElderFallLength || (Mathf.Abs(pic.transform.eulerAngles.z-80)<.01f && pic.color==Color.gray),"Elder ends in the fallen pose");
+                    Capture("elder-fall-"+t.ToString("0.0"),new Vector3(PrototypeWorld.Elder.x,1,-10),2.5f);
+                }
+                combat.Restart();
+                Check(!combat.Quest.progress.ElderDead,"Restart revives the elder");
                 Check(!combat.BossPurified && !combat.EnemyDefeated && combat.EnemyHealth==30,"Restart restores hostile boss");
                 Check(combat.Quest.progress.Honor==0,"Restart resets honor");
                 combat.AddArrows(-5); Check(combat.Arrows==15,"Arrows spent");
                 combat.Restart(); Check(combat.Arrows==ShopRules.MaxArrows,"Restart refills quiver");
-                Debug.Log("JINA_PLAY_CHECKS_PASSED: v6 assets, attack/jump/walk frames, movement/idle transitions, purification visibility, immunity, no damage, reset");
+                Debug.Log("JINA_PLAY_CHECKS_PASSED: v6 assets, attack/jump/walk frames, boss death, purify and elder fall motions, movement/idle transitions, purification visibility, immunity, no damage, reset");
                 SessionState.SetBool(Key,false); EditorApplication.Exit(0);
             }
         }

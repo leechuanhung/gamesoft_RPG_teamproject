@@ -6,6 +6,7 @@ public class PrototypeQuest : MonoBehaviour
     public PrototypeCombat combat;
     public readonly QuestProgress progress = new QuestProgress();
     public bool IsDialogOpen { get; private set; }
+    public float ElderStruckAt { get; private set; } = -1;
     private bool shrineDialog;
     private string message = "";
     private SpriteRenderer villager;
@@ -37,6 +38,7 @@ public class PrototypeQuest : MonoBehaviour
         IsDialogOpen = false;
         charmReveal = -1;
         message = "";
+        ElderStruckAt = -1;
         if (Player != null) Player.CanMove = true;
         if (villager != null)
         {
@@ -48,6 +50,7 @@ public class PrototypeQuest : MonoBehaviour
     public void ShowElderDeath()
     {
         if (villager == null) return;
+        ElderStruckAt = Time.time;
         villager.color = Color.gray;
         villager.transform.localScale = new Vector3(1.4f, .35f, 1);
         villager.transform.position = new Vector3(PrototypeWorld.Elder.x, -.3f, 0);

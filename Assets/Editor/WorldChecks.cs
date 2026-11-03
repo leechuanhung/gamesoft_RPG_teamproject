@@ -15,6 +15,8 @@ public static class WorldChecks
             Require(Physics2D.Raycast(new Vector2(x, 0), Vector2.down, 1, 1 << 8).collider != null, "Missing floor at " + x);
         Require(PrototypeWorld.Spawn.x > PrototypeWorld.VillageLeft && PrototypeWorld.Spawn.x < PrototypeWorld.ForestStart, "Spawn must be in village");
         Require(PrototypeWorld.Stone.x < PrototypeWorld.VillageLeft, "Puzzle must be in west");
+        Require(PrototypeWorld.Elder.x > PrototypeWorld.Peddler.x && PrototypeWorld.Elder.x < PrototypeWorld.ForestStart - 6, "Elder stands east of the peddler, inside the village");
+        Require(PrototypeWorld.Elder.x - PrototypeWorld.Peddler.x > 3.6f, "Elder and peddler talk ranges do not overlap");
         var enemy = new Vector2(PrototypeWorld.EnemyHome, .7f);
         Require(PrototypeWorld.CanDetect(new Vector2(PrototypeWorld.ForestStart, .2f), enemy), "Detect at forest entrance");
         Require(!PrototypeWorld.CanDetect(PrototypeWorld.Spawn, enemy), "Spawn must be safe");

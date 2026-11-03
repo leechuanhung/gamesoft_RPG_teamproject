@@ -27,16 +27,18 @@
   - `python Tools/ArtGen/make_props.py Assets/Resources/JinaV4/13_Props`
   - `python Tools/ArtGen/make_peddler.py Assets/Resources/JinaV4/12_Peddler/peddler_idle.png`
   - `python Tools/ArtGen/make_run.py Assets/Resources/JinaV4/10_Player_Walk Assets/Resources/JinaV4/11_Player_Run`
+  - `python Tools/ArtGen/make_deaths.py Assets/Resources/JinaV4` (보스 죽음, 노인 피격)
 - 결과를 확인할 때는 확대 미리보기(`--preview`)나 기존 캐릭터와 나란히 놓은 비교 시트를 scratchpad에 만들어 본다.
 - 텍스처 임포트 설정(Point, 무압축, Readable)은 `Assets/Editor/JinaTextureImport.cs`가 `Resources/JinaV4/` 아래에 자동 적용한다.
 
 ## 보스 관련 현재 상태 (다음 작업 참고)
 
-- 보스 프레임: `05_Boss_Brainwashed/boss_brainwashed_idle`, `boss_walk_00~03`, `boss_attack_00~03`. 정화 후 모습: `06_Boss_Purified/boss_purified_idle`.
-- `JinaActorVisual.Refresh`가 대기·걷기·공격 프레임을 고르고, `PrototypeCombat.BossAttackFrame`이 공격 단계를 정한다.
-- 토벌: `DamageEnemy`에서 체력이 0이 되면 `enemy.enabled=false`로 바로 사라진다(죽는 모션 없음).
-- 정화: `TryPurifyBoss`에서 바로 정화 모습으로 바뀐다(전환 연출 없음).
-- 노인 사망: 보스 공격이 맞으면 `Quest.ShowElderDeath()`가 실행되고, 노인 그림이 80° 기울어진 회색으로 바뀐다.
+- 보스 프레임: `05_Boss_Brainwashed/boss_brainwashed_idle`, `boss_walk_00~03`, `boss_attack_00~03`, `boss_death_00~04`. 정화 후 모습: `06_Boss_Purified/boss_purified_idle`. 노인 피격: `08_Village_Elder/elder_hit_00~01`.
+- `JinaActorVisual.Refresh`가 대기·걷기·공격·죽음 프레임을 고르고, `PrototypeCombat.BossAttackFrame`이 공격 단계를 정한다.
+- 연출은 시작 시각으로 재생한다: 토벌 `PrototypeCombat.BossDownAt`, 정화 `PurifiedAt`, 노인 사망 `PrototypeQuest.ElderStruckAt`. 길이는 `JinaActorVisual`의 상수다.
+- 토벌: `DamageEnemy`에서 체력이 0이 되면 `enemy`는 켜진 채로 두고, 죽는 모션이 끝나면 그림만 숨긴다.
+- 노인 그림은 기울여 그리므로 크기가 비균일한 표식의 자식으로 두지 않는다(두면 찌그러진다). 노인 위치는 보부상 오른쪽(`PrototypeWorld.Elder`).
+- 노인을 칠 때는 화면이 흔들리고(`PrototypeView.Shake`) 공격 후 경직이 길다.
 
 ## 검사
 

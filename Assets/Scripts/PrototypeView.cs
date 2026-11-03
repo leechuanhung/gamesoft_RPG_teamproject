@@ -3,6 +3,8 @@ using UnityEngine;
 public class PrototypeView : MonoBehaviour
 {
     public Transform target;
+    static float shakeUntil, shakeLength, shakeAmount;
+    public static void Shake(float amount, float length) { shakeAmount = amount; shakeLength = length; shakeUntil = Time.time + length; }
     void Start()
     {
         if (target != null && FindObjectOfType<PrototypeCombat>() == null)
@@ -17,7 +19,10 @@ public class PrototypeView : MonoBehaviour
     void LateUpdate()
     {
         if (target != null)
-            transform.position = new Vector3(Mathf.Clamp(target.position.x, -60f, 54f), 2f, -10f);
+        {
+            float shake = Time.time < shakeUntil ? Mathf.Sin(Time.time * 80) * shakeAmount * (shakeUntil - Time.time) / shakeLength : 0;
+            transform.position = new Vector3(Mathf.Clamp(target.position.x, -60f, 54f) + shake, 2f, -10f);
+        }
     }
 
     void OnGUI()

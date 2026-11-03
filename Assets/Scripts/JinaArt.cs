@@ -30,6 +30,9 @@ public static class JinaArt
             else if(path.Contains("boss_attack")) { anchor=new Vector2(260,b); ppu=480f/2.6f; }
             else ppu=586f/2.6f;
         }
+        // Death and hit frames are cut from the idle art on its own canvas, so they keep the idle's scale and feet line.
+        else if(path.Contains("boss_death")) { var idle=Load(Boss); rect=new Rect(0,0,t.width,t.height); anchor=new Vector2(351,8); ppu=idle.pixelsPerUnit; }
+        else if(path.Contains("elder_hit")) { var idle=Load(Elder); rect=new Rect(0,0,t.width,t.height); anchor=new Vector2(600,idle.rect.y); ppu=idle.pixelsPerUnit; }
         else if(path==Boss || path==Purified) { anchor.x=rect.center.x; ppu=rect.height/2.6f; }
         else if(path==Ghost) { anchor.x=650; ppu=rect.height/1.65f; }
         else if(path==Elder) { anchor.x=600; ppu=rect.height/1.8f; }
@@ -56,9 +59,32 @@ public static class JinaArt
         result.name=path;
         cache[path]=result; return result;
     }
-    public static Sprite[] Frames(string prefix)
+    public static Sprite[] Frames(string prefix,int count=4)
     {
-        var frames=new Sprite[4]; for(int i=0;i<4;i++) frames[i]=Load(prefix+i.ToString("00")); return frames;
+        var frames=new Sprite[count]; for(int i=0;i<count;i++) frames[i]=Load(prefix+i.ToString("00")); return frames;
+    }
+    // A white copy of a sprite (same rect, pivot and scale) laid over it for flashes.
+    public static Sprite Silhouette(Sprite sprite)
+    {
+        string path="white:"+sprite.name; Sprite result;
+        if(cache.TryGetValue(path,out result) && result!=null) return result;
+        var t=new Texture2D(sprite.texture.width,sprite.texture.height,TextureFormat.RGBA32,false){filterMode=FilterMode.Point};
+        var pixels=sprite.texture.GetPixels32();
+        for(int i=0;i<pixels.Length;i++) pixels[i]=new Color32(255,255,255,pixels[i].a);
+        t.SetPixels32(pixels); t.Apply();
+        result=Sprite.Create(t,sprite.rect,new Vector2(sprite.pivot.x/sprite.rect.width,sprite.pivot.y/sprite.rect.height),sprite.pixelsPerUnit,0,SpriteMeshType.FullRect);
+        result.name=path;
+        cache[path]=result; return result;
+    }
+    // One square effect dot, two character art pixels wide (the size of the boss's crumbling chunks).
+    public const float DotSize=2*12f/(546f/1.9f);
+    public static Sprite Dot()
+    {
+        Sprite result;
+        if(cache.TryGetValue("dot",out result) && result!=null) return result;
+        var t=Texture2D.whiteTexture;
+        result=Sprite.Create(t,new Rect(0,0,t.width,t.height),new Vector2(.5f,.5f),t.width/DotSize,0,SpriteMeshType.FullRect);
+        cache["dot"]=result; return result;
     }
     public static void Place(SpriteRenderer art,Vector3 feet,Transform parent,bool flip)
     {

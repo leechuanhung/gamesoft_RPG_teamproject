@@ -12,7 +12,8 @@ public class PrototypeWorld : MonoBehaviour
     public const float GoalX = 60f;
     public const float DetectionRange = 18f;
     public static readonly Vector2 Spawn = new Vector2(0, .3f);
-    public static readonly Vector2 Elder = new Vector2(-3, .2f);
+    // East of the peddler, so a boss coming into the village reaches the elder first.
+    public static readonly Vector2 Elder = new Vector2(21.5f, .2f);
     public static readonly Vector2 Tavern = new Vector2(10, .2f);
     public static readonly Vector2 Peddler = new Vector2(17.5f, .2f);
     public static readonly Vector2 Stone = new Vector2(-57, .5f);

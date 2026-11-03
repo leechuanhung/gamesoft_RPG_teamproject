@@ -12,6 +12,9 @@ public class PrototypeCombat : MonoBehaviour
     public bool BossPurified => Quest != null && Quest.progress.Outcome == EncounterOutcome.Purified;
     public bool EnemyDefeated => EnemyHealth <= 0 || BossPurified;
     public int BossFacing { get; private set; } = -1;
+    // Start times of the boss's death and purification motions (see JinaActorVisual).
+    public float BossDownAt { get; private set; } = -1;
+    public float PurifiedAt { get; private set; } = -1;
     private float bossRecoveryUntil;
     public int BossAttackFrame => EnemyDefeated ? -1 : windupUntil >= 0
         ? (windupUntil - Time.time > .3f ? 0 : 1)
@@ -95,6 +98,7 @@ public class PrototypeCombat : MonoBehaviour
         bossRecoveryUntil = 0;
         playerImpactAt = -1;
         BossFacing = -1;
+        BossDownAt = PurifiedAt = -1;
         playerArt.color = playerColor;
         player.Respawn();
         UsingBow = false;
@@ -193,18 +197,22 @@ public class PrototypeCombat : MonoBehaviour
             if (Time.time >= windupUntil)
             {
                 var strikeBounds = new Bounds(lockedStrike, new Vector3(1.7f, 1.5f, 1));
+                bool killedElder = false;
                 if (strikeElder && Quest != null && !Quest.progress.ElderDead
                     && Mathf.Abs(enemy.transform.position.x - PrototypeWorld.Elder.x) < 2f)
                 {
                     if (Quest.progress.SacrificeElder())
                     {
+                        // A heavier blow: the screen shakes and the club stays down on the impact frame.
+                        killedElder = true;
                         Quest.ShowElderDeath();
+                        PrototypeView.Shake(.12f, .4f);
                         DamageEnemy(10);
                     }
                 }
                 else if (!strikeElder && strikeBounds.Intersects(playerArt.bounds)) HurtPlayer();
                 windupUntil = -1;
-                bossRecoveryUntil = Time.time + .24f;
+                bossRecoveryUntil = Time.time + (killedElder ? .7f : .24f);
                 enemyReadyAt = Time.time + .9f;
             }
         }
@@ -227,6 +235,7 @@ public class PrototypeCombat : MonoBehaviour
     public bool TryPurifyBoss()
     {
         if (EnemyDefeated || Quest == null || !Quest.progress.Resolve(true)) return false;
+        PurifiedAt = Time.time;
         enemy.enabled = true;
         enemy.color = new Color(.8f,.2f,.25f);
         windupUntil = -1;
@@ -260,7 +269,8 @@ public class PrototypeCombat : MonoBehaviour
         alerted = true;
         hitFlashUntil = Time.time + .12f;
         if (!EnemyDefeated) return;
-        enemy.enabled = false;
+        // The renderer stays on while JinaActorVisual plays the death motion, then hides itself.
+        BossDownAt = Time.time;
         windupUntil = -1;
         if (Quest != null) Quest.progress.Resolve(false);
     }
