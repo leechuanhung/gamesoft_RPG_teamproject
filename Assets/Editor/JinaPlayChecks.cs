@@ -35,9 +35,17 @@ public static class JinaPlayChecks
             var boss=Field<SpriteRenderer>(combat,"enemy");
             if(stage==1)
             {
-                foreach(string p in new[]{JinaArt.Player,JinaArt.Boss,JinaArt.Purified,JinaArt.Ghost,JinaArt.Elder,"04_Weapons/arrow","04_Weapons/bow","04_Weapons/hwando"}) Check(JinaArt.Load(p)!=null,"Load "+p);
+                Check(combat.Intro!=null && combat.Intro.IsPlaying && combat.Paused && !combat.player.CanMove,"Intro plays first and holds the game");
+                combat.Intro.Skip();
+                Check(!combat.Intro.IsPlaying && !combat.Paused && combat.player.CanMove,"Skipping the intro hands control back");
+                foreach(string p in new[]{JinaArt.Player,JinaArt.Boss,JinaArt.Purified,JinaArt.Ghost,JinaArt.Elder,JinaArt.Peddler,"04_Weapons/arrow","04_Weapons/bow","04_Weapons/hwando"}) Check(JinaArt.Load(p)!=null,"Load "+p);
                 foreach(string prefix in new[]{"02_Player_Attack_Sword/sword_attack_","03_Player_Attack_Bow/bow_attack_","05_Boss_Brainwashed/boss_attack_","09_Player_Jump/jump_","10_Player_Walk/player_walk_","11_Player_Run/player_run_","05_Boss_Brainwashed/boss_walk_"}) Check(JinaArt.Frames(prefix).Length==4,"Animation frames");
                 Capture("village",new Vector3(-1,1,-10),3);
+                Check(combat.Peddler!=null && combat.Arrows==ShopRules.MaxArrows,"Peddler placed and quiver full");
+                Capture("tavern-peddler",new Vector3(PrototypeWorld.Peddler.x-3,1,-10),3);
+                Capture("props-village",new Vector3(8,1.8f,-10),5);
+                Capture("props-forest",new Vector3(42,2.6f,-10),5.5f);
+                Capture("props-stele",new Vector3(PrototypeWorld.Stone.x,1,-10),2.5f);
                 var visual=combat.player.GetComponent<SeonbiVisual>();
                 visual.ResetPose();
                 Set(combat.player,"<IsGrounded>k__BackingField",false);
@@ -123,6 +131,9 @@ public static class JinaPlayChecks
                 boss.GetComponent<JinaActorVisual>().Refresh();
                 Capture("boss-windup",new Vector3(boss.transform.position.x,1,-10),3);
                 combat.Quest.progress.HearClue(); combat.Quest.progress.ChooseSymbol(2); combat.Quest.progress.ChooseSymbol(1); combat.Quest.progress.ChooseSymbol(3);
+                Set(combat.Quest,"charmReveal",0f);
+                Check(combat.Quest.RevealingCharm,"Charm reveal plays");
+                Set(combat.Quest,"charmReveal",-1f);
                 visual.ResetPose(); visual.SendMessage("LateUpdate");
                 boss.transform.position=new Vector3(combat.player.transform.position.x+2.5f,boss.transform.position.y,0);
                 hp=combat.PlayerHealth;
@@ -141,6 +152,8 @@ public static class JinaPlayChecks
                 combat.Restart();
                 Check(!combat.BossPurified && !combat.EnemyDefeated && combat.EnemyHealth==30,"Restart restores hostile boss");
                 Check(combat.Quest.progress.Honor==0,"Restart resets honor");
+                combat.AddArrows(-5); Check(combat.Arrows==15,"Arrows spent");
+                combat.Restart(); Check(combat.Arrows==ShopRules.MaxArrows,"Restart refills quiver");
                 Debug.Log("JINA_PLAY_CHECKS_PASSED: v6 assets, attack/jump/walk frames, movement/idle transitions, purification visibility, immunity, no damage, reset");
                 SessionState.SetBool(Key,false); EditorApplication.Exit(0);
             }

@@ -33,6 +33,11 @@ public static class MoralityChecks
         Require(camp.Remaining == 0 && !gate.gameObject.activeSelf, "All defeated opens gate");
         camp.ResetCamp();
         Require(camp.Remaining == 3 && gate.gameObject.activeSelf, "Restart restores gate and monsters");
+        camp.Hit(camp.mobs[0], PrototypeCombat.SwordDamage);
+        Require(camp.mobs[0].hp == 1, "Sword deals 2");
+        camp.Hit(camp.mobs[0], PrototypeCombat.SwordDamage);
+        Require(camp.mobs[0].hp == 0 && camp.Remaining == 2, "Two sword hits fell a monster");
+        camp.ResetCamp();
         UnityEngine.Object.DestroyImmediate(camp.gameObject);
         WorldChecks.Run();
         Debug.Log("MORALITY_CHECKS_PASSED: four honor outcomes, duplicate prevention, reset and gate progression");

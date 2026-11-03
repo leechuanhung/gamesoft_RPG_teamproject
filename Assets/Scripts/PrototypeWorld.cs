@@ -14,6 +14,7 @@ public class PrototypeWorld : MonoBehaviour
     public static readonly Vector2 Spawn = new Vector2(0, .3f);
     public static readonly Vector2 Elder = new Vector2(-3, .2f);
     public static readonly Vector2 Tavern = new Vector2(10, .2f);
+    public static readonly Vector2 Peddler = new Vector2(17.5f, .2f);
     public static readonly Vector2 Stone = new Vector2(-57, .5f);
 
     public static string Area(float x) => x < GateX ? "옛 비석 터" : x < VillageLeft ? "일반 몬스터 지역" : x >= ForestStart ? "보스 지역" : "리스폰 마을";
@@ -38,19 +39,25 @@ public class PrototypeWorld : MonoBehaviour
         Tile("왼쪽 끝", -70.5f, 3, 1, 8, new Color(.3f,.3f,.38f), sprite, true);
         Tile("오른쪽 끝", 64.5f, 3, 1, 8, new Color(.18f,.3f,.23f), sprite, true);
         Tile("한양으로 가는 길", GoalX, 1, .4f, 3, new Color(1,.75f,.2f), sprite, false);
-        for (int i = 0; i < 5; i++)
-        {
-            Tile("숲 나무", 32 + i * 6, 2, .6f, 5, new Color(.15f,.25f,.21f), sprite, false, -10);
-            Tile("숲 수관", 32 + i * 6, 4.2f, 3.5f, 2.5f, new Color(.13f,.3f,.23f), sprite, false, -9);
-        }
-        Tile("마을 집", 5, 1, 4, 3, new Color(.4f,.35f,.3f), sprite, false, -10);
-        Tile("마을 지붕", 5, 2.7f, 5, .6f, new Color(.22f,.24f,.28f), sprite, false, -9);
-        Tile("주막 건물", 11, 1.3f, 6, 3.6f, new Color(.6f,.42f,.25f), sprite, false, -8);
-        Tile("주막 초가지붕", 11, 3.3f, 7, .8f, new Color(.7f,.58f,.29f), sprite, false, -7);
-        Tile("주막 문", 10, .6f, 1.4f, 2.2f, new Color(.24f,.17f,.12f), sprite, false, -6);
-        Tile("주막 주인", Tavern.x, .2f, .75f, 1.4f, new Color(.92f,.7f,.4f), sprite, false, 1);
-        Tile("주막 평상", 14, -.2f, 2, .6f, new Color(.45f,.28f,.16f), sprite, false, -5);
-        Tile("비석 받침", Stone.x, -.25f, 2.4f, .5f, new Color(.5f,.49f,.57f), sprite, false);
+        for (int i = 0; i < 5; i++) Prop("숲 소나무", "pine", 32 + i * 6, -10, i % 2 == 1);
+        Prop("마을 기와집", "house", 4.5f, -10);
+        // The tavern door sits about one unit left of the building's centre, behind the keeper.
+        Prop("주막", "tavern", 11, -8);
+        Prop("주막 주모", "keeper", Tavern.x, 1);
+        Prop("주막 평상", "bench", 14, -5);
+        Prop("거북 받침 비석", "stele", Stone.x, 0);
+    }
+
+    // Pixel-art props stand on the ground surface (y = -0.5).
+    void Prop(string label, string art, float x, int order, bool flip = false)
+    {
+        var prop = new GameObject(label);
+        prop.transform.SetParent(transform);
+        prop.transform.position = new Vector3(x, -.5f, 0);
+        var image = prop.AddComponent<SpriteRenderer>();
+        image.sprite = JinaArt.Prop(art);
+        image.sortingOrder = order;
+        image.flipX = flip;
     }
 
     void Tile(string label, float x, float y, float width, float height, Color color, Sprite sprite, bool solid, int order = 0)

@@ -7,6 +7,7 @@ public class PrototypeCombat : MonoBehaviour
     public PrototypePlayer player;
     public int PlayerHealth { get; private set; } = 5;
     public const int EnemyMaxHealth = 30;
+    public const int SwordDamage = 2, ArrowDamage = 1;
     public int EnemyHealth { get; private set; } = EnemyMaxHealth;
     public bool BossPurified => Quest != null && Quest.progress.Outcome == EncounterOutcome.Purified;
     public bool EnemyDefeated => EnemyHealth <= 0 || BossPurified;
@@ -33,7 +34,12 @@ public class PrototypeCombat : MonoBehaviour
     private bool strikeElder;
     public PrototypeCamp Camp { get; private set; }
     public PrototypeTavern Tavern { get; private set; }
-    public bool Paused => (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen);
+    public PrototypePeddler Peddler { get; private set; }
+    public int Arrows { get; private set; } = ShopRules.MaxArrows;
+    private float noArrowsUntil;
+    public void AddArrows(int amount) { Arrows = Mathf.Clamp(Arrows + amount, 0, ShopRules.MaxArrows); }
+    public PrototypeIntro Intro { get; private set; }
+    public bool Paused => (Intro != null && Intro.IsPlaying) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen);
     public void RestoreHealth(int amount) { if (PlayerHealth > 0) PlayerHealth = Mathf.Clamp(PlayerHealth + amount, 1, 5); }
     private class FlyingArrow
     {
@@ -57,8 +63,12 @@ public class PrototypeCombat : MonoBehaviour
         Camp.Initialize(this, playerArt.sprite);
         Tavern = gameObject.AddComponent<PrototypeTavern>();
         Tavern.combat = this;
+        Peddler = gameObject.AddComponent<PrototypePeddler>();
+        Peddler.combat = this;
         playerVisual = SeonbiVisual.Attach(player, this);
         Restart();
+        Intro = gameObject.AddComponent<PrototypeIntro>();
+        Intro.combat = this;
     }
 
     SpriteRenderer MakeSprite(string label, Vector2 size, Color color)
@@ -88,18 +98,23 @@ public class PrototypeCombat : MonoBehaviour
         playerArt.color = playerColor;
         player.Respawn();
         UsingBow = false;
+        Arrows = ShopRules.MaxArrows;
+        noArrowsUntil = 0;
         alerted = false;
         strikeElder = false;
         if (Camp != null) Camp.ResetCamp();
         ClearArrows();
         if (Quest != null) Quest.ResetQuest();
         if (Tavern != null) Tavern.ResetShop();
+        if (Peddler != null) Peddler.ResetShop();
         if (playerVisual != null) playerVisual.ResetPose();
     }
 
     void Update()
     {
         if (player == null || enemy == null) return;
+        // The intro plays once per launch; R does not replay or interrupt it.
+        if (Intro != null && Intro.IsPlaying) return;
         if (Input.GetKeyDown(KeyCode.R)) Restart();
         if (PlayerHealth <= 0) return;
         if (Paused)
@@ -119,7 +134,9 @@ public class PrototypeCombat : MonoBehaviour
             // State and appearance are updated together by TryPurifyBoss.
         }
 
-        if (Input.GetKeyDown(KeyCode.J) && Time.time >= nextAttack)
+        if (Input.GetKeyDown(KeyCode.J) && Time.time >= nextAttack && UsingBow && Arrows <= 0)
+            noArrowsUntil = Time.time + 1.5f;
+        else if (Input.GetKeyDown(KeyCode.J) && Time.time >= nextAttack)
         {
             nextAttack = Time.time + (UsingBow ? .65f : .4f);
             attackFacing = player.Facing;
@@ -132,6 +149,8 @@ public class PrototypeCombat : MonoBehaviour
             playerImpactAt = -1;
             if (pendingBow)
             {
+                // Spent on release, so a shot cancelled by a dialog keeps its arrow.
+                Arrows--;
                 slashUntil = 0;
                 var arrow = MakeSprite("Arrow", new Vector2(.55f, .1f), new Color(1f,.85f,.35f));
                 arrow.sprite = JinaArt.Load("04_Weapons/arrow");
@@ -149,7 +168,7 @@ public class PrototypeCombat : MonoBehaviour
                 slashUntil = Time.time + .13f;
                 Vector2 center = (Vector2)player.transform.position + Vector2.right * attackFacing * .95f;
                 var attackBounds = new Bounds(center, new Vector3(1.35f, .9f, 1));
-                if (!EnemyDefeated && attackBounds.Intersects(enemy.bounds)) DamageEnemy();
+                if (!EnemyDefeated && attackBounds.Intersects(enemy.bounds)) DamageEnemy(SwordDamage);
                 if (Camp != null) Camp.Slash(attackBounds);
             }
         }
@@ -267,7 +286,7 @@ public class PrototypeCombat : MonoBehaviour
                     if (distance < enemyDistance) { enemyDistance = distance; mob = candidate; }
                 }
             bool hitsEnemy = enemyDistance <= step && (wall.collider == null || enemyDistance < wall.distance);
-            if (hitsEnemy) { if (mob != null) Camp.Hit(mob); else DamageEnemy(); }
+            if (hitsEnemy) { if (mob != null) Camp.Hit(mob, ArrowDamage); else DamageEnemy(ArrowDamage); }
             arrow.remaining -= step;
             if (hitsEnemy || wall.collider != null || arrow.remaining <= 0)
             {
@@ -304,6 +323,8 @@ public class PrototypeCombat : MonoBehaviour
                 ? "저주를 풀었습니다. 오른쪽 금빛 표식으로 향하세요."
                 : "도깨비를 물리쳤습니다. 오른쪽 금빛 표식으로 향하세요.")
             : "주황빛은 공격의 전조입니다. 물러나거나 뛰어 피하세요.");
+        if (Time.time < noArrowsUntil && PlayerHealth > 0)
+            GUI.Box(new Rect(Screen.width / 2f - 220, 280, 440, 35), "화살이 떨어졌습니다. 주막 옆 보부상에게서 사세요.");
         if (PlayerHealth <= 0)
             GUI.Box(new Rect(Screen.width / 2f - 130, 280, 260, 60), "선비가 쓰러졌습니다.\nR: 처음부터 다시 시작");
     }

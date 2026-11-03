@@ -50,16 +50,16 @@ public class PrototypeCamp : MonoBehaviour
         }
         if (gate != null) gate.SetActive(true);
     }
-    public void Hit(Mob m)
+    public void Hit(Mob m, int damage = 1)
     {
         if (m == null || m.hp <= 0) return;
-        m.hp--;
+        m.hp = Mathf.Max(0, m.hp - damage);
         if (m.hp == 0) { m.art.enabled = false; m.windup = -1; }
         if (Remaining == 0) gate.SetActive(false);
     }
     public void Slash(Bounds bounds)
     {
-        foreach (var m in mobs) if (m.hp > 0 && bounds.Intersects(m.art.bounds)) Hit(m);
+        foreach (var m in mobs) if (m.hp > 0 && bounds.Intersects(m.art.bounds)) Hit(m, PrototypeCombat.SwordDamage);
     }
     void Update()
     {

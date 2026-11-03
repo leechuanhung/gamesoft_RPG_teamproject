@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 public static class JinaArt
 {
-    public const string Player="01_Player/player_idle", Boss="05_Boss_Brainwashed/boss_brainwashed_idle", Purified="06_Boss_Purified/boss_purified_idle", Ghost="07_Ghost/ghost_guard_idle", Elder="08_Village_Elder/village_elder_idle";
+    public const string Player="01_Player/player_idle", Boss="05_Boss_Brainwashed/boss_brainwashed_idle", Purified="06_Boss_Purified/boss_purified_idle", Ghost="07_Ghost/ghost_guard_idle", Elder="08_Village_Elder/village_elder_idle", Peddler="12_Peddler/peddler_idle";
     // Match the v6 drawn bow (~440 px) and nocked arrow (312 px above feet).
     public const float BowHeight=440f/(510f/1.9f), BowArrowHeight=312f/(510f/1.9f);
     private static readonly Dictionary<string,Sprite> cache=new Dictionary<string,Sprite>();
@@ -33,12 +33,26 @@ public static class JinaArt
         else if(path==Boss || path==Purified) { anchor.x=rect.center.x; ppu=rect.height/2.6f; }
         else if(path==Ghost) { anchor.x=650; ppu=rect.height/1.65f; }
         else if(path==Elder) { anchor.x=600; ppu=rect.height/1.8f; }
+        // Feet sit under the peddler, not under the carrier frame on his back; pole tips add height.
+        else if(path==Peddler) { anchor.x=108; ppu=rect.height/1.95f; }
         else if(path.StartsWith("04_Weapons"))
         {
             anchor=rect.center; ppu=path.EndsWith("bow") ? rect.height/BowHeight : rect.width/(path.EndsWith("arrow") ? .7f : 1f);
             if(path.EndsWith("hwando")) anchor=new Vector2(95,95);
         }
         result=Sprite.Create(t,rect,new Vector2((anchor.x-rect.x)/rect.width,(anchor.y-rect.y)/rect.height),ppu,0,SpriteMeshType.FullRect);
+        result.name=path;
+        cache[path]=result; return result;
+    }
+    // Props are drawn one texel per art pixel; characters use ~12 px art pixels at 546 px per 1.9 units.
+    public const float PropPixelsPerUnit=546f/1.9f/12f;
+    public static Sprite Prop(string name)
+    {
+        string path="13_Props/"+name; Sprite result;
+        if(cache.TryGetValue(path,out result) && result!=null) return result;
+        var t=Resources.Load<Texture2D>("JinaV4/"+path);
+        if(t==null) throw new System.InvalidOperationException("Missing Jina asset: "+path);
+        result=Sprite.Create(t,new Rect(0,0,t.width,t.height),new Vector2(.5f,0),PropPixelsPerUnit,0,SpriteMeshType.FullRect);
         result.name=path;
         cache[path]=result; return result;
     }

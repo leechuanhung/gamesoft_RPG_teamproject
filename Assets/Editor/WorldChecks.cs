@@ -20,6 +20,9 @@ public static class WorldChecks
         Require(!PrototypeWorld.CanDetect(PrototypeWorld.Spawn, enemy), "Spawn must be safe");
         Require(!PrototypeWorld.CanDetect(new Vector2(11.9f, .2f), new Vector2(13.2f, .7f)), "Village boundary must remain safe even near enemy");
         Require(PrototypeCombat.EnemyMaxHealth == 30, "Health must be 30");
+        foreach (var prop in new[] { "주막", "주막 주모", "주막 평상", "마을 기와집", "거북 받침 비석", "숲 소나무" })
+            Require(GameObject.Find(prop) != null && GameObject.Find(prop).GetComponent<SpriteRenderer>().sprite != null, "Prop placed: " + prop);
+        Require(GameObject.Find("주막 건물") == null && GameObject.Find("숲 수관") == null, "Placeholder blocks replaced");
         ArrowChecks.Run();
         Debug.Log("WORLD_CHECKS_PASSED: continuous ground, area placement, detection and village safety");
     }
