@@ -7,7 +7,8 @@ public class PrototypeTavern : MonoBehaviour
     public readonly TavernWallet wallet = new TavernWallet();
     public bool IsOpen { get; private set; }
     private string message = "어서 오시오. 먼 길에 시장하실 터이니 한술 들고 가시오.";
-    public bool Near => combat != null && Vector2.Distance(combat.player.transform.position, PrototypeWorld.Tavern) < 2.2f;
+    public bool Near => combat != null && (combat.Village == null || combat.Village.KeeperHome)
+        && Vector2.Distance(combat.player.transform.position, PrototypeWorld.Tavern) < 2.2f;
     private QuestProgress Progress => combat != null && combat.Quest != null ? combat.Quest.progress : null;
     public void ResetShop()
     {

@@ -8,7 +8,9 @@ public class PrototypePeddler : MonoBehaviour
     public bool IsOpen { get; private set; }
     private string message = "";
     private SpriteRenderer marker;
-    public bool Near => combat != null && Vector2.Distance(combat.player.transform.position, PrototypeWorld.Peddler) < 1.8f;
+    public bool Near => combat != null && (combat.Village == null || combat.Village.PeddlerHome)
+        && Vector2.Distance(combat.player.transform.position, PrototypeWorld.Peddler) < 1.8f;
+    public SpriteRenderer Marker => marker;
     private QuestProgress Progress => combat.Quest != null ? combat.Quest.progress : null;
     private TavernWallet Wallet => combat.Tavern.wallet;
 

@@ -1,10 +1,12 @@
 # Usage: python make_peddler.py Assets/Resources/JinaV4/12_Peddler/peddler_idle.png
 # Draws the bobusang (peddler) on a logical pixel grid in the Jina sprite palette, then scales up.
 # Each part is a set of row spans with its own black outline, drawn back to front.
+# Also writes peddler_run_00..03 beside the idle: legs spread or pass under the knee, and the body bobs a block.
 import sys
 from PIL import Image
 import numpy as np
-COLS, ROWS, BLOCK, OX, OY = 30, 47, 12, 2, 1
+COLS, ROWS, BLOCK, OX = 30, 47, 12, 2
+OY = 1
 K = (11, 9, 11)
 PAL = {
     'skin': (249, 196, 140), 'skin2': (226, 163, 109),
@@ -17,7 +19,15 @@ PAL = {
     'navy': (49, 49, 70), 'wood': (122, 82, 50), 'wood2': (92, 60, 36),
     'cloth': (64, 84, 132), 'cloth2': (46, 60, 100), 'rope': (214, 178, 106), 'k': K,
 }
-grid = np.zeros((ROWS, COLS, 3), np.uint8); filled = np.zeros((ROWS, COLS), bool)
+SPREAD = 0  # run frames: blocks the front (left) leg moves forward and the back leg moves back at the feet
+def leg(spans):
+    """Below the knee (row 34) the two legs part: segments left of column 9 go forward, the rest go back."""
+    out = {}
+    for y, segs in spans.items():
+        amt = int(round(SPREAD * (y - 33) / 8)) if y >= 34 else 0
+        out[y] = [(x0 - amt, x1 - amt) if x1 < 9 else (x0 + amt, x1 + amt) if x0 > 9 else (x0, x1)
+                  for x0, x1 in (segs if isinstance(segs, list) else [segs])]
+    return out
 def mask(spans):
     m = np.zeros((ROWS, COLS), bool)
     for y, segs in spans.items():
@@ -36,50 +46,62 @@ def layer(spans, color):
 def paint(spans, color):
     m = mask(spans); grid[m] = PAL[color]; filled[m] = True
 
-# A-frame carrier (jige): poles reach the ground behind the heels, tips show above the load
-layer(join(rect(15, 1, 15, 43), rect(22, 1, 22, 43), rect(15, 29, 22, 29), rect(15, 36, 22, 36)), 'wood')
-paint(join(rect(15, 30, 15, 43), rect(22, 30, 22, 43)), 'wood2')
-# cloth-wrapped load roped onto the carrier
-load = join({3: (16, 21), 4: (15, 23), 22: (15, 23), 23: (16, 21)}, rect(14, 5, 24, 21))
-layer(load, 'cloth')
-paint(join({4: (21, 23), 22: (21, 23)}, rect(22, 5, 24, 21)), 'cloth2')
-paint(join(rect(14, 12, 24, 12), rect(19, 3, 19, 23)), 'rope')
-paint(rect(18, 11, 20, 13), 'straw2')
-# baggy trousers gathered into leg wraps (haengjeon), straw sandals
-layer({30: (5, 14), 31: (5, 14), 32: (4, 14), 33: (4, 14), 34: [(4, 8), (10, 14)], 35: [(5, 8), (10, 13)], 36: [(5, 8), (10, 13)]}, 'pants')
-paint(join(rect(13, 30, 14, 34), rect(12, 35, 13, 36), rect(8, 32, 8, 36)), 'pants2')
-layer(join(rect(5, 37, 8, 39), rect(10, 37, 13, 39)), 'wrap')
-paint(join(rect(5, 38, 8, 38), rect(10, 38, 13, 38), rect(13, 37, 13, 39), rect(8, 37, 8, 39)), 'wrap2')
-layer({40: [(4, 7), (10, 13)], 41: [(2, 7), (10, 14)]}, 'shoe')
-paint({41: [(2, 7), (10, 14)]}, 'shoe2')
-# short jacket (jeogori) with white collar, sash, and the carrier strap over the shoulder
-layer(join({16: (6, 11), 17: (5, 12), 18: (4, 13)}, rect(4, 19, 14, 25), rect(3, 26, 14, 28), {29: (4, 14)}), 'jacket')
-paint(join(rect(12, 18, 14, 29), {17: (12, 12)}), 'jacket2')
-paint({16: (7, 7), 17: (7, 8), 18: (8, 8), 19: (8, 9), 20: (9, 9), 21: (9, 10)}, 'cotton')
-paint(join({22: (8, 9), 23: (7, 8), 24: (7, 7)}), 'jacket2')
-paint(rect(3, 27, 14, 28), 'navy')
-paint(rect(11, 17, 11, 26), 'wood')
-# front arm hanging in a wide sleeve, hand below the cuff
-layer(join({18: (3, 5), 19: (2, 6)}, rect(2, 20, 6, 23), {24: (1, 6), 25: (1, 6)}), 'jacket')
-paint(join(rect(5, 19, 6, 25)), 'jacket2')
-paint({25: (1, 6)}, 'cotton')
-layer({26: (2, 4), 27: (2, 4)}, 'skin')
-paint({27: (4, 4), 26: (4, 4)}, 'skin2')
-# head facing left: hair at the back, eye, short beard along the jaw
-layer(join({8: (4, 10)}, rect(3, 9, 10, 13), {14: (4, 10), 11: (2, 10)}), 'skin')
-paint(join(rect(9, 8, 10, 13), {9: (11, 11)}), 'k')
-paint(rect(9, 10, 9, 11), 'skin2')
-paint(rect(4, 10, 4, 11), 'k')
-paint(join({13: (5, 6), 14: (5, 8), 15: (6, 7)}), 'k')
-paint({12: (3, 4)}, 'skin2')
-# paeraengi bamboo hat with the bobusang cotton tufts at both brim ends
-layer(join({3: (5, 9)}, rect(4, 4, 10, 5), {6: (1, 13), 7: (0, 14)}), 'straw')
-paint(join({5: (4, 10), 7: (0, 14)}), 'straw2')
-paint(join(rect(6, 3, 6, 4), rect(8, 3, 8, 4)), 'straw2')
-layer({8: (0, 2), 9: (0, 2), 10: (1, 1)}, 'cotton')
-layer({8: (12, 14), 9: (12, 14), 10: (13, 13)}, 'cotton')
-paint({9: [(0, 2), (12, 14)], 10: [(1, 1), (13, 13)]}, 'cotton2')
+def draw(spread, lift):
+    global grid, filled, SPREAD, OY
+    SPREAD, OY = spread, 1 - lift
+    grid = np.zeros((ROWS, COLS, 3), np.uint8); filled = np.zeros((ROWS, COLS), bool)
+    # A-frame carrier (jige): poles reach the ground behind the heels, tips show above the load
+    layer(join(rect(15, 1, 15, 43), rect(22, 1, 22, 43), rect(15, 29, 22, 29), rect(15, 36, 22, 36)), 'wood')
+    paint(join(rect(15, 30, 15, 43), rect(22, 30, 22, 43)), 'wood2')
+    # cloth-wrapped load roped onto the carrier
+    load = join({3: (16, 21), 4: (15, 23), 22: (15, 23), 23: (16, 21)}, rect(14, 5, 24, 21))
+    layer(load, 'cloth')
+    paint(join({4: (21, 23), 22: (21, 23)}, rect(22, 5, 24, 21)), 'cloth2')
+    paint(join(rect(14, 12, 24, 12), rect(19, 3, 19, 23)), 'rope')
+    paint(rect(18, 11, 20, 13), 'straw2')
+    # baggy trousers gathered into leg wraps (haengjeon), straw sandals
+    layer(leg({30: (5, 14), 31: (5, 14), 32: (4, 14), 33: (4, 14), 34: [(4, 8), (10, 14)], 35: [(5, 8), (10, 13)], 36: [(5, 8), (10, 13)]}), 'pants')
+    paint(leg(join(rect(13, 30, 14, 34), rect(12, 35, 13, 36), rect(8, 32, 8, 36))), 'pants2')
+    layer(leg(join(rect(5, 37, 8, 39), rect(10, 37, 13, 39))), 'wrap')
+    paint(leg(join(rect(5, 38, 8, 38), rect(10, 38, 13, 38), rect(13, 37, 13, 39), rect(8, 37, 8, 39))), 'wrap2')
+    layer(leg({40: [(4, 7), (10, 13)], 41: [(2, 7), (10, 14)]}), 'shoe')
+    paint(leg({41: [(2, 7), (10, 14)]}), 'shoe2')
+    # short jacket (jeogori) with white collar, sash, and the carrier strap over the shoulder
+    layer(join({16: (6, 11), 17: (5, 12), 18: (4, 13)}, rect(4, 19, 14, 25), rect(3, 26, 14, 28), {29: (4, 14)}), 'jacket')
+    paint(join(rect(12, 18, 14, 29), {17: (12, 12)}), 'jacket2')
+    paint({16: (7, 7), 17: (7, 8), 18: (8, 8), 19: (8, 9), 20: (9, 9), 21: (9, 10)}, 'cotton')
+    paint(join({22: (8, 9), 23: (7, 8), 24: (7, 7)}), 'jacket2')
+    paint(rect(3, 27, 14, 28), 'navy')
+    paint(rect(11, 17, 11, 26), 'wood')
+    # front arm hanging in a wide sleeve, hand below the cuff
+    layer(join({18: (3, 5), 19: (2, 6)}, rect(2, 20, 6, 23), {24: (1, 6), 25: (1, 6)}), 'jacket')
+    paint(join(rect(5, 19, 6, 25)), 'jacket2')
+    paint({25: (1, 6)}, 'cotton')
+    layer({26: (2, 4), 27: (2, 4)}, 'skin')
+    paint({27: (4, 4), 26: (4, 4)}, 'skin2')
+    # head facing left: hair at the back, eye, short beard along the jaw
+    layer(join({8: (4, 10)}, rect(3, 9, 10, 13), {14: (4, 10), 11: (2, 10)}), 'skin')
+    paint(join(rect(9, 8, 10, 13), {9: (11, 11)}), 'k')
+    paint(rect(9, 10, 9, 11), 'skin2')
+    paint(rect(4, 10, 4, 11), 'k')
+    paint(join({13: (5, 6), 14: (5, 8), 15: (6, 7)}), 'k')
+    paint({12: (3, 4)}, 'skin2')
+    # paeraengi bamboo hat with the bobusang cotton tufts at both brim ends
+    layer(join({3: (5, 9)}, rect(4, 4, 10, 5), {6: (1, 13), 7: (0, 14)}), 'straw')
+    paint(join({5: (4, 10), 7: (0, 14)}), 'straw2')
+    paint(join(rect(6, 3, 6, 4), rect(8, 3, 8, 4)), 'straw2')
+    layer({8: (0, 2), 9: (0, 2), 10: (1, 1)}, 'cotton')
+    layer({8: (12, 14), 9: (12, 14), 10: (13, 13)}, 'cotton')
+    paint({9: [(0, 2), (12, 14)], 10: [(1, 1), (13, 13)]}, 'cotton2')
 
-img = np.zeros((ROWS, COLS, 4), np.uint8); img[..., :3] = grid; img[..., 3] = np.where(filled, 255, 0)
-big = Image.fromarray(img).resize((COLS * BLOCK, ROWS * BLOCK), Image.NEAREST)
-big.crop(big.getbbox()).save(sys.argv[1])
+    img = np.zeros((ROWS, COLS, 4), np.uint8); img[..., :3] = grid; img[..., 3] = np.where(filled, 255, 0)
+    return Image.fromarray(img).resize((COLS * BLOCK, ROWS * BLOCK), Image.NEAREST)
+
+idle = draw(0, 0)
+box = idle.getbbox()
+idle.crop(box).save(sys.argv[1])
+# Run frames share one canvas: the idle box plus a block on each side and above, so the feet line and
+# the anchor (idle x 108 -> 120) stay put. Frames: legs apart, together and up, passing, together and up.
+for i, (spread, lift) in enumerate([(2, 0), (0, 1), (-1, 0), (0, 1)]):
+    draw(spread, lift).crop((box[0] - BLOCK, box[1] - BLOCK, box[2] + BLOCK, box[3])).save(
+        sys.argv[1].replace('peddler_idle', 'peddler_run_%02d' % i))

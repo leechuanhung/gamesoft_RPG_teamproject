@@ -38,6 +38,10 @@ public class PrototypeCombat : MonoBehaviour
     public PrototypeCamp Camp { get; private set; }
     public PrototypeTavern Tavern { get; private set; }
     public PrototypePeddler Peddler { get; private set; }
+    public PrototypeVillage Village { get; private set; }
+    public Vector3 BossPosition => enemy != null ? enemy.transform.position : Vector3.zero;
+    // A provoked boss that has followed the player past the forest edge.
+    public bool BossInVillage => alerted && !EnemyDefeated && enemy != null && enemy.transform.position.x < PrototypeWorld.ForestStart;
     public int Arrows { get; private set; } = ShopRules.MaxArrows;
     private float noArrowsUntil;
     public void AddArrows(int amount) { Arrows = Mathf.Clamp(Arrows + amount, 0, ShopRules.MaxArrows); }
@@ -68,6 +72,8 @@ public class PrototypeCombat : MonoBehaviour
         Tavern.combat = this;
         Peddler = gameObject.AddComponent<PrototypePeddler>();
         Peddler.combat = this;
+        Village = gameObject.AddComponent<PrototypeVillage>();
+        Village.combat = this;
         playerVisual = SeonbiVisual.Attach(player, this);
         Restart();
         Intro = gameObject.AddComponent<PrototypeIntro>();
@@ -111,6 +117,7 @@ public class PrototypeCombat : MonoBehaviour
         if (Quest != null) Quest.ResetQuest();
         if (Tavern != null) Tavern.ResetShop();
         if (Peddler != null) Peddler.ResetShop();
+        if (Village != null) Village.ResetVillage();
         if (playerVisual != null) playerVisual.ResetPose();
     }
 

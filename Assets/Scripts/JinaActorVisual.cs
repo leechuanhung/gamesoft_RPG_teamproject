@@ -1,16 +1,19 @@
 using UnityEngine;
 public class JinaActorVisual : MonoBehaviour
 {
-    // Scripted motions, in seconds: the boss crumbling, the curse lifting, the elder falling.
-    public const float BossDeathLength=1.7f, PurifyLength=1.6f, ElderFallLength=.85f;
+    // Scripted motions, in seconds: the boss crumbling, the curse lifting, the elder falling, the elder drawing his sword.
+    public const float BossDeathLength=1.7f, PurifyLength=1.6f, ElderFallLength=.85f, ElderDrawLength=.8f;
+    // The elder puts his sword away this long after the village is safe (the boss's own motion plays first).
+    public const float ElderSheatheDelay=1.8f;
     const float ArtPixel=12f/(546f/1.9f);
-    private SpriteRenderer source,picture,glow,charm;
+    private SpriteRenderer source,picture,glow,charm,sword,cane;
     private SpriteRenderer[] dots;
     private PrototypeCombat combat;
     private string kind;
-    private Sprite[] attacks,walks,deaths,hits;
+    private Sprite[] attacks,walks,deaths,hits,draws;
     private float walkTime;
-    private int facing=1;
+    // Direction the art is drawn facing: the peddler looks left, everyone else right.
+    private int native=1,facing=1;
     private Vector3 last;
     public static JinaActorVisual Attach(SpriteRenderer source,string kind,PrototypeCombat combat)
     {
@@ -37,9 +40,15 @@ public class JinaActorVisual : MonoBehaviour
         if(kind==JinaArt.Elder)
         {
             v.hits=JinaArt.Frames("08_Village_Elder/elder_hit_",2);
+            v.draws=JinaArt.Frames("08_Village_Elder/elder_draw_",2);
             // He is drawn tipped over; rotating under the non-uniformly scaled marker would shear him flat.
             child.transform.SetParent(null,false);
+            v.sword=new GameObject("노인의 환도").AddComponent<SpriteRenderer>(); v.sword.sortingOrder=4;
+            v.sword.sprite=JinaArt.Load("04_Weapons/hwando");
+            v.cane=new GameObject("노인의 지팡이").AddComponent<SpriteRenderer>(); v.cane.sortingOrder=2;
+            v.cane.sprite=JinaArt.Load("08_Village_Elder/elder_cane");
         }
+        if(kind==JinaArt.Peddler) { v.native=v.facing=-1; v.walks=JinaArt.Frames("12_Peddler/peddler_run_"); }
         source.forceRenderingOff=true; v.Refresh(); return v;
     }
     void LateUpdate() { Refresh(); }
@@ -48,6 +57,7 @@ public class JinaActorVisual : MonoBehaviour
         if(picture==null) return;
         glow.enabled=false;
         if(charm!=null) charm.enabled=false;
+        if(sword!=null) { sword.enabled=false; cane.enabled=false; }
         if(dots!=null) foreach(var d in dots) d.enabled=false;
         picture.enabled=source.enabled; if(!picture.enabled) return;
         float dx=transform.position.x-last.x;
@@ -56,6 +66,15 @@ public class JinaActorVisual : MonoBehaviour
         bool purified=kind==JinaArt.Boss && combat!=null && combat.BossPurified;
         bool slain=kind==JinaArt.Boss && combat!=null && combat.EnemyHealth<=0 && !purified;
         picture.sprite=JinaArt.Load(purified ? JinaArt.Purified : kind);
+        if(kind==JinaArt.Peddler && combat!=null)
+        {
+            // Runs when fleeing, walks slowly home, otherwise faces his customer or stands as drawn.
+            bool moving=Mathf.Abs(dx)>.001f && Mathf.Abs(dx)<3;
+            float speed=Time.deltaTime>0 ? Mathf.Abs(dx)/Time.deltaTime : 0;
+            if(!combat.Paused) walkTime=moving ? walkTime+Time.deltaTime : 0;
+            if(moving) picture.sprite=walks[(int)(walkTime/(speed>2 ? .09f : .2f))%4];
+            else facing=combat.Peddler!=null && combat.Peddler.IsOpen ? Toward(combat.player.transform.position.x) : native;
+        }
         if(kind==JinaArt.Boss && combat!=null)
         {
             facing=combat.BossFacing; int frame=combat.BossAttackFrame;
@@ -79,19 +98,13 @@ public class JinaActorVisual : MonoBehaviour
             if(t>1.3f) tint.a=1-(t-1.3f)/(BossDeathLength-1.3f);
         }
         else if(purified && Time.time-combat.PurifiedAt<PurifyLength) Purify(Time.time-combat.PurifiedAt,ref feet,ref flash,ref flashColor);
-        if(dead && Time.time-combat.Quest.ElderStruckAt<ElderFallLength)
-        {
-            // Struck: flash and reel back, knees give way, then he topples into the fallen pose.
-            float t=Time.time-combat.Quest.ElderStruckAt;
-            facing=1;
-            if(t<.45f) { picture.sprite=hits[t<.2f ? 0 : 1]; rotation=0; tint=Color.white; flash=t<.2f ? .9f*(1-t/.2f) : 0; }
-            else { float k=(t-.45f)/(ElderFallLength-.45f); rotation=80*k*k; tint=Color.Lerp(Color.white,Color.gray,k); }
-        }
+        if(kind==JinaArt.Elder && combat!=null && combat.Quest!=null) Elder(dead,feet,ref rotation,ref tint,ref flash);
         // Tipped backwards about the feet, the back of the body would sink into the ground.
-        if(rotation>0) feet.y+=.32f*Mathf.Sin(rotation*Mathf.Deg2Rad);
-        JinaArt.Place(picture,feet,transform,facing<0);
+        if(rotation!=0) feet.y+=.32f*Mathf.Sin(Mathf.Abs(rotation)*Mathf.Deg2Rad);
+        JinaArt.Place(picture,feet,transform,facing!=native);
         if(picture.transform.parent==null) picture.transform.localScale=Vector3.one;
         picture.transform.rotation=Quaternion.Euler(0,0,rotation);
+        if(kind==JinaArt.Peddler) tint.a=source.color.a;
         picture.color=tint;
         if(!dead && !purified && !slain && source.color.r>.9f && source.color.g>.4f && source.color.g<.8f) picture.color=new Color(1,.7f,.4f);
         if(!dead && !purified && !slain && source.color==Color.white) picture.color=new Color(1,.7f,.7f);
@@ -101,6 +114,49 @@ public class JinaActorVisual : MonoBehaviour
             flashColor.a=flash*tint.a; glow.color=flashColor;
         }
         last=transform.position;
+    }
+    int Toward(float x) => x>=transform.position.x ? 1 : -1;
+    // Alarm: startled with his cane, he drops it and draws a sword toward the boss, and holds it ready until the
+    // village is safe. Struck: flash and reel back, knees give way, then he topples into the fallen pose.
+    void Elder(bool dead,Vector3 feet,ref float rotation,ref Color tint,ref float flash)
+    {
+        var village=combat.Village;
+        float alarm=village!=null && village.Alarmed ? Time.time-village.AlarmAt : -1;
+        bool armed=alarm>=0 && (!village.Cleared || Time.time-village.ClearAt<ElderSheatheDelay);
+        bool talking=combat.Quest.TalkingToElder;
+        facing=talking ? Toward(combat.player.transform.position.x) : armed || dead ? Toward(combat.BossPosition.x) : native;
+        if(dead)
+        {
+            float t=Time.time-combat.Quest.ElderStruckAt;
+            if(alarm>=0) picture.sprite=draws[0];
+            if(t<.45f) { picture.sprite=hits[t<.2f ? 0 : 1]; rotation=0; tint=Color.white; flash=t<.2f ? .9f*(1-t/.2f) : 0; }
+            else if(t<ElderFallLength) { float k=(t-.45f)/(ElderFallLength-.45f); rotation=80*k*k; tint=Color.Lerp(Color.white,Color.gray,k); }
+            rotation*=facing;
+            // His sword drops beside him; it was in his hand only if he had drawn it.
+            if(alarm>=0)
+            {
+                float k=Mathf.Clamp01(t/.35f);
+                Hold(sword,Vector3.Lerp(Hand(feet),feet+new Vector3(facing*.55f,.04f,0),k*k),Mathf.Lerp(0,-40,k));
+                Hold(cane,feet+new Vector3(facing*.35f,0,0),-90);
+            }
+            return;
+        }
+        if(!armed) return;
+        if(alarm<.3f) { picture.sprite=JinaArt.Load("08_Village_Elder/elder_startle"); return; }
+        picture.sprite=draws[alarm<.55f ? 0 : 1];
+        // The sword comes up from his side to point at the boss; the cane tips over in front of him.
+        float swing=Mathf.Clamp01((alarm-.3f)/(ElderDrawLength-.3f));
+        Hold(sword,Hand(feet),Mathf.Lerp(-130,0,1-(1-swing)*(1-swing)));
+        float fall=Mathf.Clamp01((alarm-.3f)/.3f);
+        Hold(cane,feet+new Vector3(facing*.35f,0,0),-90*fall*fall);
+    }
+    // His fist, where the cane was held: .30 forward and .68 up from the feet (from the art at 617 px per unit).
+    Vector3 Hand(Vector3 feet) => Snap(feet+new Vector3(facing*.30f,.68f,0));
+    void Hold(SpriteRenderer art,Vector3 at,float angle)
+    {
+        art.enabled=true; art.flipX=facing<0; art.transform.position=at;
+        art.transform.rotation=Quaternion.Euler(0,0,angle*facing);
+        art.color=Color.white;
     }
     // The curse lifts: the boss shudders as the charm rises before him, dark wisps leave his body,
     // a pale flash turns him into his purified self, and golden sparks drift up.
@@ -132,6 +188,11 @@ public class JinaActorVisual : MonoBehaviour
             d.color=wisp ? new Color(11/255f,9/255f,11/255f,fade) : new Color(1,.84f,.4f,fade);
         }
     }
-    void OnDestroy() { if(picture!=null && picture.transform.parent==null) Destroy(picture.gameObject); }
+    void OnDestroy()
+    {
+        if(picture!=null && picture.transform.parent==null) Destroy(picture.gameObject);
+        if(sword!=null) Destroy(sword.gameObject);
+        if(cane!=null) Destroy(cane.gameObject);
+    }
     static Vector3 Snap(Vector3 p) => new Vector3(Mathf.Round(p.x/ArtPixel)*ArtPixel,Mathf.Round(p.y/ArtPixel)*ArtPixel,p.z);
 }

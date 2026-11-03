@@ -1,7 +1,8 @@
-# Builds the boss death frames and the elder hit frames from the existing idle art (no new drawing).
+# Builds the boss death frames and the elder alarm/hit frames from the existing idle art (no new drawing).
 #   boss_death_00 recoil (upper body leans back), 01-02 knees buckle (leg rows removed) and slump forward,
 #   03-04 the body breaks into its own 20 px chunks that drift up and vanish.
-#   elder_hit_00 recoil, elder_hit_01 knees buckle; the game then tips him over into the existing 80 degree pose.
+#   elder_startle (recoil, cane in hand), elder_draw_00 (cane cut away), elder_draw_01 (leaning in, sword ready),
+#   elder_cane (the cut cane), elder_hit_00 recoil, elder_hit_01 knees buckle; the game then tips him over 80 degrees.
 # Usage: python make_deaths.py Assets/Resources/JinaV4   [--preview DIR]
 import sys
 from PIL import Image
@@ -80,14 +81,24 @@ for i, f in enumerate(frames):
     Image.fromarray(f).save(f"{root}/05_Boss_Brainwashed/boss_death_{i:02d}.png")
 
 # Elder: ~25 px art pixels on a 1254 canvas, art faces right; keep the canvas and feet line of the idle.
+# The cane is cut out below his hand (one outline row closes the fist and caps the cane) so he can drop it and draw a sword.
 E = 25
 elder = np.array(Image.open(f"{root}/08_Village_Elder/village_elder_idle.png").convert("RGBA"))
-hits = [bend(elder, -50, 500, 860, E), bend(elder, -75, 500, 900, E, (960, 1035))]
+ink = elder[750, 830].copy()                    # the outline beside his fist
+cane = np.zeros_like(elder); cane[780:1170, 755:860] = elder[780:1170, 755:860]
+cane[780:803, 760:815] = ink
+bare = elder.copy(); bare[780:1170, 755:860] = 0
+bare[778:803, 755:840] = ink
+Image.fromarray(cane).save(f"{root}/08_Village_Elder/elder_cane.png")
+Image.fromarray(clean(bend(elder, -50, 500, 860, E))).save(f"{root}/08_Village_Elder/elder_startle.png")
+Image.fromarray(bare).save(f"{root}/08_Village_Elder/elder_draw_00.png")                         # cane dropped
+Image.fromarray(clean(bend(bare, 25, 500, 860, E))).save(f"{root}/08_Village_Elder/elder_draw_01.png")  # leaning in, ready
+hits = [bend(bare, -50, 500, 860, E), bend(bare, -75, 500, 900, E, (960, 1035))]
 for i, f in enumerate(hits):
     Image.fromarray(clean(f)).save(f"{root}/08_Village_Elder/elder_hit_{i:02d}.png")
 
 if preview:
-    names = [f"05_Boss_Brainwashed/boss_death_{i:02d}" for i in range(5)] + ["08_Village_Elder/village_elder_idle"] + [f"08_Village_Elder/elder_hit_{i:02d}" for i in range(2)]
+    names = [f"05_Boss_Brainwashed/boss_death_{i:02d}" for i in range(5)] + ["08_Village_Elder/" + n for n in ("village_elder_idle", "elder_startle", "elder_draw_00", "elder_draw_01", "elder_cane", "elder_hit_00", "elder_hit_01")]
     ims = [Image.open(f"{root}/{n}.png").convert("RGBA") for n in names]
     ims = [im.resize((im.width * 600 // 1254, im.height * 600 // 1254), Image.NEAREST) if im.width > 1000 else im for im in ims]
     sheet = Image.new("RGBA", (sum(im.width for im in ims), 620), (60, 80, 90, 255)); x = 0

@@ -32,7 +32,10 @@ public static class JinaArt
         }
         // Death and hit frames are cut from the idle art on its own canvas, so they keep the idle's scale and feet line.
         else if(path.Contains("boss_death")) { var idle=Load(Boss); rect=new Rect(0,0,t.width,t.height); anchor=new Vector2(351,8); ppu=idle.pixelsPerUnit; }
-        else if(path.Contains("elder_hit")) { var idle=Load(Elder); rect=new Rect(0,0,t.width,t.height); anchor=new Vector2(600,idle.rect.y); ppu=idle.pixelsPerUnit; }
+        // Elder frames keep the idle canvas; the cut-out cane pivots on its own tip.
+        else if(path.StartsWith("08_Village_Elder/elder_")) { var idle=Load(Elder); rect=new Rect(0,0,t.width,t.height); anchor=new Vector2(path.EndsWith("cane") ? 818 : 600,idle.rect.y); ppu=idle.pixelsPerUnit; }
+        // Run frames add one 12 px block on each side and above the idle box.
+        else if(path.Contains("peddler_run")) { var idle=Load(Peddler); rect=new Rect(0,0,t.width,t.height); anchor=new Vector2(108+12,0); ppu=idle.pixelsPerUnit; }
         else if(path==Boss || path==Purified) { anchor.x=rect.center.x; ppu=rect.height/2.6f; }
         else if(path==Ghost) { anchor.x=650; ppu=rect.height/1.65f; }
         else if(path==Elder) { anchor.x=600; ppu=rect.height/1.8f; }

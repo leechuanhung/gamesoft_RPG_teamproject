@@ -6,7 +6,10 @@
 ## 구조
 
 - 장면은 `Assets/Scenes/MovementTest.unity` 하나. `PrototypeView.Start`가 `PrototypeWorld`(지형·기물)와 `PrototypeCombat`을 런타임에 만든다.
-- `PrototypeCombat`이 중심이다. 보스, 화살, 체력, 재시작, `Paused`를 맡고 `Quest`, `Camp`, `Tavern`, `Peddler`, `Intro`를 붙인다.
+- `PrototypeCombat`이 중심이다. 보스, 화살, 체력, 재시작, `Paused`를 맡고 `Quest`, `Camp`, `Tavern`, `Peddler`, `Village`, `Intro`를 붙인다.
+- `PrototypeVillage`는 보스가 마을에 들어오면(`BossInVillage`) 경보를 울리고(`Alarmed`/`AlarmAt`), 주모·보부상을 기와집(`Shelter`)으로 대피시킨다. 보스가 쓰러지면(`Cleared`/`ClearAt`) 걸어서 돌아오게 한다. 대피 중에는 `Tavern.Near`와 `Peddler.Near`가 false다.
+- 주모는 `PrototypeWorld`의 기물 스프라이트("주막 주모")라서 `PrototypeVillage`가 직접 프레임을 바꾼다. 노인과 보부상은 `JinaActorVisual`이 그린다.
+- 대화 중인 인물은 선비 쪽을 본다. `JinaActorVisual.native`는 그림이 원래 보는 방향이다(보부상 −1, 나머지 +1).
 - `Paused`는 인트로·대화·상점 중에 true다. 그동안 보스와 몬스터가 멈추고, `SeonbiVisual`이 자세를 초기화한다.
 - 선악과 퀘스트 상태는 `QuestProgress`(Unity에 의존하지 않음)에 있다. 수치: 토벌 +10, 정화 +30, 노인 사망 −40.
 - 가격과 판매 규칙은 `TavernWallet.cs`의 `ShopRules`에 있다.
@@ -27,7 +30,8 @@
   - `python Tools/ArtGen/make_props.py Assets/Resources/JinaV4/13_Props`
   - `python Tools/ArtGen/make_peddler.py Assets/Resources/JinaV4/12_Peddler/peddler_idle.png`
   - `python Tools/ArtGen/make_run.py Assets/Resources/JinaV4/10_Player_Walk Assets/Resources/JinaV4/11_Player_Run`
-  - `python Tools/ArtGen/make_deaths.py Assets/Resources/JinaV4` (보스 죽음, 노인 피격)
+  - `python Tools/ArtGen/make_deaths.py Assets/Resources/JinaV4` (보스 죽음, 노인 경보·칼 뽑기·피격·잘라 낸 지팡이)
+  - `make_peddler.py`는 `peddler_run_00~03`을, `make_props.py`는 `keeper_run_00~03`을 함께 만든다. 달리기 프레임은 대기 그림의 상자에 한 칸씩 여백을 둔 같은 캔버스를 쓴다.
 - 결과를 확인할 때는 확대 미리보기(`--preview`)나 기존 캐릭터와 나란히 놓은 비교 시트를 scratchpad에 만들어 본다.
 - 텍스처 임포트 설정(Point, 무압축, Readable)은 `Assets/Editor/JinaTextureImport.cs`가 `Resources/JinaV4/` 아래에 자동 적용한다.
 
@@ -39,6 +43,7 @@
 - 토벌: `DamageEnemy`에서 체력이 0이 되면 `enemy`는 켜진 채로 두고, 죽는 모션이 끝나면 그림만 숨긴다.
 - 노인 그림은 기울여 그리므로 크기가 비균일한 표식의 자식으로 두지 않는다(두면 찌그러진다). 노인 위치는 보부상 오른쪽(`PrototypeWorld.Elder`).
 - 노인을 칠 때는 화면이 흔들리고(`PrototypeView.Shake`) 공격 후 경직이 길다.
+- 노인 경보: `elder_startle` → `elder_draw_00`(지팡이 없음) → `elder_draw_01`(겨눔). 환도는 선비가 쓰는 `04_Weapons/hwando`를 같은 크기로 손(발에서 앞 .30, 위 .68)에 쥐여 준다. 경보 뒤의 피격·쓰러짐은 지팡이 없는 몸으로 그린다.
 
 ## 검사
 

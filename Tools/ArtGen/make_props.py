@@ -159,7 +159,7 @@ def bench():
     c.layer(c.ellipse(29, 1, 33, 5) & c.rect(0, 0, c.w, 3), ONGGI3)
     return c
 
-def keeper():
+def keeper(spread=0):
     SKIN, SKIN2 = (249, 196, 140), (226, 163, 109)
     JEO, JEO2, SKIRT, SKIRT2 = (253, 248, 228), (226, 216, 190), (112, 122, 152), (84, 92, 120)
     APRON, APRON2, GOLD = (240, 234, 220), (210, 200, 180), (226, 186, 74)
@@ -168,7 +168,7 @@ def keeper():
     c.paint(s({y: (16, 20) for y in range(25, 43)}), SKIRT2)
     c.layer(s({y: (4, 12) for y in range(27, 42)}), APRON)
     c.paint(s({y: (11, 12) for y in range(27, 42)}), APRON2)
-    c.layer(s({43: [(4, 8), (11, 15)]}), JEO)
+    c.layer(s({43: [(4 - spread, 8 - spread), (11 + spread, 15 + spread)]}), JEO)
     c.layer(s({18: (7, 15), 19: (6, 16), 20: (5, 17), 21: (5, 18), 22: (5, 18), 23: (5, 18), 24: (5, 18)}), JEO)
     c.paint(s({y: (15, 18) for y in range(19, 25)}), JEO2)
     c.paint(s({19: (8, 8), 20: (9, 9), 21: (10, 10)}), JEO2)
@@ -197,7 +197,31 @@ def charm():
     c.paint(c.rect(5, 17, 5, 21) | c.rect(14, 17, 14, 21), INK)
     return c
 
+def shift(c, y0, y1, dx=0, dy=0):
+    """Move rows y0..y1 of a drawn canvas sideways (whole rows, so outlines move with their fills) or up."""
+    cc, aa = c.c.copy(), c.a.copy()
+    c.c[y0:y1 + 1] = 0; c.a[y0:y1 + 1] = False
+    for y in range(y0, y1 + 1):
+        if 0 <= y - dy < c.h:
+            c.c[y - dy] = np.roll(cc[y], dx, 0); c.a[y - dy] = np.roll(aa[y], dx, 0)
+
+# Keeper run frames: she leans forward (left), the hem swings back, feet part or meet, and she bobs a pixel.
+# Same canvas for all four: her idle box plus one pixel left, right and above, so the bottom-centre pivot matches.
+def keeper_run(spread, lift, sway):
+    c = keeper(spread)
+    shift(c, 38, 42, dx=sway)
+    shift(c, 0, 24, dx=-1)
+    if lift: shift(c, 0, c.h - 1, dy=lift)
+    return c
+
 for name, fn in (('tavern', tavern), ('house', house), ('pine', pine), ('stele', stele), ('bench', bench), ('keeper', keeper), ('charm', charm)):
     c = fn(); c.save(OUT + '/' + name + '.png')
     if '--preview' in sys.argv: c.save(OUT + '/' + name + '_x4.png', 4)
+box = Image.fromarray(np.where(keeper().a, 255, 0).astype(np.uint8)).getbbox()
+for i, args in enumerate([(2, 0, 1), (0, 1, 0), (1, 0, 1), (0, 1, 0)]):
+    c = keeper_run(*args)
+    img = np.zeros((c.h, c.w, 4), np.uint8); img[..., :3] = c.c; img[..., 3] = np.where(c.a, 255, 0)
+    im = Image.fromarray(img).crop((box[0] - 1, box[1] - 1, box[2] + 1, box[3]))
+    im.save(OUT + '/keeper_run_%02d.png' % i)
+    if '--preview' in sys.argv: im.resize((im.width * 4, im.height * 4), Image.NEAREST).save(OUT + '/keeper_run_%02d_x4.png' % i)
 

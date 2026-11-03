@@ -6,6 +6,7 @@ public class PrototypeQuest : MonoBehaviour
     public PrototypeCombat combat;
     public readonly QuestProgress progress = new QuestProgress();
     public bool IsDialogOpen { get; private set; }
+    public bool TalkingToElder => IsDialogOpen && !shrineDialog;
     public float ElderStruckAt { get; private set; } = -1;
     private bool shrineDialog;
     private string message = "";
