@@ -14,6 +14,8 @@ public class JinaActorVisual : MonoBehaviour
     private float walkTime;
     // Direction the art is drawn facing: the peddler looks left, everyone else right.
     private int native=1,facing=1;
+    // The elder's body keeps the direction he faced when struck, whoever moves or reads his note.
+    private int deadFacing;
     private Vector3 last;
     public static JinaActorVisual Attach(SpriteRenderer source,string kind,PrototypeCombat combat)
     {
@@ -84,7 +86,7 @@ public class JinaActorVisual : MonoBehaviour
             if(!purified && frame>=0) picture.sprite=attacks[frame];
         }
         var feet=new Vector3(transform.position.x,source.bounds.min.y,0);
-        float rotation=dead ? 80 : 0, flash=0;
+        float rotation=0, flash=0;
         Color tint=dead ? Color.gray : Color.white;
         var flashColor=Color.white;
         if(slain)
@@ -98,9 +100,7 @@ public class JinaActorVisual : MonoBehaviour
             if(t>1.3f) tint.a=1-(t-1.3f)/(BossDeathLength-1.3f);
         }
         else if(purified && Time.time-combat.PurifiedAt<PurifyLength) Purify(Time.time-combat.PurifiedAt,ref feet,ref flash,ref flashColor);
-        if(kind==JinaArt.Elder && combat!=null && combat.Quest!=null) Elder(dead,feet,ref rotation,ref tint,ref flash);
-        // Tipped backwards about the feet, the back of the body would sink into the ground.
-        if(rotation!=0) feet.y+=.32f*Mathf.Sin(Mathf.Abs(rotation)*Mathf.Deg2Rad);
+        if(kind==JinaArt.Elder && combat!=null && combat.Quest!=null) Elder(dead,ref feet,ref rotation,ref tint,ref flash);
         JinaArt.Place(picture,feet,transform,facing!=native);
         if(picture.transform.parent==null) picture.transform.localScale=Vector3.one;
         picture.transform.rotation=Quaternion.Euler(0,0,rotation);
@@ -118,20 +118,31 @@ public class JinaActorVisual : MonoBehaviour
     int Toward(float x) => x>=transform.position.x ? 1 : -1;
     // Alarm: startled with his cane, he drops it and draws a sword toward the boss, and holds it ready until the
     // village is safe. Struck: flash and reel back, knees give way, then he topples into the fallen pose.
-    void Elder(bool dead,Vector3 feet,ref float rotation,ref Color tint,ref float flash)
+    void Elder(bool dead,ref Vector3 body,ref float rotation,ref Color tint,ref float flash)
     {
-        var village=combat.Village;
+        var village=combat.Village; var feet=body;
         float alarm=village!=null && village.Alarmed ? Time.time-village.AlarmAt : -1;
         bool armed=alarm>=0 && (!village.Cleared || Time.time-village.ClearAt<ElderSheatheDelay);
         bool talking=combat.Quest.TalkingToElder;
-        facing=talking ? Toward(combat.player.transform.position.x) : armed || dead ? Toward(combat.BossPosition.x) : native;
+        if(!dead) deadFacing=0;
+        else if(deadFacing==0) deadFacing=Toward(combat.BossPosition.x);
+        facing=dead ? deadFacing : talking ? Toward(combat.player.transform.position.x) : armed ? Toward(combat.BossPosition.x) : native;
         if(dead)
         {
+            // He tips a quarter turn about his feet, rising as he goes so his back lands on the ground,
+            // and then lies as the corpse drawing (the same body, already turned).
             float t=Time.time-combat.Quest.ElderStruckAt;
-            if(alarm>=0) picture.sprite=draws[0];
-            if(t<.45f) { picture.sprite=hits[t<.2f ? 0 : 1]; rotation=0; tint=Color.white; flash=t<.2f ? .9f*(1-t/.2f) : 0; }
-            else if(t<ElderFallLength) { float k=(t-.45f)/(ElderFallLength-.45f); rotation=80*k*k; tint=Color.Lerp(Color.white,Color.gray,k); }
-            rotation*=facing;
+            var corpse=JinaArt.Load("08_Village_Elder/elder_corpse");
+            float rest=corpse.pivot.y/corpse.pixelsPerUnit;
+            picture.sprite=draws[0]; rotation=0; var lying=feet;
+            if(t<.45f) { picture.sprite=hits[t<.2f ? 0 : 1]; tint=Color.white; flash=t<.2f ? .9f*(1-t/.2f) : 0; }
+            else if(t<ElderFallLength)
+            {
+                float k=(t-.45f)/(ElderFallLength-.45f); rotation=90*k*k*facing; tint=Color.Lerp(Color.white,Color.gray,k);
+                lying.y+=rest*Mathf.Sin(90*k*k*Mathf.Deg2Rad);
+            }
+            else { picture.sprite=corpse; lying.y+=rest; }
+            body=lying;
             // His sword drops beside him; it was in his hand only if he had drawn it.
             if(alarm>=0)
             {
