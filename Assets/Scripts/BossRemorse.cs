@@ -13,6 +13,8 @@ public class BossRemorse : MonoBehaviour
     };
     // Seconds per line; the turn of realisation before he kneels, and how long the kneel takes.
     public const float LineLength = 3.5f, Realise = .6f, Kneel = .4f;
+    // Seconds until his last line is done.
+    public static float Spoken => Lines.Length * LineLength;
 
     public float Start => combat.PurifiedAt + BossVisual.PurifyLength;
     public bool Active => combat != null && combat.Quest != null && combat.BossPurified

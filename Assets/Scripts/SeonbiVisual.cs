@@ -4,12 +4,12 @@ public class SeonbiVisual : MonoBehaviour
     private PrototypePlayer player;
     private PrototypeCombat combat;
     private SpriteRenderer source,body,weapon;
-    private Sprite[] swordFrames,bowFrames,jumpFrames,walkFrames,runFrames,hitFrames;
+    private Sprite[] swordFrames,bowFrames,bowUpFrames,bowDownFrames,jumpFrames,walkFrames,runFrames,hitFrames;
     private bool wasAirborne;
     private float airTime,landingTime,walkTime;
     private float attackTime=10;
     private bool bowAttack;
-    private int attackFacing=1;
+    private int attackFacing=1,attackAim;
     public const float SwordDuration=.4f,BowDuration=.6f,HitDelay=.2f,BowReleaseDelay=.3f;
     // Struck down: reel back, knees give way, then a quarter turn onto his back.
     public const float FallLength=.85f;
@@ -22,6 +22,8 @@ public class SeonbiVisual : MonoBehaviour
         v.body=v.MakePart("선비 프레임",5); v.weapon=v.MakePart("장착 무기",6);
         v.swordFrames=JinaArt.Frames("02_Player_Attack_Sword/sword_attack_");
         v.bowFrames=JinaArt.Frames("03_Player_Attack_Bow/bow_attack_");
+        v.bowUpFrames=JinaArt.Frames("03_Player_Attack_Bow/bow_up_");
+        v.bowDownFrames=JinaArt.Frames("03_Player_Attack_Bow/bow_down_");
         v.jumpFrames=JinaArt.Frames("09_Player_Jump/jump_");
         v.walkFrames=JinaArt.Frames("10_Player_Walk/player_walk_");
         v.runFrames=JinaArt.Frames("11_Player_Run/player_run_");
@@ -32,7 +34,8 @@ public class SeonbiVisual : MonoBehaviour
     {
         var art=new GameObject(name).AddComponent<SpriteRenderer>(); art.sortingOrder=order; return art;
     }
-    public void Attack(bool bow,int facing) { bowAttack=bow; attackFacing=facing; attackTime=0; }
+    // aim: +1 up, -1 down, 0 level (bow only).
+    public void Attack(bool bow,int facing,int aim=0) { bowAttack=bow; attackFacing=facing; attackAim=bow ? aim : 0; attackTime=0; }
     public void ResetPose() { attackTime=10; walkTime=0; airTime=0; landingTime=0; wasAirborne=false; }
     void LateUpdate()
     {
@@ -55,7 +58,8 @@ public class SeonbiVisual : MonoBehaviour
         if(!combat.Paused) walkTime=walking ? walkTime+Time.deltaTime : 0;
         Vector3 feet=new Vector3(transform.position.x,source.bounds.min.y,0);
         if(combat.PlayerHealth<=0 && combat.PlayerDownAt>=0) { Fall(feet,facing,Time.time-combat.PlayerDownAt); return; }
-        body.sprite=attacking ? (bowAttack ? bowFrames : swordFrames)[Mathf.Min(3,(int)(attackTime/(duration/4)))] : jumping ? jumpFrames[jumpFrame] : running ? runFrames[(int)(walkTime/.08f)%4] : walking ? walkFrames[(int)(walkTime/.12f)%4] : LoadSprite();
+        var shot=attackAim>0 ? bowUpFrames : attackAim<0 ? bowDownFrames : bowFrames;
+        body.sprite=attacking ? (bowAttack ? shot : swordFrames)[Mathf.Min(3,(int)(attackTime/(duration/4)))] : jumping ? jumpFrames[jumpFrame] : running ? runFrames[(int)(walkTime/.08f)%4] : walking ? walkFrames[(int)(walkTime/.12f)%4] : LoadSprite();
         JinaArt.Place(body,feet,facing<0);
         body.transform.rotation=Quaternion.identity; weapon.transform.rotation=Quaternion.identity; weapon.color=Color.white;
         body.color=source.color==Color.gray ? Color.gray : source.color==Color.red ? new Color(1,.4f,.4f) : Color.white;

@@ -10,6 +10,13 @@
 - `PrototypeVillage`는 보스가 마을에 들어오면(`BossInVillage`) 경보를 울리고(`Alarmed`/`AlarmAt`), 주모·보부상을 기와집(`Shelter`)으로 대피시킨다. 보스가 쓰러지면(`Cleared`/`ClearAt`) 걸어서 돌아오게 한다. 대피 중에는 `Tavern.Near`와 `Peddler.Near`가 false다. 이 클래스는 위치만 옮기고, 프레임은 각 인물의 Visual이 고른다.
 - 대화 중인 인물은 선비 쪽을 본다. `JinaActorVisual.native`는 그림이 원래 보는 방향이다(보부상 −1, 나머지 +1).
 - 인트로(`PrototypeIntro`)와 결말(`PrototypeEnding`)은 `PrototypeNarration`(검은 화면에 한 줄씩, 스페이스 길게 눌러 건너뛰기)을 함께 쓴다. 결말은 보스를 처리하고 `GoalX`에 닿으면 시작되고, R을 누를 때까지 `Active`다.
+- 지형: `PrototypeWorld.CampLedges`·`ForestLedges`(가운데 x, 윗면 y)에 한 방향 발판(`PlatformEffector2D`, 레이어 8)을 놓는다. 화살의 벽 판정(`PrototypeCombat.Wall`)은 발판을 무시한다. 배경은 구역마다 `bg_<area>_far`(`PrototypeParallax`, 최대 ±2칸)와 `_near`.
+- 활 조준: `PrototypeCombat.AimAngle`(30°), `ArrowLaunch(aim)`·`ArrowDirection(aim, facing)`. `SeonbiVisual.Attack(bow, facing, aim)`이 `bow_up_`/`bow_down_` 프레임을 고른다.
+- 유령은 `PrototypeCamp`에서 2차원으로 날아다닌다(`GhostHealth`, `FlySpeed`, `HoverY`~`CeilingY`).
+- 보스 패턴: `PrototypeCombat.Move`(`BossMove`: 돌진 예고·돌진·도약 예고·도약·착지). `BossAttackFrame`이 도약 예고 0, 공중 1, 착지 2·3을 준다.
+- 보스 첫 조우: `PrototypeEncounter`가 `BossAlerted`가 처음 켜질 때 한 번 재생한다(`Playing` 동안 `Paused`). 카메라는 `PrototypeView.Focus(x, weight)`로 돌린다.
+- 잡담: `PrototypeChatter`가 두 사람이 제자리에 있고 선비가 가까이 있을 때(`CanChat`) 상황별 화제(`Topics`)를 번갈아 띄운다.
+- 정화된 도깨비 대화: `PrototypeBossTalk`(E로 열고 넘김, `IsOpen` 동안 `Paused`). 이 대화가 열려 있으면 `PrototypeQuest`와 `PrototypeTavern`은 E를 받지 않는다.
 - 죄책감: 노인이 죽은 뒤 정화하면 `BossRemorse`가 정화 연출 뒤(`Start`)부터 대사를 띄우고, `BossVisual.Grieve`가 무릎 꿇기(`06_Boss_Purified/boss_grieve_00~01`, 눈 감고 입 벌림)와 눈물을 그린다.
 - 말풍선은 화면 밖 인물이면 띄우지 않는다(`SpeechBubble.OnScreen`). 애도 대사는 `PrototypeVillage.Villager.speakAt`으로 한 사람씩 이어진다.
 - 쓰러짐 시각: 선비 `PrototypeCombat.PlayerDownAt`(이때 `PrototypePlayer.Downed`로 중력만 받는다), 유령 `GhostVisual.DownAt`.
@@ -44,6 +51,8 @@
   - `python Tools/ArtGen/make_elder.py Assets/Resources/JinaV4` (노인 경보·칼 뽑기·피격·갓 덮인 시체, 잘라 낸 지팡이)
   - `python Tools/ArtGen/make_player_down.py Assets/Resources/JinaV4` (선비 쓰러짐. 캔버스를 좌우 48px 넓힘)
   - `python Tools/ArtGen/make_ghost_death.py Assets/Resources/JinaV4` (유령 죽음)
+  - `python Tools/ArtGen/make_bow_aim.py Assets/Resources/JinaV4` (활 위·아래. 프레임마다 어깨 중심·자르는 선이 다름)
+  - `python Tools/ArtGen/make_backdrops.py Assets/Resources/JinaV4/13_Props` (배경 8장. 발판 `ledge_stone`·`ledge_log`는 `make_props.py`)
   - `python Tools/ArtGen/make_boss_remorse.py Assets/Resources/JinaV4` (정화된 도깨비의 무릎 꿇기. 눈과 송곳니만 기존 색으로 덮어 표정을 바꿈)
   - 대기 그림에서 잘라 낸 프레임의 발 위치·배율은 `JinaArt.CutFrom`이 정한다. `_corpse`는 그 캔버스를 90° 돌린 것으로 본다.
   - `make_peddler.py`는 `peddler_run_00~03`을, `make_props.py`는 `keeper_run_00~03`을 함께 만든다. 달리기 프레임은 대기 그림의 상자에 한 칸씩 여백을 둔 같은 캔버스를 쓴다.
@@ -67,7 +76,9 @@
 - 규칙 검사(장면 없이): `Unity.exe -batchmode -quit -projectPath <프로젝트> -executeMethod PlayerArtChecks.Run -logFile <log>`
   - Tavern → Morality → World → Arrow → Quest → KoreanUI 검사가 이어서 실행된다. 성공하면 로그에 `*_PASSED`가 찍힌다.
 - 플레이 검사: `-executeMethod JinaPlayChecks.Begin`(`-quit` 없음, 스스로 종료). 장면 렌더 캡처를 프로젝트 루트의 `validation/`에 남기므로, 확인한 뒤 지운다. IMGUI(말풍선, 연출)는 캡처에 찍히지 않는다.
-  - `JinaPlayChecks`는 partial 클래스다. `JinaPlayChecks.cs`(실행 순서·헬퍼)와 주제별 파일 `.Player`·`.Boss`·`.Camp`·`.Elder`·`.Village`·`.Ending`으로 나뉜다.
+  - `JinaPlayChecks`는 partial 클래스다. `JinaPlayChecks.cs`(실행 순서·헬퍼)와 주제별 파일 `.Player`·`.Boss`·`.Camp`·`.Elder`·`.Village`·`.Story`·`.Terrain`·`.Ending`으로 나뉜다.
+  - 배치 모드의 프레임 시간(`Time.deltaTime`)은 0.0001초 수준이라, 이동은 방향만 검사한다.
+  - 관리 컴포넌트(전투, 마을, 조우, 잡담 등)는 모두 한 오브젝트에 붙어 있다. 검사에서 `SendMessage("Update")`를 쓰면 전부 실행되므로, 하나만 돌릴 때는 `Call(component)`을 쓴다.
   - 리팩토링 전후 비교: 캡처를 scratchpad에 복사해 두고 픽셀 단위로 비교한다. 화살 발사와 경보 장면의 보스 가장자리는 프레임 시간에 따라 1~2px씩 달라질 수 있다.
 - Unity 경로: `C:/Program Files/Unity/Hub/Editor/2022.3.62f1/Editor/Unity.exe`. 오래 걸리므로 백그라운드로 실행한다.
 - 에디터가 열려 있을 때 컴파일만 확인하려면 `Library/Bee/artifacts/*/Assembly-CSharp.rsp`의 참조로 `Editor/Data/DotNetSdkRoslyn/csc.dll`을 `Editor/Data/NetCoreRuntime/dotnet.exe`로 실행한다. 이때 `MSYS_NO_PATHCONV=1`이 필요하다.

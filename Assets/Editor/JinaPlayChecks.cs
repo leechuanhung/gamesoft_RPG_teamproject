@@ -7,7 +7,7 @@ using UnityEngine;
 
 // Plays MovementTest and checks the art and motions in the running scene, leaving renders in validation/.
 // Stage 1 runs right after the intro; stage 2 runs a moment later, after the purified boss has had time to act.
-// The checks themselves are split by subject: Player, Boss, Camp, Elder, Village and Ending.
+// The checks themselves are split by subject: Player, Boss, Camp, Elder, Village, Story, Terrain and Ending.
 [InitializeOnLoad]
 public static partial class JinaPlayChecks
 {
@@ -56,13 +56,20 @@ public static partial class JinaPlayChecks
                 GhostDeath();
                 Mourning(elderVisual);
                 Remorse();
+                Encounter();
+                Chatter();
+                BossTalk();
+                Terrain();
+                AimedArrows();
+                FlyingGhosts();
+                BossMoves();
                 PlayerFall();
                 Endings();
                 Check(!combat.BossPurified && !combat.EnemyDefeated && combat.EnemyHealth==30,"Restart restores hostile boss");
                 Check(combat.Quest.progress.Honor==0,"Restart resets honor");
                 combat.AddArrows(-5); Check(combat.Arrows==15,"Arrows spent");
                 combat.Restart(); Check(combat.Arrows==ShopRules.MaxArrows,"Restart refills quiver");
-                Debug.Log("JINA_PLAY_CHECKS_PASSED: v6 assets, attack/jump/walk frames, boss death, purify and elder fall motions, talk facing, alarm, evacuation and return, ghost and seonbi deaths, mourning, remorse, endings, movement/idle transitions, purification visibility, immunity, no damage, reset");
+                Debug.Log("JINA_PLAY_CHECKS_PASSED: v6 assets, attack/jump/walk frames, boss death, purify and elder fall motions, talk facing, alarm, evacuation and return, ghost and seonbi deaths, mourning, remorse, encounter, chatter, dokkaebi talk, backdrops and ledges, aimed arrows, flying ghosts, boss charge and leap, endings, movement/idle transitions, purification visibility, immunity, no damage, reset");
                 SessionState.SetBool(Key,false); EditorApplication.Exit(0);
             }
         }
@@ -91,6 +98,9 @@ public static partial class JinaPlayChecks
     static SpriteRenderer Picture(JinaActorVisual v) => Field<SpriteRenderer>(v,"picture");
     // Purifying takes the charm: hear the clue and read the stele (moon, river, mountain).
     static QuestProgress WithCharm(QuestProgress q) { q.HearClue(); q.ChooseSymbol(2); q.ChooseSymbol(1); q.ChooseSymbol(3); return q; }
+    // Runs one component's Update/LateUpdate. SendMessage would reach every component on its object, and the combat
+    // object also carries the village, encounter, chatter and the rest.
+    static void Call(Component c,string method="Update") => c.GetType().GetMethod(method,BindingFlags.NonPublic|BindingFlags.Instance).Invoke(c,null);
     static void Check(bool ok,string reason) { if(!ok) throw new Exception(reason); }
     static void Capture(string name,Vector3 position,float size)
     {

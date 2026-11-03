@@ -17,6 +17,13 @@ public class PrototypeWorld : MonoBehaviour
     public static readonly Vector2 Tavern = new Vector2(10, .2f);
     public static readonly Vector2 Peddler = new Vector2(17.5f, .2f);
     public static readonly Vector2 Stone = new Vector2(-57, .5f);
+    // Ledges to jump onto: (centre x, top surface y). Jumps clear about 2 units, so each tier is ~1.7 above the last.
+    public static readonly Vector2[] CampLedges = { new Vector2(-16, 1.2f), new Vector2(-21, 2.9f), new Vector2(-27, 1.2f), new Vector2(-32, 2.7f), new Vector2(-36.5f, 1.3f) };
+    // Forest ledges sit in the gaps between the pines (x 32 + 6n).
+    public static readonly Vector2[] ForestLedges = { new Vector2(35, 1.3f), new Vector2(41, 2.9f), new Vector2(47, 1.3f), new Vector2(53, 2.8f), new Vector2(58.5f, 1.4f) };
+    public const float LedgeWidth = 3f;
+    // Each area's centre and its background art, behind the props (far drifts with the camera, near stays).
+    static readonly (string art, float x)[] Backdrops = { ("stele", -55), ("camp", -26), ("village", 8), ("forest", 46) };
 
     public static string Area(float x) => x < GateX ? "옛 비석 터" : x < VillageLeft ? "일반 몬스터 지역" : x >= ForestStart ? "보스 지역" : "리스폰 마을";
     public static bool CanDetect(Vector2 player, Vector2 enemy) => player.x >= ForestStart
@@ -47,10 +54,34 @@ public class PrototypeWorld : MonoBehaviour
         Prop("주막 주모", "keeper", Tavern.x, 1);
         Prop("주막 평상", "bench", 14, -5);
         Prop("거북 받침 비석", "stele", Stone.x, 0);
+        foreach (var (art, x) in Backdrops)
+        {
+            Prop("원경 " + art, "bg_" + art + "_far", x, -19).gameObject.AddComponent<PrototypeParallax>().home = x;
+            Prop("근경 " + art, "bg_" + art + "_near", x, -18);
+        }
+        foreach (var ledge in CampLedges) Ledge("바위 발판", "ledge_stone", ledge);
+        foreach (var ledge in ForestLedges) Ledge("통나무 발판", "ledge_log", ledge);
+    }
+
+    // A one-way ledge: jump up through it from below, land on its top.
+    void Ledge(string label, string art, Vector2 top)
+    {
+        var image = Prop(label, art, top.x, -3);
+        // The drawn lip sits two art pixels below the top of the picture.
+        float height = image.sprite.bounds.size.y, lip = 2 / JinaArt.PropPixelsPerUnit;
+        image.transform.position = new Vector3(top.x, top.y - height + lip, 0);
+        image.gameObject.layer = 8;
+        var box = image.gameObject.AddComponent<BoxCollider2D>();
+        box.size = new Vector2(LedgeWidth - .1f, .25f);
+        box.offset = new Vector2(0, height - lip - .125f);
+        box.usedByEffector = true;
+        var effector = image.gameObject.AddComponent<PlatformEffector2D>();
+        effector.useOneWay = true;
+        effector.surfaceArc = 160;
     }
 
     // Pixel-art props stand on the ground surface (y = -0.5).
-    void Prop(string label, string art, float x, int order, bool flip = false)
+    SpriteRenderer Prop(string label, string art, float x, int order, bool flip = false)
     {
         var prop = new GameObject(label);
         prop.transform.SetParent(transform);
@@ -59,6 +90,7 @@ public class PrototypeWorld : MonoBehaviour
         image.sprite = JinaArt.Prop(art);
         image.sortingOrder = order;
         image.flipX = flip;
+        return image;
     }
 
     void Tile(string label, float x, float y, float width, float height, Color color, Sprite sprite, bool solid, int order = 0)

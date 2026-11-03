@@ -88,7 +88,7 @@ public class PrototypeQuest : MonoBehaviour
             }
             return;
         }
-        if (!Input.GetKeyDown(KeyCode.E)) return;
+        if (!Input.GetKeyDown(KeyCode.E) || (combat.BossTalk != null && combat.BossTalk.IsOpen)) return;
         if (Near(PrototypeWorld.Elder))
         {
             shrineDialog = false;

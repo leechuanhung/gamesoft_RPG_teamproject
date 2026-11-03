@@ -36,7 +36,7 @@ public class PrototypeTavern : MonoBehaviour
             if (Input.GetKeyDown(KeyCode.Alpha2)) Purchase(1);
             if (Input.GetKeyDown(KeyCode.Alpha3)) Purchase(2);
         }
-        else if (Near && Input.GetKeyDown(KeyCode.E) && (combat.Quest == null || !combat.Quest.IsDialogOpen))
+        else if (Near && Input.GetKeyDown(KeyCode.E) && !combat.Paused)
         {
             IsOpen = true;
             message = Greeting();

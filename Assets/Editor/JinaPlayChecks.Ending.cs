@@ -33,12 +33,12 @@ public static partial class JinaPlayChecks
 
         var ending=combat.Ending; var player=combat.player.transform;
         player.position=new Vector3(PrototypeWorld.GoalX-3,player.position.y,0);
-        Set(combat,"<EnemyHealth>k__BackingField",0); ending.SendMessage("Update");
+        Set(combat,"<EnemyHealth>k__BackingField",0); Call(ending);
         Check(!ending.Active,"No ending before the road");
         player.position=new Vector3(PrototypeWorld.GoalX,player.position.y,0);
-        Set(combat,"<EnemyHealth>k__BackingField",30); ending.SendMessage("Update");
+        Set(combat,"<EnemyHealth>k__BackingField",30); Call(ending);
         Check(!ending.Active,"No ending while the boss stands");
-        Set(combat,"<EnemyHealth>k__BackingField",0); combat.Quest.progress.Resolve(false); ending.SendMessage("Update");
+        Set(combat,"<EnemyHealth>k__BackingField",0); combat.Quest.progress.Resolve(false); Call(ending);
         Check(ending.Active && ending.IsPlaying && ending.Ending==PrototypeEnding.Kind.Slain && combat.Paused && !combat.player.CanMove,"Reaching the road plays the ending");
         ending.Skip();
         Check(ending.Active && !ending.IsPlaying && combat.Paused,"Skipping leaves the ending title up");

@@ -18,9 +18,21 @@ public class PrototypeCombat : MonoBehaviour
     // When the seonbi was struck down (SeonbiVisual plays his fall from it).
     public float PlayerDownAt { get; private set; } = -1;
     private float bossRecoveryUntil;
-    public int BossAttackFrame => EnemyDefeated ? -1 : windupUntil >= 0
-        ? (windupUntil - Time.time > .3f ? 0 : 1)
+    public int BossAttackFrame => EnemyDefeated ? -1 : Move == BossMove.LeapWindup ? 0 : Move == BossMove.Leaping ? 1
+        : Move == BossMove.Landed ? (moveUntil - Time.time > .2f ? 2 : 3)
+        : windupUntil >= 0 ? (windupUntil - Time.time > .3f ? 0 : 1)
         : Time.time < bossRecoveryUntil ? (bossRecoveryUntil - Time.time > .12f ? 2 : 3) : -1;
+    // Besides the close strike, the boss rushes the seonbi across open ground or leaps onto him (also onto ledges)
+    // and slams the ground. Each move telegraphs with an orange windup.
+    public enum BossMove { None, ChargeWindup, Charging, LeapWindup, Leaping, Landed }
+    public BossMove Move { get; private set; }
+    public const float ChaseSpeed = 2.6f, ChargeSpeed = 9f, ChargeWindup = .5f, ChargeLength = .7f;
+    public const float LeapWindup = .45f, LeapLength = .75f, LeapHeight = 3f, LandedLength = .6f, SlamRadius = 2.6f;
+    public const float BossGround = .7f, MoveCooldown = 2.4f;
+    private float moveUntil, nextMoveAt;
+    private int moveDir, moveCount;
+    private float leapFrom, leapTo;
+    private bool moveHit;
     private float playerImpactAt = -1;
     private bool pendingBow;
     private SpriteRenderer enemy;
@@ -42,22 +54,40 @@ public class PrototypeCombat : MonoBehaviour
     public PrototypePeddler Peddler { get; private set; }
     public PrototypeVillage Village { get; private set; }
     public BossRemorse Remorse { get; private set; }
+    public PrototypeEncounter Encounter { get; private set; }
+    public PrototypeChatter Chatter { get; private set; }
+    public PrototypeBossTalk BossTalk { get; private set; }
     public Vector3 BossPosition => enemy != null ? enemy.transform.position : Vector3.zero;
     // A provoked boss that has followed the player past the forest edge.
+    public bool BossAlerted => alerted;
     public bool BossInVillage => alerted && !EnemyDefeated && enemy != null && enemy.transform.position.x < PrototypeWorld.ForestStart;
     public int Arrows { get; private set; } = ShopRules.MaxArrows;
     private float noArrowsUntil;
     public void AddArrows(int amount) { Arrows = Mathf.Clamp(Arrows + amount, 0, ShopRules.MaxArrows); }
     public PrototypeIntro Intro { get; private set; }
     public PrototypeEnding Ending { get; private set; }
-    public bool Paused => (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen);
+    public bool Paused => (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen);
     public void RestoreHealth(int amount) { if (PlayerHealth > 0) PlayerHealth = Mathf.Clamp(PlayerHealth + amount, 1, 5); }
     private class FlyingArrow
     {
         public SpriteRenderer art;
-        public int direction;
+        public Vector2 direction;
         public float remaining = 12f;
     }
+    // Hold up or down while shooting to aim the bow 30° up or down (bow_up / bow_down frames).
+    public const float AimAngle = 30f;
+    private int pendingAim;
+    // Where the arrow leaves the bow, from the feet, for a right-facing shot. The level shot leaves 1.1 ahead at
+    // the drawn nock height; aimed shots turn that point about the release frame's shoulder (x 400, 285 px up).
+    public static Vector2 ArrowLaunch(int aim)
+    {
+        var level = new Vector2(1.1f, JinaArt.BowArrowHeight);
+        if (aim == 0) return level;
+        var pivot = new Vector2(100f, 285f) / (510f / 1.9f);
+        return pivot + (Vector2)(Quaternion.Euler(0, 0, AimAngle * aim) * (level - pivot));
+    }
+    public static Vector2 ArrowDirection(int aim, int facing) =>
+        new Vector2(facing * Mathf.Cos(AimAngle * aim * Mathf.Deg2Rad), Mathf.Sin(AimAngle * aim * Mathf.Deg2Rad));
 
     void Start()
     {
@@ -80,6 +110,12 @@ public class PrototypeCombat : MonoBehaviour
         Village.combat = this;
         Remorse = gameObject.AddComponent<BossRemorse>();
         Remorse.combat = this;
+        Encounter = gameObject.AddComponent<PrototypeEncounter>();
+        Encounter.combat = this;
+        Chatter = gameObject.AddComponent<PrototypeChatter>();
+        Chatter.combat = this;
+        BossTalk = gameObject.AddComponent<PrototypeBossTalk>();
+        BossTalk.combat = this;
         playerVisual = SeonbiVisual.Attach(player, this);
         Restart();
         Intro = gameObject.AddComponent<PrototypeIntro>();
@@ -112,6 +148,7 @@ public class PrototypeCombat : MonoBehaviour
         bossRecoveryUntil = 0;
         playerImpactAt = -1;
         BossFacing = -1;
+        Move = BossMove.None; nextMoveAt = Time.time + MoveCooldown; moveCount = 0;
         BossDownAt = PurifiedAt = PlayerDownAt = -1;
         playerArt.color = playerColor;
         player.Respawn();
@@ -127,6 +164,9 @@ public class PrototypeCombat : MonoBehaviour
         if (Peddler != null) Peddler.ResetShop();
         if (Village != null) Village.ResetVillage();
         if (Ending != null) Ending.ResetEnding();
+        if (Encounter != null) Encounter.ResetEncounter();
+        if (Chatter != null) Chatter.ResetChatter();
+        if (BossTalk != null) BossTalk.ResetTalk();
         if (playerVisual != null) playerVisual.ResetPose();
     }
 
@@ -144,6 +184,7 @@ public class PrototypeCombat : MonoBehaviour
             windupUntil = -1;
             enemyReadyAt = Time.time + .5f;
             slash.enabled = false;
+            if (Move != BossMove.None) EndMove(0);
             return;
         }
         if (Input.GetKeyDown(KeyCode.Q)) UsingBow = !UsingBow;
@@ -161,8 +202,10 @@ public class PrototypeCombat : MonoBehaviour
             nextAttack = Time.time + (UsingBow ? .65f : .4f);
             attackFacing = player.Facing;
             pendingBow = UsingBow;
+            pendingAim = !UsingBow ? 0 : Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow) ? 1
+                : Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow) ? -1 : 0;
             playerImpactAt = Time.time + (pendingBow ? SeonbiVisual.BowReleaseDelay : SeonbiVisual.HitDelay);
-            if (playerVisual != null) playerVisual.Attack(UsingBow, attackFacing);
+            if (playerVisual != null) playerVisual.Attack(UsingBow, attackFacing, pendingAim);
         }
         if (playerImpactAt >= 0 && Time.time >= playerImpactAt)
         {
@@ -178,10 +221,12 @@ public class PrototypeCombat : MonoBehaviour
                 arrow.color = Color.white;
                 arrow.flipX = attackFacing < 0;
                 arrow.sortingOrder = 4;
+                arrow.transform.rotation = Quaternion.Euler(0, 0, AimAngle * pendingAim * attackFacing);
                 // Use the same foot reference as SeonbiVisual, including during jumps.
-                arrow.transform.position = new Vector3(player.transform.position.x + attackFacing * 1.1f,
-                    playerArt.bounds.min.y + JinaArt.BowArrowHeight, 0);
-                arrows.Add(new FlyingArrow { art = arrow, direction = attackFacing });
+                var launch = ArrowLaunch(pendingAim);
+                arrow.transform.position = new Vector3(player.transform.position.x + attackFacing * launch.x,
+                    playerArt.bounds.min.y + launch.y, 0);
+                arrows.Add(new FlyingArrow { art = arrow, direction = ArrowDirection(pendingAim, attackFacing) });
             }
             else
             {
@@ -206,7 +251,13 @@ public class PrototypeCombat : MonoBehaviour
         bool targetElder = alerted && Quest != null && !Quest.progress.ElderDead
             && Mathf.Abs(enemy.transform.position.x - PrototypeWorld.Elder.x) < 6f;
         if (targetElder) delta = (Vector3)PrototypeWorld.Elder - enemy.transform.position;
+        if (Move != BossMove.None) { StepMove(); TintBoss(); return; }
         if (windupUntil < 0 && Time.time >= bossRecoveryUntil && Mathf.Abs(delta.x) > .01f) BossFacing = delta.x > 0 ? 1 : -1;
+        if (alerted && !targetElder && windupUntil < 0 && Time.time >= bossRecoveryUntil && Time.time >= nextMoveAt && StartMove(delta))
+        {
+            TintBoss();
+            return;
+        }
         if (windupUntil >= 0)
         {
             // The strike stays where it was aimed, so moving or jumping can evade it.
@@ -241,11 +292,88 @@ public class PrototypeCombat : MonoBehaviour
         else if (alerted && Mathf.Abs(delta.x) > 1.25f && Time.time >= bossRecoveryUntil)
         {
             var position = enemy.transform.position;
-            position.x = Mathf.Clamp(position.x + Mathf.Sign(delta.x) * 1.8f * Time.deltaTime, PrototypeWorld.EnemyMin, PrototypeWorld.EnemyMax);
+            position.x = Mathf.Clamp(position.x + Mathf.Sign(delta.x) * ChaseSpeed * Time.deltaTime, PrototypeWorld.EnemyMin, PrototypeWorld.EnemyMax);
             enemy.transform.position = position;
         }
-        enemy.color = Time.time < hitFlashUntil ? Color.white : windupUntil >= 0
-            ? new Color(1f,.65f,.1f) : new Color(.8f,.2f,.25f);
+        TintBoss();
+    }
+
+    // Orange while winding up any attack, white for a moment when hit.
+    void TintBoss()
+    {
+        bool windup = windupUntil >= 0 || Move == BossMove.ChargeWindup || Move == BossMove.LeapWindup;
+        enemy.color = Time.time < hitFlashUntil ? Color.white : windup ? new Color(1f,.65f,.1f) : new Color(.8f,.2f,.25f);
+    }
+
+    // A seonbi up on a ledge is leapt at; one at mid range on the ground is rushed or leapt at in turn.
+    bool StartMove(Vector2 delta)
+    {
+        float dx = Mathf.Abs(delta.x);
+        bool above = delta.y > 1.2f && dx < 7f;
+        bool level = Mathf.Abs(delta.y) < 1.6f && dx > 3.5f && dx < 9f;
+        if (!above && !level) return false;
+        moveDir = delta.x >= 0 ? 1 : -1;
+        BossFacing = moveDir;
+        moveHit = false;
+        if (above || moveCount++ % 2 == 1)
+        {
+            Move = BossMove.LeapWindup; moveUntil = Time.time + LeapWindup;
+            leapFrom = enemy.transform.position.x;
+            leapTo = Mathf.Clamp(player.transform.position.x, PrototypeWorld.EnemyMin, PrototypeWorld.EnemyMax);
+        }
+        else { Move = BossMove.ChargeWindup; moveUntil = Time.time + ChargeWindup; }
+        return true;
+    }
+
+    void StepMove()
+    {
+        var position = enemy.transform.position;
+        switch (Move)
+        {
+            case BossMove.ChargeWindup:
+                if (Time.time >= moveUntil) { Move = BossMove.Charging; moveUntil = Time.time + ChargeLength; }
+                break;
+            case BossMove.Charging:
+                position.x = Mathf.Clamp(position.x + moveDir * ChargeSpeed * Time.deltaTime, PrototypeWorld.EnemyMin, PrototypeWorld.EnemyMax);
+                enemy.transform.position = position;
+                if (!moveHit && enemy.bounds.Intersects(playerArt.bounds)) { moveHit = true; HurtPlayer(); }
+                if (Time.time >= moveUntil || position.x <= PrototypeWorld.EnemyMin || position.x >= PrototypeWorld.EnemyMax) EndMove(.5f);
+                break;
+            case BossMove.LeapWindup:
+                if (Time.time >= moveUntil) { Move = BossMove.Leaping; moveUntil = Time.time + LeapLength; }
+                break;
+            case BossMove.Leaping:
+                float k = 1 - Mathf.Clamp01((moveUntil - Time.time) / LeapLength);
+                position.x = Mathf.Lerp(leapFrom, leapTo, k);
+                position.y = BossGround + 4 * LeapHeight * k * (1 - k);
+                enemy.transform.position = position;
+                // It also crashes into a seonbi in its path, up on a ledge or not.
+                if (!moveHit && enemy.bounds.Intersects(playerArt.bounds)) { moveHit = true; HurtPlayer(); }
+                if (k >= 1) Land();
+                break;
+            case BossMove.Landed:
+                if (Time.time >= moveUntil) EndMove(.3f);
+                break;
+        }
+    }
+
+    // The slam: the ground shakes and hurts a seonbi standing near on the ground, or one it lands on.
+    void Land()
+    {
+        var position = enemy.transform.position; position.y = BossGround; enemy.transform.position = position;
+        Move = BossMove.Landed; moveUntil = Time.time + LandedLength;
+        PrototypeView.Shake(.14f, .4f);
+        bool onGround = player.IsGrounded && playerArt.bounds.min.y < -.3f;
+        if (!moveHit && (enemy.bounds.Intersects(playerArt.bounds) || onGround && Mathf.Abs(player.transform.position.x - position.x) < SlamRadius)) { moveHit = true; HurtPlayer(); }
+    }
+
+    void EndMove(float recovery)
+    {
+        var position = enemy.transform.position; position.y = BossGround; enemy.transform.position = position;
+        Move = BossMove.None;
+        bossRecoveryUntil = Time.time + recovery;
+        enemyReadyAt = Time.time + recovery + .3f;
+        nextMoveAt = Time.time + MoveCooldown;
     }
 
     public bool TryPurifyBoss()
@@ -256,6 +384,7 @@ public class PrototypeCombat : MonoBehaviour
         enemy.color = new Color(.8f,.2f,.25f);
         windupUntil = -1;
         bossRecoveryUntil = 0;
+        if (Move != BossMove.None) EndMove(0);
         alerted = false;
         strikeElder = false;
         playerImpactAt = -1;
@@ -290,6 +419,7 @@ public class PrototypeCombat : MonoBehaviour
         // The renderer stays on while JinaActorVisual plays the death motion, then hides itself.
         BossDownAt = Time.time;
         windupUntil = -1;
+        if (Move != BossMove.None) EndMove(0);
         if (Quest != null) Quest.progress.Resolve(false);
     }
 
@@ -300,17 +430,17 @@ public class PrototypeCombat : MonoBehaviour
         {
             var arrow = arrows[i];
             Vector2 origin = arrow.art.transform.position;
-            Vector2 direction = Vector2.right * arrow.direction;
+            Vector2 direction = arrow.direction;
             float step = Mathf.Min(14f * deltaTime, arrow.remaining);
-            var wall = Physics2D.Raycast(origin, direction, step, 1 << 8);
+            var wall = Wall(origin, direction, step);
             float enemyDistance = float.PositiveInfinity;
-            if (!EnemyDefeated) enemyDistance = ArrowHitDistance(enemy.bounds, origin, arrow.direction, step);
+            if (!EnemyDefeated) enemyDistance = ArrowHitDistance(enemy.bounds, origin, direction, step);
             PrototypeCamp.Mob mob = null;
             if (Camp != null)
                 foreach (var candidate in Camp.mobs)
                 {
                     if (candidate.hp <= 0) continue;
-                    float distance = ArrowHitDistance(candidate.art.bounds, origin, arrow.direction, step);
+                    float distance = ArrowHitDistance(candidate.art.bounds, origin, direction, step);
                     if (distance < enemyDistance) { enemyDistance = distance; mob = candidate; }
                 }
             bool hitsEnemy = enemyDistance <= step && (wall.collider == null || enemyDistance < wall.distance);
@@ -325,13 +455,22 @@ public class PrototypeCombat : MonoBehaviour
         }
     }
 
-    public static float ArrowHitDistance(Bounds target, Vector2 origin, int direction, float distance)
+    // Arrows stop at the ground and walls but fly through the one-way ledges.
+    static RaycastHit2D Wall(Vector2 origin, Vector2 direction, float distance)
+    {
+        foreach (var hit in Physics2D.RaycastAll(origin, direction, distance, 1 << 8))
+            if (!hit.collider.usedByEffector) return hit;
+        return default;
+    }
+    public static float ArrowHitDistance(Bounds target, Vector2 origin, int direction, float distance) =>
+        ArrowHitDistance(target, origin, Vector2.right * direction, distance);
+    public static float ArrowHitDistance(Bounds target, Vector2 origin, Vector2 direction, float distance)
     {
         // Account for arrow thickness without extending its damage past the traveled segment.
-        target.Expand(new Vector3(0, .1f, 0));
+        target.Expand(new Vector3(.1f, .1f, 0));
         if (target.Contains(origin)) return 0;
         float hit;
-        return target.IntersectRay(new Ray(origin, Vector3.right * direction), out hit) && hit <= distance
+        return target.IntersectRay(new Ray(origin, direction.normalized), out hit) && hit <= distance
             ? hit : float.PositiveInfinity;
     }
 

@@ -15,7 +15,7 @@ public static partial class JinaPlayChecks
         // Alarm: the elder is startled, then draws his sword.
         boss.transform.position=new Vector3(PrototypeWorld.Elder.x+4,boss.transform.position.y,0);
         Set(combat,"alerted",true);
-        village.SendMessage("Update");
+        Call(village);
         Check(village.Alarmed && !village.Cleared,"Boss in the village raises the alarm");
         var sword=Field<SpriteRenderer>(elderVisual,"sword");
         foreach(float t in new[]{.1f,.4f,.6f,1f})
@@ -28,8 +28,8 @@ public static partial class JinaPlayChecks
         }
 
         // Evacuation: both run left into the house; the tavern is shut meanwhile.
-        village.SendMessage("Update");
-        Check(village.Keeper.state==PrototypeVillage.State.Fleeing && village.Peddler.state==PrototypeVillage.State.Fleeing,"Villagers flee");
+        Call(village);
+        Check(village.Keeper.state==PrototypeVillage.State.Fleeing && village.Peddler.state==PrototypeVillage.State.Fleeing,"Villagers flee ("+village.Keeper.state+"/"+village.Peddler.state+" paused="+combat.Paused+" enc="+combat.Encounter.Playing+" talk="+combat.BossTalk.IsOpen+" alarmAt="+(Time.time-village.AlarmAt)+")");
         keeper.transform.position=new Vector3(7,-.5f,0);
         village.Peddler.art.transform.position=new Vector3(9,PrototypeWorld.Peddler.y,0);
         Set(keeperVisual,"last",keeper.transform.position+Vector3.right*.06f); keeperVisual.Refresh();
@@ -42,14 +42,14 @@ public static partial class JinaPlayChecks
         player.position=new Vector3(0,player.position.y,0);
         keeper.transform.position=new Vector3(PrototypeVillage.Shelter,-.5f,0);
         village.Peddler.art.transform.position=new Vector3(PrototypeVillage.Shelter,PrototypeWorld.Peddler.y,0);
-        village.SendMessage("Update");
+        Call(village);
         Check(village.Keeper.state==PrototypeVillage.State.Hidden && !keeper.enabled && !village.Peddler.art.enabled,"Villagers hide in the house");
 
         // All clear: they wait for the boss's motion, come out and walk home; the elder sheathes his sword.
         Set(combat,"<EnemyHealth>k__BackingField",0);
-        village.SendMessage("Update");
+        Call(village);
         Check(village.Cleared && village.Keeper.state==PrototypeVillage.State.Hidden,"They wait while the boss falls");
-        Set(village,"<ClearAt>k__BackingField",Time.time-10); village.SendMessage("Update");
+        Set(village,"<ClearAt>k__BackingField",Time.time-10); Call(village);
         Check(village.Keeper.state==PrototypeVillage.State.Returning && village.Peddler.state==PrototypeVillage.State.Returning && keeper.enabled,"Villagers come back out");
         elderVisual.Refresh();
         Check(!sword.enabled && Picture(elderVisual).sprite.name==JinaArt.Elder,"Elder puts the sword away");
@@ -61,7 +61,7 @@ public static partial class JinaPlayChecks
         Capture("villagers-return",new Vector3(7,1,-10),3);
         keeper.transform.position=new Vector3(village.Keeper.home,-.5f,0);
         village.Peddler.art.transform.position=new Vector3(village.Peddler.home,PrototypeWorld.Peddler.y,0);
-        village.SendMessage("Update");
+        Call(village);
         Check(village.KeeperHome && village.PeddlerHome,"Villagers back at their places");
         combat.Restart();
         Check(!village.Alarmed && village.KeeperHome && keeper.enabled && keeper.color.a==1,"Restart resets the village");
@@ -83,7 +83,7 @@ public static partial class JinaPlayChecks
             v.art.enabled=true;
             v.art.transform.position=new Vector3(v.mourn,v.art.transform.position.y,0);
         }
-        village.SendMessage("Update");
+        Call(village);
         Check(keeper.state==PrototypeVillage.State.Mourning && peddler.state==PrototypeVillage.State.Mourning,"Villagers stop by the fallen elder");
         // Arriving together, the second speaks only once the first has finished.
         var first=keeper.speakAt<=peddler.speakAt ? keeper : peddler; var second=first==keeper ? peddler : keeper;
@@ -94,7 +94,7 @@ public static partial class JinaPlayChecks
         Check(keeper.art.flipX && Picture(peddlerVisual).flipX,"Mourners face the elder");
         Capture("villagers-mourn",new Vector3(PrototypeWorld.Elder.x-2,1,-10),3);
         foreach(var v in new[]{keeper,peddler}) { v.mournedAt=Time.time-PrototypeVillage.MournLength; v.speakAt=Time.time-PrototypeVillage.MournLineLength-1; }
-        village.SendMessage("Update");
+        Call(village);
         Check(keeper.state==PrototypeVillage.State.Returning && peddler.state==PrototypeVillage.State.Returning,"After a while they head home");
         combat.Restart();
         Check(village.KeeperHome && village.PeddlerHome && keeper.mournedAt<0,"Restart resets the mourning");

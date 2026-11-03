@@ -197,6 +197,32 @@ def charm():
     c.paint(c.rect(5, 17, 5, 21) | c.rect(14, 17, 14, 21), INK)
     return c
 
+# Ledges to jump onto, 3 units (72 dots) wide; the game puts a one-way collider on the top 6 dots.
+def ledge_stone():
+    """A slab of the camp's grey stone with moss along its lip and a ragged underside."""
+    c = Canvas(72, 16)
+    under = [(1, 6), (70, 6), (66, 11), (58, 12), (52, 15), (40, 13), (30, 15), (20, 12), (10, 13), (5, 10)]
+    body = c.poly(under) | c.rect(1, 3, 70, 7)
+    c.layer(body, STONE)
+    c.paint(body & c.rect(0, 9, c.w, c.h), STONE2)
+    for x in (14, 31, 47, 60): c.paint(c.line([(x, 5), (x - 2, 10)]) & body, STONE2)
+    moss = c.rect(1, 2, 70, 4) | c.rect(8, 5, 12, 5) | c.rect(36, 5, 41, 5) | c.rect(55, 5, 58, 6)
+    c.layer(moss, MOSS)
+    c.paint(c.rect(1, 2, 70, 2) & moss, (120, 150, 90))
+    return c
+
+def ledge_log():
+    """A fallen pine log, bark on top and ring-cut ends, for the forest."""
+    c = Canvas(72, 14)
+    log = c.rect(4, 2, 67, 11) | c.ellipse(0, 2, 8, 11) | c.ellipse(63, 2, 71, 11)
+    c.layer(log, BARK)
+    c.paint(log & c.rect(0, 8, c.w, c.h), BARK2)
+    for x in range(10, 62, 7): c.paint(c.rect(x, 4 + (x % 3), x + 3, 4 + (x % 3)), BARK2)
+    end = c.ellipse(63, 2, 71, 11); c.layer(end, WOOD3)
+    c.paint(c.ellipse(65, 4, 69, 9) & ~c.ellipse(66, 5, 68, 8), WOOD)
+    c.layer(c.rect(20, 0, 26, 2) | c.rect(44, 0, 47, 1), LEAF)
+    return c
+
 def shift(c, y0, y1, dx=0, dy=0):
     """Move rows y0..y1 of a drawn canvas sideways (whole rows, so outlines move with their fills) or up."""
     cc, aa = c.c.copy(), c.a.copy()
@@ -214,7 +240,7 @@ def keeper_run(spread, lift, sway):
     if lift: shift(c, 0, c.h - 1, dy=lift)
     return c
 
-for name, fn in (('tavern', tavern), ('house', house), ('pine', pine), ('stele', stele), ('bench', bench), ('keeper', keeper), ('charm', charm)):
+for name, fn in (('ledge_stone', ledge_stone), ('ledge_log', ledge_log), ('tavern', tavern), ('house', house), ('pine', pine), ('stele', stele), ('bench', bench), ('keeper', keeper), ('charm', charm)):
     c = fn(); c.save(OUT + '/' + name + '.png')
     if '--preview' in sys.argv: c.save(OUT + '/' + name + '_x4.png', 4)
 box = Image.fromarray(np.where(keeper().a, 255, 0).astype(np.uint8)).getbbox()

@@ -36,8 +36,12 @@ public class BossVisual : JinaActorVisual
         facing=combat.BossFacing; int frame=combat.BossAttackFrame;
         bool moving=Moving(dx) && !combat.EnemyDefeated;
         if(!combat.Paused) walkTime=moving ? walkTime+Time.deltaTime : 0;
-        if(!purified && moving && frame<0) f.sprite=walks[(int)(walkTime/.14f)%4];
+        // Steps quicken with speed: .14 s a frame at the old 1.8 units/s, faster on the chase and the charge.
+        float speed=Time.deltaTime>0 ? Mathf.Abs(dx)/Time.deltaTime : 0;
+        if(!purified && moving && frame<0) f.sprite=walks[(int)(walkTime/Mathf.Max(.06f,.25f/Mathf.Max(speed,1.8f)))%4];
         if(!purified && frame>=0) f.sprite=attacks[frame];
+        // Its roar at the first encounter: the club raised high.
+        if(!purified && !slain && combat.Encounter!=null && combat.Encounter.Roaring) f.sprite=attacks[0];
         f.hitTint=!purified && !slain;
         if(slain) Die(ref f,Time.time-combat.BossDownAt);
         else if(purified && Time.time-combat.PurifiedAt<PurifyLength) Purify(ref f,Time.time-combat.PurifiedAt);
