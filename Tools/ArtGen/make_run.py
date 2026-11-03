@@ -1,8 +1,9 @@
 # Builds the player run frames from the walk frames: forward lean, wider stride, bob on frames 1 and 3.
 # Usage: python make_run.py Assets/Resources/JinaV4/10_Player_Walk Assets/Resources/JinaV4/11_Player_Run
-import sys
+import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from PIL import Image
 import numpy as np
+from framelib import clean
 src, dst = sys.argv[1], sys.argv[2]
 STEP = 10                  # art reads as ~10 px logical pixels
 NECK, HIP, FEET = 215, 330, 562
@@ -31,21 +32,5 @@ for i, (w, spread, lift, lean) in enumerate(plan):
         line[x0 + split + s:x0 + wd + s] = row[split:]
         if s: line[x0 - s + split:x0 + split + s] = row[split]
         out[ty] = line
-    # opening with a 5x5 box drops 1-4 px slivers left where neighbouring rows shift differently
-    out[out[:, :, 3] < 128] = 0  # soft halo rows show as ledges once rows are shifted
-    op = out[:, :, 3] > 0
-    def erode(m):
-        r = m.copy()
-        for d in range(-2, 3):
-            r &= np.roll(m, d, 0); r &= np.roll(m, d, 1)
-        r2 = r.copy()
-        for dy in range(-2, 3):
-            for dx in range(-2, 3): r2 &= np.roll(np.roll(m, dy, 0), dx, 1)
-        return r2
-    def dilate(m):
-        r = m.copy()
-        for dy in range(-2, 3):
-            for dx in range(-2, 3): r |= np.roll(np.roll(m, dy, 0), dx, 1)
-        return r
-    out[op & ~dilate(erode(op))] = 0
+    clean(out)  # drops the soft halo and the 1-4 px slivers left where neighbouring rows shift differently
     Image.fromarray(out).save(f"{dst}/player_run_{i:02d}.png")

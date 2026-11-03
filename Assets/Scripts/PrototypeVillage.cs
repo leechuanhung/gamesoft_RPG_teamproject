@@ -2,6 +2,7 @@ using UnityEngine;
 
 // When the boss walks into the village the elder calls out and draws his sword, and the keeper and the peddler
 // run into the house. Once the boss is slain or purified they come back out and walk slowly to their places.
+// This moves them; KeeperVisual, PeddlerVisual and ElderVisual pick their frames.
 public class PrototypeVillage : MonoBehaviour
 {
     public PrototypeCombat combat;
@@ -11,11 +12,13 @@ public class PrototypeVillage : MonoBehaviour
     public const float Shelter = 4.5f, DoorFade = .5f;
     // Seconds after the alarm (they hear the elder first) and after the boss falls (its motion plays first).
     public const float FleeDelay = .6f, ReturnDelay = 2.5f;
+
     // The alarm and the all-clear happen once per run; the times drive the motions.
     public bool Alarmed { get; private set; }
     public bool Cleared { get; private set; }
     public float AlarmAt { get; private set; }
     public float ClearAt { get; private set; }
+
     public enum State { Home, Fleeing, Hidden, Returning }
     public class Villager
     {
@@ -27,8 +30,7 @@ public class PrototypeVillage : MonoBehaviour
     public Villager Peddler { get; private set; }
     public bool KeeperHome => Keeper == null || Keeper.state == State.Home;
     public bool PeddlerHome => Peddler == null || Peddler.state == State.Home;
-    private Sprite[] keeperRun;
-    private float keeperWalk;
+    private KeeperVisual keeperVisual;
 
     // The keeper is built by PrototypeWorld and the peddler by PrototypePeddler.Start, so find them lazily.
     void Bind()
@@ -39,8 +41,7 @@ public class PrototypeVillage : MonoBehaviour
             if (keeper != null)
             {
                 Keeper = new Villager { art = keeper.GetComponent<SpriteRenderer>(), home = PrototypeWorld.Tavern.x, stagger = 0 };
-                keeperRun = new Sprite[4];
-                for (int i = 0; i < 4; i++) keeperRun[i] = JinaArt.Prop("keeper_run_" + i.ToString("00"));
+                keeperVisual = KeeperVisual.Attach(Keeper.art, combat);
             }
         }
         if (Peddler == null && combat.Peddler != null && combat.Peddler.Marker != null)
@@ -57,66 +58,48 @@ public class PrototypeVillage : MonoBehaviour
             Move(v, v.home, 1);
             v.art.enabled = true;
         }
-        if (Keeper != null) { Keeper.art.sprite = JinaArt.Prop("keeper"); Keeper.art.flipX = false; }
+        if (keeperVisual != null) keeperVisual.ResetPose();
     }
 
     void Update()
     {
         if (combat == null) return;
         Bind();
-        if (combat.Paused) { DrawKeeper(0); return; }
+        if (combat.Paused) return;
         if (!Alarmed && combat.BossInVillage) { Alarmed = true; AlarmAt = Time.time; }
         if (Alarmed && !Cleared && combat.EnemyDefeated) { Cleared = true; ClearAt = Time.time; }
-        float keeperMoved = 0;
         foreach (var v in new[] { Keeper, Peddler })
+            if (v != null) Step(v);
+    }
+
+    // Home → (alarm) run to the door → hidden → (all clear) walk back out → home.
+    void Step(Villager v)
+    {
+        float x = v.art.transform.position.x;
+        switch (v.state)
         {
-            if (v == null) continue;
-            float x = v.art.transform.position.x, before = x;
-            switch (v.state)
-            {
-                case State.Home:
-                    if (Alarmed && !Cleared && Time.time >= AlarmAt + FleeDelay + v.stagger) v.state = State.Fleeing;
-                    break;
-                case State.Fleeing:
-                    x = Mathf.Max(Shelter, x - RunSpeed * Time.deltaTime);
-                    if (x <= Shelter) { v.state = State.Hidden; v.art.enabled = false; }
-                    break;
-                case State.Hidden:
-                    if (Cleared && Time.time >= ClearAt + ReturnDelay + v.stagger * 4) { v.state = State.Returning; v.art.enabled = true; }
-                    break;
-                case State.Returning:
-                    x = Mathf.Min(v.home, x + WalkSpeed * Time.deltaTime);
-                    if (x >= v.home) v.state = State.Home;
-                    break;
-            }
-            Move(v, x, Mathf.Clamp01((x - Shelter) / DoorFade));
-            if (v == Keeper) keeperMoved = x - before;
+            case State.Home:
+                if (Alarmed && !Cleared && Time.time >= AlarmAt + FleeDelay + v.stagger) v.state = State.Fleeing;
+                break;
+            case State.Fleeing:
+                x = Mathf.Max(Shelter, x - RunSpeed * Time.deltaTime);
+                if (x <= Shelter) { v.state = State.Hidden; v.art.enabled = false; }
+                break;
+            case State.Hidden:
+                if (Cleared && Time.time >= ClearAt + ReturnDelay + v.stagger * 4) { v.state = State.Returning; v.art.enabled = true; }
+                break;
+            case State.Returning:
+                x = Mathf.Min(v.home, x + WalkSpeed * Time.deltaTime);
+                if (x >= v.home) v.state = State.Home;
+                break;
         }
-        DrawKeeper(keeperMoved);
+        Move(v, x, Mathf.Clamp01((x - Shelter) / DoorFade));
     }
 
     void Move(Villager v, float x, float alpha)
     {
         var p = v.art.transform.position; p.x = x; v.art.transform.position = p;
         var c = v.art.color; c.a = alpha; v.art.color = c;
-    }
-
-    // The keeper is a single prop sprite: run frames while moving (slower steps on the way home),
-    // otherwise she stands as drawn (facing left) or turns to the customer she is serving.
-    void DrawKeeper(float moved)
-    {
-        if (Keeper == null) return;
-        var art = Keeper.art;
-        if (Mathf.Abs(moved) > .0001f)
-        {
-            keeperWalk += Time.deltaTime;
-            art.sprite = keeperRun[(int)(keeperWalk / (Keeper.state == State.Fleeing ? .09f : .2f)) % 4];
-            art.flipX = moved > 0;
-            return;
-        }
-        keeperWalk = 0;
-        art.sprite = JinaArt.Prop("keeper");
-        art.flipX = combat.Tavern != null && combat.Tavern.IsOpen && combat.player.transform.position.x > art.transform.position.x;
     }
 
     void OnGUI()
