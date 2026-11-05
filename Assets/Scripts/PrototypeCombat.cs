@@ -5,6 +5,8 @@ using UnityEngine;
 // The boss is in PrototypeCombat.Boss.cs and the arrows in PrototypeCombat.Arrows.cs.
 public partial class PrototypeCombat : MonoBehaviour
 {
+    public bool InventoryPauseActive { get; set; }
+    public event System.Action Restarted;
     public PrototypePlayer player;
     public int PlayerHealth { get; private set; } = 5;
     public const int EnemyMaxHealth = 30;
@@ -40,7 +42,7 @@ public partial class PrototypeCombat : MonoBehaviour
     public void AddArrows(int amount) { Arrows = Mathf.Clamp(Arrows + amount, 0, ShopRules.MaxArrows); }
     public PrototypeIntro Intro { get; private set; }
     public PrototypeEnding Ending { get; private set; }
-    public bool Paused => (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen);
+    public bool Paused => (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || InventoryPauseActive;
     public void RestoreHealth(int amount) { if (PlayerHealth > 0) PlayerHealth = Mathf.Clamp(PlayerHealth + amount, 1, 5); }
 
     void Start()
@@ -122,6 +124,7 @@ public partial class PrototypeCombat : MonoBehaviour
         if (Chatter != null) Chatter.ResetChatter();
         if (BossTalk != null) BossTalk.ResetTalk();
         if (playerVisual != null) playerVisual.ResetPose();
+        Restarted?.Invoke();
     }
 
     void Update()
