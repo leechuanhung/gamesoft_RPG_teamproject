@@ -1,6 +1,7 @@
 # Builds the seonbi's death frames from his idle (no new drawing).
 #   player_hit_00 recoil (upper body leans back), player_hit_01 knees buckle (leg rows removed),
 #   player_corpse the idle turned a quarter (lossless), lying on his back with his feet where he stood.
+#   player_dodge the backstep: upper body ducks forward, knees bent low (leg rows removed).
 # Frames sit on the idle canvas widened by 48 px each side, so the recoil has room; JinaArt adds the same pad.
 # Usage: python make_player_down.py Assets/Resources/JinaV4   [--preview DIR]
 import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -17,6 +18,7 @@ frames = {
     "player_hit_00": clean(bend(base, -24, 120, 330, P)),
     "player_hit_01": clean(bend(base, -36, 120, 360, P, (470, 500))),
     "player_corpse": np.rot90(base, 1),
+    "player_dodge": clean(bend(base, 24, 120, 360, P, (470, 494))),
 }
 for name, f in frames.items(): save(f, f"{root}/{name}.png")
 

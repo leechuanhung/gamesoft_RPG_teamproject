@@ -79,7 +79,7 @@ public static class JinaArt
     static bool CutFrom(string path,out string idle,out int pad)
     {
         idle=null; pad=0;
-        if(path.StartsWith("01_Player/player_hit_") || path=="01_Player/player_corpse") { idle=Player; pad=48; }
+        if(path.StartsWith("01_Player/player_hit_") || path=="01_Player/player_corpse" || path=="01_Player/player_dodge") { idle=Player; pad=48; }
         else if(path.StartsWith("07_Ghost/ghost_death_")) idle=Ghost;
         else if(path.StartsWith("08_Village_Elder/elder_")) idle=Elder;
         return idle!=null;

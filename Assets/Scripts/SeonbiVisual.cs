@@ -13,6 +13,8 @@ public class SeonbiVisual : MonoBehaviour
     public const float SwordDuration=.4f,BowDuration=.6f,HitDelay=.2f,BowReleaseDelay=.3f;
     // Struck down: reel back, knees give way, then a quarter turn onto his back.
     public const float FallLength=.85f;
+    // A hit he survives: he reels back for a moment (the death recoil frame), unless mid-swing.
+    public const float HurtLength=.3f;
     public static Sprite LoadSprite() => JinaArt.Load(JinaArt.Player);
     public static SeonbiVisual Attach(PrototypePlayer player,PrototypeCombat combat)
     {
@@ -58,12 +60,14 @@ public class SeonbiVisual : MonoBehaviour
         if(!combat.Paused) walkTime=walking ? walkTime+Time.deltaTime : 0;
         Vector3 feet=new Vector3(transform.position.x,source.bounds.min.y,0);
         if(combat.PlayerHealth<=0 && combat.PlayerDownAt>=0) { Fall(feet,facing,Time.time-combat.PlayerDownAt); return; }
+        bool hurt=combat.PlayerHurtAt>=0 && Time.time-combat.PlayerHurtAt<HurtLength && !attacking;
+        bool dodging=player.Dodging && combat.PlayerHealth>0;
         var shot=attackAim>0 ? bowUpFrames : attackAim<0 ? bowDownFrames : bowFrames;
-        body.sprite=attacking ? (bowAttack ? shot : swordFrames)[Mathf.Min(3,(int)(attackTime/(duration/4)))] : jumping ? jumpFrames[jumpFrame] : running ? runFrames[(int)(walkTime/.08f)%4] : walking ? walkFrames[(int)(walkTime/.12f)%4] : LoadSprite();
+        body.sprite=dodging ? JinaArt.Load("01_Player/player_dodge") : hurt ? hitFrames[0] : attacking ? (bowAttack ? shot : swordFrames)[Mathf.Min(3,(int)(attackTime/(duration/4)))] : jumping ? jumpFrames[jumpFrame] : running ? runFrames[(int)(walkTime/.08f)%4] : walking ? walkFrames[(int)(walkTime/.12f)%4] : LoadSprite();
         JinaArt.Place(body,feet,facing<0);
         body.transform.rotation=Quaternion.identity; weapon.transform.rotation=Quaternion.identity; weapon.color=Color.white;
         body.color=source.color==Color.gray ? Color.gray : source.color==Color.red ? new Color(1,.4f,.4f) : Color.white;
-        weapon.enabled=!attacking && !jumping && combat.PlayerHealth>0;
+        weapon.enabled=!attacking && !jumping && !dodging && !hurt && combat.PlayerHealth>0;
         if(weapon.enabled)
         {
             weapon.sprite=JinaArt.Load(combat.UsingBow ? "04_Weapons/bow" : "04_Weapons/hwando");

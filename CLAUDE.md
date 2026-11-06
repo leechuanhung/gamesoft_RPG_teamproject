@@ -1,7 +1,7 @@
 # 지나가던 선비 (Unity 2022.3.62f1, 2D 횡스크롤)
 
 과거 시험을 보러 가는 선비의 모험. 작업 브랜치는 `seonbi`, 기본 브랜치는 `main`. 사용자와는 한국어로 대화한다.
-게임 규칙과 개발 기록은 `시작하기.md`에 있다. 기능을 바꾸면 맨 위에 짧은 항목을 추가한다.
+게임 규칙과 개발 기록은 `시작하기.md`에 있다. 앞으로 만들 맵·스토리·아이템 구상은 `기획서.md`에 있다. 기능을 바꾸면 맨 위에 짧은 항목을 추가한다.
 그림 작업은 `Tools/ArtGen/README.md`를 먼저 읽는다.
 
 ## 작업 방식
@@ -17,7 +17,7 @@
 
 | 파일 | 맡은 일 |
 |---|---|
-| `PrototypeCombat.cs` | 선비 체력·공격, 재시작(`Restart`), `Paused`, 아래 관리 컴포넌트를 붙인다 (모두 같은 오브젝트) |
+| `PrototypeCombat.cs` | 선비 체력·공격·피격(`PlayerHurtAt`), 재시작(`Restart`), `Paused`, 아래 관리 컴포넌트를 붙인다 (모두 같은 오브젝트) |
 | `PrototypeCombat.Boss.cs` | 보스 상태·추격·근접 공격·돌진·도약(`BossMove`), 토벌(`DamageEnemy`)·정화(`TryPurifyBoss`) |
 | `PrototypeCombat.Arrows.cs` | 활 조준(`AimAngle` 30°, `ArrowLaunch`, `ArrowDirection`), 발사(`Shoot`), 비행·명중, 발판 통과(`Wall`) |
 | `PrototypeQuest.cs` / `QuestProgress.cs` | 노인·비석 대화, 부적 퍼즐 / 선악·퀘스트 상태(Unity 무관). 토벌 +10, 정화 +30, 노인 사망 −40 |

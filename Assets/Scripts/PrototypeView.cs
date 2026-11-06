@@ -35,7 +35,7 @@ public class PrototypeView : MonoBehaviour
         var combat = GetComponent<PrototypeCombat>();
         GUI.Box(new Rect(15, 15, 440, 85), "지나가던 선비 · " + (combat != null && combat.UsingBow ? "활" : "환도")
             + (combat != null ? " · 화살 " + combat.Arrows + "/" + ShopRules.MaxArrows : ""));
-        GUI.Label(new Rect(30, 43, 410, 25), "이동: A·D / 방향키    도약: 스페이스바    무기: Q");
+        GUI.Label(new Rect(30, 43, 410, 25), "이동: A·D / 방향키    도약: 스페이스바    무기: Q    물러서기: K");
         GUI.Label(new Rect(30, 66, 410, 25), "달리기: Shift+이동    공격: J    대화: E    정화: F    다시 시작: R");
         if (target != null)
         {

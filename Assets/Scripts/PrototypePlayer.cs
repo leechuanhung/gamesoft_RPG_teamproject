@@ -6,6 +6,10 @@ public class PrototypePlayer : MonoBehaviour
     public float runSpeed = 10f;
     public KeyCode runKey = KeyCode.LeftShift;
     public float jumpSpeed = 11f;
+    // Backstep (K): a short hop away from where he faces, untouchable while it lasts.
+    public const float DodgeLength = .3f, DodgeSpeed = 9f, DodgeCooldown = .7f;
+    private float dodgeUntil, nextDodge;
+    public bool Dodging => Time.time < dodgeUntil;
     private Rigidbody2D body;
     private BoxCollider2D hitbox;
     private float horizontal;
@@ -32,7 +36,15 @@ public class PrototypePlayer : MonoBehaviour
     {
         horizontal = Input.GetAxisRaw("Horizontal");
         if (!CanMove) { horizontal = 0; IsRunning = false; return; }
+        if (Dodging) { IsRunning = false; return; }
         if (horizontal != 0) Facing = horizontal > 0 ? 1 : -1;
+        if (Input.GetKeyDown(KeyCode.K) && IsGrounded && Time.time >= nextDodge)
+        {
+            dodgeUntil = Time.time + DodgeLength;
+            nextDodge = Time.time + DodgeCooldown;
+            IsRunning = false;
+            return;
+        }
         IsRunning = horizontal != 0 && (Input.GetKey(runKey) || Input.GetKey(KeyCode.RightShift));
         if (Input.GetKeyDown(KeyCode.Space)) jumpRequestedUntil = Time.time + 0.12f;
         if (Input.GetKeyDown(KeyCode.R) || transform.position.y < -8f)
@@ -55,7 +67,7 @@ public class PrototypePlayer : MonoBehaviour
             if (groundHits[i].normal.y > 0.65f) grounded = true;
 
         IsGrounded = grounded && body.velocity.y <= 0.1f;
-        body.velocity = new Vector2(horizontal * (IsRunning ? runSpeed : moveSpeed), body.velocity.y);
+        body.velocity = new Vector2(Dodging ? -Facing * DodgeSpeed : horizontal * (IsRunning ? runSpeed : moveSpeed), body.velocity.y);
         if (jumpRequestedUntil > Time.time && grounded && body.velocity.y <= 0.1f)
         {
             body.velocity = new Vector2(body.velocity.x, jumpSpeed);
@@ -69,6 +81,7 @@ public class PrototypePlayer : MonoBehaviour
         transform.position = spawn;
         body.velocity = Vector2.zero;
         jumpRequestedUntil = 0f;
+        dodgeUntil = nextDodge = 0f;
         IsGrounded = true;
         IsRunning = false;
         Facing = 1;

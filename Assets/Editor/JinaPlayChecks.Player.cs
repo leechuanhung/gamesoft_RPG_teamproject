@@ -72,5 +72,22 @@ public static partial class JinaPlayChecks
         visual.Attack(true,1); Set(visual,"attackTime",.31f);
         visual.SendMessage("LateUpdate");
         Capture("player-bow",new Vector3(0,1,-10),2);
+
+        // A hit he survives: he reels back, then stands again. The backstep (K) ducks away and cannot be hit.
+        visual.ResetPose(); Set(combat,"<PlayerHurtAt>k__BackingField",Time.time); visual.SendMessage("LateUpdate");
+        Check(body().EndsWith("player_hit_00"),"Survived hit shows the recoil");
+        Check(!Field<SpriteRenderer>(visual,"weapon").enabled,"No carried weapon while reeling");
+        Capture("player-hurt",new Vector3(0,1,-10),2);
+        Set(combat,"<PlayerHurtAt>k__BackingField",Time.time-SeonbiVisual.HurtLength-.01f); visual.SendMessage("LateUpdate");
+        Check(body()==JinaArt.Player,"Recoil ends in idle");
+        Set(combat,"<PlayerHurtAt>k__BackingField",-1f);
+        Set(combat.player,"dodgeUntil",Time.time+1); visual.SendMessage("LateUpdate");
+        Check(body().EndsWith("player_dodge"),"Backstep frame");
+        Capture("player-dodge",new Vector3(0,1,-10),2);
+        combat.player.SendMessage("FixedUpdate");
+        Check(rb.velocity.x*combat.player.Facing<0,"Backstep moves away from where he faces");
+        int health=combat.PlayerHealth; Set(combat,"invulnerableUntil",0f); combat.HurtPlayer();
+        Check(combat.PlayerHealth==health && combat.PlayerHurtAt<0,"Backstep avoids the hit");
+        Set(combat.player,"dodgeUntil",0f); rb.velocity=Vector2.zero; visual.ResetPose(); visual.SendMessage("LateUpdate");
     }
 }

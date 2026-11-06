@@ -13,6 +13,8 @@ public partial class PrototypeCombat : MonoBehaviour
     public bool BossPurified => Quest != null && Quest.progress.Outcome == EncounterOutcome.Purified;
     public bool EnemyDefeated => EnemyHealth <= 0 || BossPurified;
     private float playerImpactAt = -1;
+    // When he last took a hit and lived: SeonbiVisual plays the recoil from here.
+    public float PlayerHurtAt { get; private set; } = -1;
     private bool pendingBow;
     private SpriteRenderer enemy;
     private SpriteRenderer slash;
@@ -103,7 +105,7 @@ public partial class PrototypeCombat : MonoBehaviour
         playerImpactAt = -1;
         BossFacing = -1;
         Move = BossMove.None; nextMoveAt = Time.time + MoveCooldown; moveCount = 0;
-        BossDownAt = PurifiedAt = PlayerDownAt = -1;
+        BossDownAt = PurifiedAt = PlayerDownAt = PlayerHurtAt = -1;
         playerArt.color = playerColor;
         player.Respawn();
         UsingBow = false;
@@ -151,7 +153,7 @@ public partial class PrototypeCombat : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.J) && Time.time >= nextAttack && UsingBow && Arrows <= 0)
             noArrowsUntil = Time.time + 1.5f;
-        else if (Input.GetKeyDown(KeyCode.J) && Time.time >= nextAttack)
+        else if (Input.GetKeyDown(KeyCode.J) && Time.time >= nextAttack && !player.Dodging)
         {
             nextAttack = Time.time + (UsingBow ? .65f : .4f);
             attackFacing = player.Facing;
@@ -187,10 +189,10 @@ public partial class PrototypeCombat : MonoBehaviour
 
     public void HurtPlayer()
     {
-        if (PlayerHealth <= 0 || Time.time < invulnerableUntil) return;
+        if (PlayerHealth <= 0 || Time.time < invulnerableUntil || player.Dodging) return;
         PlayerHealth--;
         invulnerableUntil = Time.time + 1;
-        if (PlayerHealth > 0) return;
+        if (PlayerHealth > 0) { PlayerHurtAt = Time.time; return; }
         PlayerDownAt = Time.time;
         player.CanMove = false;
         player.Downed = true;
@@ -208,7 +210,7 @@ public partial class PrototypeCombat : MonoBehaviour
             ? (Quest != null && Quest.progress.Outcome == EncounterOutcome.Purified
                 ? "저주를 풀었습니다. 오른쪽 금빛 표식으로 향하세요."
                 : "도깨비를 물리쳤습니다. 오른쪽 금빛 표식으로 향하세요.")
-            : "주황빛은 공격의 전조입니다. 물러나거나 뛰어 피하세요.");
+            : "주황빛은 공격의 전조입니다. K로 물러서거나 뛰어 피하세요.");
         if (Time.time < noArrowsUntil && PlayerHealth > 0)
             GUI.Box(new Rect(Screen.width / 2f - 220, 280, 440, 35), "화살이 떨어졌습니다. 주막 옆 보부상에게서 사세요.");
         if (PlayerHealth <= 0)
