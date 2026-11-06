@@ -42,10 +42,16 @@ python Tools/ArtGen/sheet.py <scratchpad>/out.png 01_Player/player_idle 13_Props
 | 스크립트 | 만드는 그림 | 방식 |
 |---|---|---|
 | `make_props.py` | `13_Props`: 주막, 기와집, 소나무, 비석, 평상, 주모(+`keeper_run_00~03`), 부적, 발판 `ledge_stone`·`ledge_log` | pixlib |
-| `make_backdrops.py` | `13_Props/bg_<stele·camp·village·forest>_far·_near` | pixlib, 하늘색에 가까운 실루엣 |
+| `make_backdrops.py` | `13_Props/bg_<stele·camp·village·forest·ferry·pass>_far·_near` | pixlib, 하늘색에 가까운 실루엣 |
 | `make_peddler.py` | `12_Peddler/peddler_idle`, `peddler_run_00~03` | pixlib (다리 위치를 인자로) |
 | `make_run.py` | `11_Player_Run` | 걷기 프레임 기울이기·보폭 |
 | `make_player_down.py` | `01_Player/player_hit_00~01`, `player_corpse` | bend, rot90 (캔버스 좌우 48px 넓힘) |
+| `make_player_ko.py` | `01_Player/player_ko_00~02`, `player_facedown` (게임 오버) | bend, 상체를 엉덩이 중심으로 회전, rot90 시계 방향 (캔버스 좌우 240px 넓힘) |
+| `make_items.py` | `14_Items/item_*` 인벤토리 아이콘 (24도트 격자) | pixlib |
+| `make_portraits.py` | `17_Portraits/patjwi·kongjwi·kongjwi_true` 대화창 초상화 (56×60, 게임에서 3배) | pixlib |
+| `make_kong.py` | `16_Kong/kongjwi·patjwi·anak·namu` (보부상 12px 블록, 격자 전체 폭 유지라 발 x=138), `13_Props/jangdok·well·laundry·feast_list` | 블록 격자, pixlib |
+| `make_pass.py` | `13_Props/jangseung·seonang_tree·cairn·boulder` | pixlib |
+| `make_ferry.py` | `15_Ferryman/ferryman_idle` (보부상과 같은 12px 블록, 발 x=126), `13_Props/ferry_boat·ferry_hut·reeds·water` | 블록 격자, pixlib |
 | `make_bow_aim.py` | `03_Player_Attack_Bow/bow_up_00~03`, `bow_down_00~03` | 팔·활·화살을 잘라 어깨 중심 30° 회전. 프레임마다 어깨 위치와 자르는 선이 다르다 |
 | `make_boss_death.py` | `05_Boss_Brainwashed/boss_death_00~04` | bend, scatter |
 | `make_boss_remorse.py` | `06_Boss_Purified/boss_grieve_00~01` | bend. 눈(감김)과 송곳니만 기존 색으로 덮음 |

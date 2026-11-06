@@ -36,7 +36,8 @@ public partial class PrototypeCombat
     {
         Vector2 delta = player.transform.position - enemy.transform.position;
         // Once provoked, the boss follows into the village and notices the elder.
-        if (PrototypeWorld.CanDetect(player.transform.position, enemy.transform.position)) alerted = true;
+        // It notices him only once the forest map is on screen, so the encounter never starts behind the village's view.
+        if ((Maps == null || Maps.Shows(PrototypeWorld.ForestStart)) && PrototypeWorld.CanDetect(player.transform.position, enemy.transform.position)) alerted = true;
         bool targetElder = alerted && Quest != null && !Quest.progress.ElderDead
             && Mathf.Abs(enemy.transform.position.x - PrototypeWorld.Elder.x) < 6f;
         if (targetElder) delta = (Vector3)PrototypeWorld.Elder - enemy.transform.position;

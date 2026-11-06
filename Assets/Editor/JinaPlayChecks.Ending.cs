@@ -19,8 +19,21 @@ public static partial class JinaPlayChecks
             Capture("player-fall-"+t.ToString("0.0"),new Vector3(combat.player.transform.position.x,1,-10),2);
         }
         Check(body.color==Color.gray && Mathf.Abs(body.transform.eulerAngles.z)<.01f,"Seonbi lies as the greyed corpse drawing");
+
+        // Game over: black over the world, and the seonbi alone collapsing in its own motion.
+        var over=combat.GameOver; var actor=Field<SpriteRenderer>(over,"actor"); var veil=Field<SpriteRenderer>(over,"veil");
+        foreach(var (t,frame) in new[]{(.1f,"player_ko_00"),(.5f,"player_ko_01"),(1f,"player_ko_02"),(PrototypeGameOver.Down+.01f,"player_facedown")})
+        {
+            Set(combat,"<PlayerDownAt>k__BackingField",Time.time-t); Call(over,"LateUpdate");
+            Check(veil.enabled && actor.enabled && actor.sprite.name.EndsWith(frame),"Game over frame "+frame);
+            Check(actor.sortingOrder>veil.sortingOrder && veil.sortingOrder>body.sortingOrder,"Only the game-over seonbi shows above the black");
+            Capture("game-over-"+t.ToString("0.00"),new Vector3(combat.player.transform.position.x,1,-10),2);
+        }
+        Check(Mathf.Abs(actor.transform.eulerAngles.z)<.01f && veil.color.a==1,"He lies face down in full black");
         combat.Restart(); visual.SendMessage("LateUpdate");
         Check(combat.PlayerHealth==5 && !combat.player.Downed && body.sprite.name==JinaArt.Player && body.transform.rotation==Quaternion.identity && weapon.color==Color.white,"Restart stands him back up");
+        Call(over,"LateUpdate");
+        Check(!veil.enabled && !actor.enabled,"Restart lifts the black");
     }
 
     static void Endings()

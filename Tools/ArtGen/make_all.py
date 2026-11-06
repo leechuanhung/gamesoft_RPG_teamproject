@@ -11,9 +11,15 @@ ART = "Assets/Resources/JinaV4"
 JOBS = [
     ("make_props.py", [f"{ART}/13_Props"]),                       # ledges, tavern, keeper (+ run), charm ...
     ("make_backdrops.py", [f"{ART}/13_Props"]),                   # bg_<area>_far / _near
+    ("make_portraits.py", [f"{ART}/17_Portraits"]),            # talk-window portraits
+    ("make_kong.py", [ART]),                                     # Kongbat village people and props
+    ("make_pass.py", [f"{ART}/13_Props"]),                       # jangseung, shrine tree, cairn, boulder
+    ("make_ferry.py", [ART]),                                    # ferryman, boat, hut, reeds, water
+    ("make_items.py", [f"{ART}/14_Items"]),                       # inventory item icons
     ("make_peddler.py", [f"{ART}/12_Peddler/peddler_idle.png"]),  # peddler idle + run
     ("make_run.py", [f"{ART}/10_Player_Walk", f"{ART}/11_Player_Run"]),
     ("make_player_down.py", [ART]),
+    ("make_player_ko.py", [ART]),                                # game-over collapse
     ("make_bow_aim.py", [ART]),
     ("make_boss_death.py", [ART]),
     ("make_boss_remorse.py", [ART]),

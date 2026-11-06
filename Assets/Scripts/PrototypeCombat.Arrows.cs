@@ -58,16 +58,17 @@ public partial class PrototypeCombat
             var wall = Wall(origin, direction, step);
             float enemyDistance = float.PositiveInfinity;
             if (!EnemyDefeated) enemyDistance = ArrowHitDistance(enemy.bounds, origin, direction, step);
-            PrototypeCamp.Mob mob = null;
-            if (Camp != null)
-                foreach (var candidate in Camp.mobs)
-                {
-                    if (candidate.hp <= 0) continue;
-                    float distance = ArrowHitDistance(candidate.art.bounds, origin, direction, step);
-                    if (distance < enemyDistance) { enemyDistance = distance; mob = candidate; }
-                }
+            PrototypeCamp.Mob mob = null; PrototypeCamp mobCamp = null;
+            foreach (var camp in Camps)
+                if (camp != null)
+                    foreach (var candidate in camp.mobs)
+                    {
+                        if (candidate.hp <= 0) continue;
+                        float distance = ArrowHitDistance(candidate.art.bounds, origin, direction, step);
+                        if (distance < enemyDistance) { enemyDistance = distance; mob = candidate; mobCamp = camp; }
+                    }
             bool hitsEnemy = enemyDistance <= step && (wall.collider == null || enemyDistance < wall.distance);
-            if (hitsEnemy) { if (mob != null) Camp.Hit(mob, ArrowDamage); else DamageEnemy(ArrowDamage); }
+            if (hitsEnemy) { if (mob != null) mobCamp.Hit(mob, ArrowDamage); else DamageEnemy(ArrowDamage); }
             arrow.remaining -= step;
             if (hitsEnemy || wall.collider != null || arrow.remaining <= 0)
             {

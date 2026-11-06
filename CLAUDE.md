@@ -12,7 +12,7 @@
 
 ## 구조
 
-맵(왼쪽→오른쪽): 비석 터(x<−40) ← 몬스터 지역(−40~−12) ← 마을(−12~28, 시작 x=0) → 보스 숲(28~64, 끝 금빛 표식 x=60).
+맵(왼쪽→오른쪽, `PrototypeMaps`가 맵마다 카메라를 가두고 끝에서 어둠 전환): 비석 터(x<−40) ← 망령의 들판(−40~−12) ← 마을(−12~28, 시작 x=0) → 보스 숲(28~64) → 나루터(64~110, 강 80~100) → 콩밭 마을(110~150) → 고개와 서낭당(150~198, 계단 지형 `PassSteps`, 금빛 표식 x=195).
 장면은 `Assets/Scenes/MovementTest.unity` 하나. `PrototypeView.Start`가 `PrototypeWorld`(지형·기물·배경·발판)와 `PrototypeCombat`을 런타임에 만든다.
 
 | 파일 | 맡은 일 |
@@ -21,10 +21,17 @@
 | `PrototypeCombat.Boss.cs` | 보스 상태·추격·근접 공격·돌진·도약(`BossMove`), 토벌(`DamageEnemy`)·정화(`TryPurifyBoss`) |
 | `PrototypeCombat.Arrows.cs` | 활 조준(`AimAngle` 30°, `ArrowLaunch`, `ArrowDirection`), 발사(`Shoot`), 비행·명중, 발판 통과(`Wall`) |
 | `PrototypeQuest.cs` / `QuestProgress.cs` | 노인·비석 대화, 부적 퍼즐 / 선악·퀘스트 상태(Unity 무관). 토벌 +10, 정화 +30, 노인 사망 −40 |
-| `PrototypeCamp.cs` | 유령: 2차원 비행 추격(`GhostHealth` 4, `FlySpeed`), 전부 쓰러지면 비석 길 봉인 해제 |
+| `PrototypeCamp.cs` | 유령: 2차원 비행 추격(`GhostHealth` 4, `FlySpeed`). 들판 유령(`Initialize`)은 전부 쓰러지면 봉인 해제, 나루터 물귀신(`InitializeRiver`, `combat.River`)은 맵에 들어올 때마다 되살아나고 10마리째에 은비녀 |
 | `PrototypeVillage.cs` | 보스가 마을에 들면 경보(`Alarmed`), 주모·보부상 대피, 보스가 쓰러지면 귀가(노인이 죽었으면 먼저 애도) |
 | `PrototypeTavern.cs`, `PrototypePeddler.cs`, `TavernWallet.cs` | 주막·보부상 상점, 가격 규칙(`ShopRules`) |
 | `PrototypeIntro.cs`, `PrototypeEnding.cs` ← `PrototypeNarration.cs` | 인트로·결말 낭독(검은 화면에 한 줄씩, 스페이스 길게 눌러 건너뛰기) |
+| `PrototypeMaps.cs` | 맵 다섯 개, 카메라 가두기(`ClampView`), 경계에서 어둠 전환과 맵 이름 |
+| `PrototypeKongVillage.cs`, `VillagerVisual.cs` | 콩밭 마을: 콩쥐·팥쥐·아낙·나무꾼, 괴롭힘 장면(`Scenes`), 대화(`Lines`, 콩쥐·팥쥐는 초상화 창 `DrawTalk`), 단서 3개와 정체 드러남(`Revealed`) |
+| `JinaUI.cs` | 창 공통 모양(불투명 금테 창, 그림자 글자). 인벤토리·보부상·초상화 대화창이 쓴다 |
+| `PrototypePass.cs` | 고개: 굴러오는 바위(`Step`), 서낭당 회복(`UseShrine`). 지형 높이는 `PrototypeWorld.Top` |
+| `PrototypeFerry.cs` | 나루터: 뱃사공 대화(`Lines`), 나룻배(`PrototypeBoat`, 선비를 태워 옮김), 강에 빠짐(`Splash`) |
+| `JinaItems.cs`, `InventoryUI.cs` | 인벤토리 아이템(`JinaItem.Use`: 회복·화살·액막이·짚신), 아이콘 칸 인벤토리 화면(인벤토리 본체는 팀원 담당) |
+| `PrototypeGameOver.cs` | 게임 오버: 검은 화면 위 선비 혼자 무너지는 연출(`player_ko_*`, `player_facedown`), 문구 |
 | `PrototypeEncounter.cs` | 보스 첫 조우 연출(띠, 카메라 `PrototypeView.Focus`, 포효, 이름 카드) |
 | `PrototypeChatter.cs`, `PrototypeBossTalk.cs`, `BossRemorse.cs` | 주모·보부상 잡담, 정화된 도깨비의 사연(E), 노인을 해친 도깨비의 죄책감 |
 | `PrototypeWorld.cs`, `PrototypeParallax.cs` | 땅·기물·배경 배치, 발판(`CampLedges`·`ForestLedges`, 한 방향 `PlatformEffector2D`, 레이어 8), 원경 패럴랙스(±2칸) |

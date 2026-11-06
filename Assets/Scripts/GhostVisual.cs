@@ -1,5 +1,6 @@
 using UnityEngine;
-// A ghost guard of the western camp: when felled it flashes, reels back and breaks up into drifting chunks.
+// A ghost (the camp's guards, or tinted blue for the river's water ghosts): when felled it flashes, reels back and
+// breaks up into drifting chunks.
 public class GhostVisual : JinaActorVisual
 {
     public const float DeathLength=.8f;
@@ -8,10 +9,13 @@ public class GhostVisual : JinaActorVisual
     public float DownAt { get; private set; }=-1;
     public void Down() => DownAt=Time.time;
     public void Revive() => DownAt=-1;
+    // Multiplied over the drawing (white for the camp's guards).
+    public Color tint=Color.white;
 
     protected override void Build() { deaths=JinaArt.Frames("07_Ghost/ghost_death_",3); }
     protected override void Pose(ref Frame f,float dx)
     {
+        f.tint=tint;
         if(DownAt<0) return;
         float t=Time.time-DownAt;
         if(t>=DeathLength) { f.hidden=true; return; }

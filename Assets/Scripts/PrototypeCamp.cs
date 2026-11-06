@@ -1,12 +1,21 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// The ghost guards of the western camp. They fly: once the seonbi is in the camp they drift toward him in any
-// direction (over ledges too), wind up and strike; they block the stele road until all are felled.
+// Flying ghosts that guard one stretch of the world. They drift toward the seonbi in any direction (over ledges
+// too) once he is in their stretch, wind up and strike.
+//   The camp's ghost guards (Initialize) block the stele road until all are felled, and stay felled.
+//   The river's water ghosts (InitializeRiver) rise again each time he comes back to the ferry; every one felled
+//   counts toward the drowned mother's keepsake (PrototypeCombat.RiverFelled).
 public class PrototypeCamp : MonoBehaviour
 {
     public PrototypeCombat combat;
-    public const int GhostHealth = 4;
+    public const int GhostHealth = 4, CoinsPerGhost = 4, CoinsPerWaterGhost = 1;
+    // Where they fly, the colour of their placeholder and their art, whether they rise again, what each leaves.
+    public float minX = -38, maxX = -13;
+    public Color body = new Color(.65f,.35f,.22f), tint = Color.white;
+    public bool river;
+    public int coins = CoinsPerGhost;
+    private bool wasInside;
     public const float FlySpeed = 2.2f, SightRange = 8f, StrikeRange = 1.3f, StrikeWindup = .55f, StrikeCooldown = .9f;
     // How high they hover over the ground at rest, and the highest they fly.
     public const float HoverY = .2f, CeilingY = 4.5f;
@@ -25,16 +34,7 @@ public class PrototypeCamp : MonoBehaviour
     public void Initialize(PrototypeCombat owner, Sprite sprite)
     {
         combat = owner;
-        foreach (float x in new[] { -18f, -26f, -34f })
-        {
-            var obj = new GameObject("일반 몬스터");
-            obj.transform.SetParent(transform);
-            obj.transform.localScale = new Vector3(1, 1.4f, 1);
-            var art = obj.AddComponent<SpriteRenderer>();
-            art.sprite = sprite;
-            var visual = (GhostVisual)JinaActorVisual.Attach(art, JinaArt.Ghost, owner);
-            mobs.Add(new Mob { art = art, visual = visual, home = x, phase = mobs.Count * 2.1f });
-        }
+        Spawn(sprite, "일반 몬스터", new[] { -18f, -26f, -34f });
         gate = new GameObject("비석 길 봉인");
         gate.transform.SetParent(transform);
         gate.transform.position = new Vector3(PrototypeWorld.GateX, 9.5f, 0);
@@ -46,16 +46,48 @@ public class PrototypeCamp : MonoBehaviour
         gate.AddComponent<BoxCollider2D>();
         ResetCamp();
     }
-    public void ResetCamp()
+    public void InitializeRiver(PrototypeCombat owner, Sprite sprite)
+    {
+        combat = owner; river = true; coins = CoinsPerWaterGhost;
+        minX = PrototypeWorld.RiverLeft - 1; maxX = PrototypeWorld.RiverRight + 1;
+        body = new Color(.25f,.4f,.55f); tint = new Color(.62f,.82f,1f);
+        Spawn(sprite, "물귀신", new[] { 84f, 90f, 96f });
+        ResetCamp();
+    }
+    void Spawn(Sprite sprite, string label, float[] homes)
+    {
+        foreach (float x in homes)
+        {
+            var obj = new GameObject(label);
+            obj.transform.SetParent(transform);
+            obj.transform.localScale = new Vector3(1, 1.4f, 1);
+            var art = obj.AddComponent<SpriteRenderer>();
+            art.sprite = sprite;
+            var visual = (GhostVisual)JinaActorVisual.Attach(art, JinaArt.Ghost, combat);
+            visual.tint = tint;
+            mobs.Add(new Mob { art = art, visual = visual, home = x, phase = mobs.Count * 2.1f });
+        }
+    }
+    // Their stretch: the camp west of the village, or the ferry map for the river's ghosts.
+    public bool Inside(Vector3 p) => river ? p.x >= PrototypeWorld.FerryStart && p.x < PrototypeWorld.FerryEnd : p.x < PrototypeWorld.VillageLeft;
+    // The river's felled ghosts rise again (from where they first hovered) whenever he comes back.
+    public void Rise()
     {
         foreach (var m in mobs)
-        {
-            m.hp = GhostHealth; m.windup = -1; m.ready = Time.time + 1;
-            m.art.transform.position = new Vector3(m.home, HoverY, 0);
-            m.art.enabled = true;
-            m.visual.Revive();
-            m.art.color = new Color(.65f,.35f,.22f);
-        }
+            if (m.hp <= 0) Revive(m);
+    }
+    void Revive(Mob m)
+    {
+        m.hp = GhostHealth; m.windup = -1; m.ready = Time.time + 1;
+        m.art.transform.position = new Vector3(m.home, HoverY, 0);
+        m.art.enabled = true;
+        m.visual.Revive();
+        m.art.color = body;
+    }
+    public void ResetCamp()
+    {
+        foreach (var m in mobs) Revive(m);
+        wasInside = false;
         if (gate != null) gate.SetActive(true);
     }
     public void Hit(Mob m, int damage = 1)
@@ -63,8 +95,12 @@ public class PrototypeCamp : MonoBehaviour
         if (m == null || m.hp <= 0) return;
         m.hp = Mathf.Max(0, m.hp - damage);
         // The placeholder stays on while GhostVisual plays the death motion; a felled ghost no longer acts or gets hit.
-        if (m.hp == 0) { m.visual.Down(); m.windup = -1; }
-        if (Remaining == 0) gate.SetActive(false);
+        if (m.hp == 0)
+        {
+            m.visual.Down(); m.windup = -1;
+            if (combat != null) { combat.FindCoins(coins); if (river) combat.FellWaterGhost(); }
+        }
+        if (Remaining == 0 && gate != null) gate.SetActive(false);
     }
     public void Slash(Bounds bounds)
     {
@@ -79,7 +115,9 @@ public class PrototypeCamp : MonoBehaviour
             return;
         }
         var p = combat.player.transform.position;
-        bool inCamp = p.x < PrototypeWorld.VillageLeft;
+        bool inCamp = Inside(p);
+        if (river && inCamp && !wasInside) Rise();
+        wasInside = inCamp;
         foreach (var m in mobs)
         {
             if (m.hp <= 0) continue;
@@ -107,12 +145,12 @@ public class PrototypeCamp : MonoBehaviour
                 var goal = inCamp && delta.magnitude < SightRange ? target : new Vector3(m.home, HoverY, 0);
                 var step = Vector3.MoveTowards(pos, goal, FlySpeed * Time.deltaTime * (goal == target ? 1 : .5f));
                 if (goal == target && delta.magnitude < StrikeRange * .8f) step = pos;
-                step.x = Mathf.Clamp(step.x, -38, -13);
+                step.x = Mathf.Clamp(step.x, minX, maxX);
                 // A gentle bob keeps them from hanging still.
                 step.y = Mathf.Clamp(step.y + Mathf.Sin(Time.time * 2.4f + m.phase) * .25f * Time.deltaTime, HoverY, CeilingY);
                 m.art.transform.position = step;
             }
-            m.art.color = m.windup >= 0 ? new Color(1,.65f,.1f) : new Color(.65f,.35f,.22f);
+            m.art.color = m.windup >= 0 ? new Color(1,.65f,.1f) : body;
         }
     }
 }

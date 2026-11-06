@@ -16,4 +16,10 @@ public class ItemData : ScriptableObject
     public string Description => description;
     public Sprite Icon => icon;
     public int MaxStack => Mathf.Max(1, maxStack);
+
+    // Items made in code (JinaItems) rather than as assets fill these in here.
+    protected void Setup(string name, string text, Sprite image, int stack)
+    {
+        itemName = name; description = text; icon = image; maxStack = stack;
+    }
 }

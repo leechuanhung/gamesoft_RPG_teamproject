@@ -7,7 +7,7 @@ public class PrototypeEncounter : MonoBehaviour
 {
     public PrototypeCombat combat;
     public const string Name = "미혹된 도깨비", Epithet = "망국의 원한에 사로잡힌 산의 주인";
-    public const string Line = "…사람 냄새… 이 산에서 썩 물러가라!";
+    public const string Line = "죽인다죽인다죽인다죽인다";
     // Seconds: the whole scene, the camera pan each way, the roar, the name card, the line.
     public const float Length = 4.6f, Pan = .5f, RoarAt = .7f, RoarLength = 1.4f, CardAt = 1f, LineAt = 2.3f;
 

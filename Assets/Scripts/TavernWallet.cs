@@ -13,6 +13,9 @@ public static class ShopRules
     public static bool MenuOpen(int menu, QuestProgress quest) =>
         menu == BannedWhenElderDead ? !ElderDead(quest) : menu != SpecialMenu || Honor(quest) >= 30;
     public static bool BundleOpen(QuestProgress quest) => !ElderDead(quest);
+    // After the village's misfortune the peddler keeps his charms packed; food and arrows he still sells.
+    public static bool ItemOpen(JinaItem item, QuestProgress quest) =>
+        !ElderDead(quest) || item.effect == JinaItem.Effect.Heal || item.effect == JinaItem.Effect.Arrows;
 }
 
 public class TavernWallet
@@ -42,5 +45,15 @@ public class TavernWallet
         bought = count;
         return true;
     }
+    // Inventory goods from the peddler's pack (JinaItems), at the same discounts.
+    public bool Spend(int basePrice, QuestProgress quest = null)
+    {
+        int cost = ShopRules.Price(basePrice, quest);
+        if (Coins < cost) return false;
+        Coins -= cost;
+        return true;
+    }
+    public void Refund(int basePrice, QuestProgress quest = null) { Coins += ShopRules.Price(basePrice, quest); }
+    public void Earn(int amount) { Coins += amount; }
     public void Reset() { Coins = 30; }
 }

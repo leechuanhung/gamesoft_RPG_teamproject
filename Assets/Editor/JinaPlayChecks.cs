@@ -63,6 +63,11 @@ public static partial class JinaPlayChecks
                 AimedArrows();
                 FlyingGhosts();
                 BossMoves();
+                Items();
+                Maps();
+                Ferry();
+                Pass();
+                KongVillage();
                 PlayerFall();
                 Endings();
                 Check(!combat.BossPurified && !combat.EnemyDefeated && combat.EnemyHealth==30,"Restart restores hostile boss");

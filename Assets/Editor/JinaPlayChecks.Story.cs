@@ -15,11 +15,11 @@ public static partial class JinaPlayChecks
         Set(encounter,"startAt",Time.time-PrototypeEncounter.RoarAt-.1f); Call(encounter); bossVisual.Refresh();
         Check(encounter.Roaring && Picture(bossVisual).sprite.name.EndsWith("boss_attack_00"),"It roars with the club raised");
         Set(encounter,"startAt",Time.time-2f); Call(encounter); Call(view,"LateUpdate");
-        Check(Mathf.Abs(Camera.main.transform.position.x-Mathf.Clamp(boss.transform.position.x,-60,54))<.3f,"The camera turns to the boss");
+        Check(Mathf.Abs(Camera.main.transform.position.x-view.ViewX(boss.transform.position.x))<.3f,"The camera turns to the boss");
         Capture("encounter",Camera.main.transform.position,5);
         Set(encounter,"startAt",Time.time-PrototypeEncounter.Length-.01f); Call(encounter); Call(view,"LateUpdate");
         Check(!encounter.Playing && !combat.Paused && combat.player.CanMove,"Play resumes after the encounter");
-        Check(Mathf.Abs(Camera.main.transform.position.x-Mathf.Clamp(combat.player.transform.position.x,-60,54))<.3f,"The camera returns to the seonbi");
+        Check(Mathf.Abs(Camera.main.transform.position.x-view.ViewX(combat.player.transform.position.x))<.3f,"The camera returns to the seonbi");
         Call(encounter);
         Check(!encounter.Playing,"The encounter plays once");
         combat.Restart();

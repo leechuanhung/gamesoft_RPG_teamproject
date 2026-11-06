@@ -93,7 +93,7 @@ public static partial class JinaPlayChecks
         Set(peddlerVisual,"last",peddler.art.transform.position); peddlerVisual.Refresh();
         Check(keeper.art.flipX && Picture(peddlerVisual).flipX,"Mourners face the elder");
         Capture("villagers-mourn",new Vector3(PrototypeWorld.Elder.x-2,1,-10),3);
-        foreach(var v in new[]{keeper,peddler}) { v.mournedAt=Time.time-PrototypeVillage.MournLength; v.speakAt=Time.time-PrototypeVillage.MournLineLength-1; }
+        foreach(var v in new[]{keeper,peddler}) { v.mournedAt=Time.time-PrototypeVillage.MournLength-.01f; v.speakAt=Time.time-PrototypeVillage.MournLineLength-1.01f; }
         Call(village);
         Check(keeper.state==PrototypeVillage.State.Returning && peddler.state==PrototypeVillage.State.Returning,"After a while they head home");
         combat.Restart();

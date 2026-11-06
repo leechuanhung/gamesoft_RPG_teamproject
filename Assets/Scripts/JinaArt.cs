@@ -3,7 +3,7 @@ using UnityEngine;
 // Loads the Jina art from Resources/JinaV4 as sprites standing on their feet, at the scale of each character.
 public static class JinaArt
 {
-    public const string Player="01_Player/player_idle", Boss="05_Boss_Brainwashed/boss_brainwashed_idle", Purified="06_Boss_Purified/boss_purified_idle", Ghost="07_Ghost/ghost_guard_idle", Elder="08_Village_Elder/village_elder_idle", Peddler="12_Peddler/peddler_idle";
+    public const string Player="01_Player/player_idle", Boss="05_Boss_Brainwashed/boss_brainwashed_idle", Purified="06_Boss_Purified/boss_purified_idle", Ghost="07_Ghost/ghost_guard_idle", Elder="08_Village_Elder/village_elder_idle", Peddler="12_Peddler/peddler_idle", Ferryman="15_Ferryman/ferryman_idle";
     // Match the v6 drawn bow (~440 px) and nocked arrow (312 px above feet).
     public const float BowHeight=440f/(510f/1.9f), BowArrowHeight=312f/(510f/1.9f);
     // Props are drawn one texel per art pixel; characters use ~12 px art pixels at 546 px per 1.9 units.
@@ -55,6 +55,8 @@ public static class JinaArt
             var idle=Load(idlePath);
             var feet=new Vector2(idle.rect.x+idle.pivot.x+pad,idle.rect.y+idle.pivot.y);
             if(path.EndsWith("_corpse")) anchor=new Vector2(t.width-feet.y,feet.x);
+            // Face down is the other quarter turn: his feet go to the left edge, the pivot under his front.
+            else if(path.EndsWith("_facedown")) anchor=new Vector2(feet.y,t.height-feet.x);
             else { rect=canvas; anchor=feet; }
             // The cut-out cane pivots on its own tip.
             if(path.EndsWith("elder_cane")) anchor.x=818;
@@ -68,6 +70,10 @@ public static class JinaArt
         else if(path==Elder) { anchor.x=600; ppu=bounds.height/1.8f; }
         // Feet sit under the peddler, not under the carrier frame on his back; pole tips add height.
         else if(path==Peddler) { anchor.x=108; ppu=bounds.height/1.95f; }
+        // The ferryman is drawn on the peddler's 12 px blocks (make_ferry.py), so he shares that scale.
+        else if(path==Ferryman) { anchor.x=126; ppu=Load(Peddler).pixelsPerUnit; }
+        // Kongbat's people (make_kong.py) keep the grid's full width, so their feet are always at x 138.
+        else if(path.StartsWith("16_Kong/")) { anchor.x=138; ppu=Load(Peddler).pixelsPerUnit; }
         else if(path.StartsWith("04_Weapons"))
         {
             anchor=bounds.center; ppu=path.EndsWith("bow") ? bounds.height/BowHeight : bounds.width/(path.EndsWith("arrow") ? .7f : 1f);
@@ -80,6 +86,7 @@ public static class JinaArt
     {
         idle=null; pad=0;
         if(path.StartsWith("01_Player/player_hit_") || path=="01_Player/player_corpse" || path=="01_Player/player_dodge") { idle=Player; pad=48; }
+        else if(path.StartsWith("01_Player/player_ko_") || path=="01_Player/player_facedown") { idle=Player; pad=240; }
         else if(path.StartsWith("07_Ghost/ghost_death_")) idle=Ghost;
         else if(path.StartsWith("08_Village_Elder/elder_")) idle=Elder;
         return idle!=null;
@@ -102,6 +109,27 @@ public static class JinaArt
     {
         var t=Texture("13_Props/"+name);
         return Sprite.Create(t,new Rect(0,0,t.width,t.height),new Vector2(.5f,0),PropPixelsPerUnit,0,SpriteMeshType.FullRect);
+    });
+
+    // A prop that turns about its middle (the rolling boulder).
+    public static Sprite PropCentred(string name) => Cached("13_Props/"+name+":centre",()=>
+    {
+        var t=Texture("13_Props/"+name);
+        return Sprite.Create(t,new Rect(0,0,t.width,t.height),new Vector2(.5f,.5f),PropPixelsPerUnit,0,SpriteMeshType.FullRect);
+    });
+
+    // A talk-window portrait (17_Portraits), drawn whole in the GUI.
+    public static Sprite Portrait(string name) => Cached("17_Portraits/"+name,()=>
+    {
+        var t=Texture("17_Portraits/"+name);
+        return Sprite.Create(t,new Rect(0,0,t.width,t.height),new Vector2(.5f,.5f),100,0,SpriteMeshType.FullRect);
+    });
+
+    // An inventory icon (14_Items), one texel per art pixel, centred.
+    public static Sprite Item(string name) => Cached("14_Items/"+name,()=>
+    {
+        var t=Texture("14_Items/"+name);
+        return Sprite.Create(t,new Rect(0,0,t.width,t.height),new Vector2(.5f,.5f),PropPixelsPerUnit,0,SpriteMeshType.FullRect);
     });
 
     // A white copy of a sprite (same rect, pivot and scale) laid over it for flashes.

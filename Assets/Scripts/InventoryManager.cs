@@ -23,7 +23,7 @@ public class InventoryManager : MonoBehaviour
         int maxStack = item.MaxStack;
         long capacity = 0;
 
-        // °°Àº ¾ÆÀÌÅÛÀÌ µé¾î ÀÖ´Â ½½·ÔÀÇ ¿©À¯ °ø°£
+        // ê°™ì€ ì•„ì´í…œì´ ë“¤ì–´ ìˆëŠ” ìŠ¬ë¡¯ì˜ ì—¬ìœ  ê³µê°„
         foreach (var slot in slots)
         {
             if (slot.Item == item)
@@ -32,18 +32,18 @@ public class InventoryManager : MonoBehaviour
                 );
         }
 
-        // ºó ½½·Ô¿¡ º¸°üÇÒ ¼ö ÀÖ´Â ¼ö·®
+        // ë¹ˆ ìŠ¬ë¡¯ì— ë³´ê´€í•  ìˆ˜ ìˆëŠ” ìˆ˜ëŸ‰
         capacity += (long)Math.Max(
             0, MaxSlots - slots.Count
         ) * maxStack;
 
-        // ÀüºÎ µé¾î°¡Áö ¾ÊÀ¸¸é ¾Æ¹«°Íµµ Ãß°¡ÇÏÁö ¾ÊÀ½
+        // ì „ë¶€ ë“¤ì–´ê°€ì§€ ì•Šìœ¼ë©´ ì•„ë¬´ê²ƒë„ ì¶”ê°€í•˜ì§€ ì•ŠìŒ
         if (capacity < amount)
             return false;
 
         int remaining = amount;
 
-        // ±âÁ¸ ½½·ÔºÎÅÍ Ã¤¿ì±â
+        // ê¸°ì¡´ ìŠ¬ë¡¯ë¶€í„° ì±„ìš°ê¸°
         foreach (var slot in slots)
         {
             if (slot.Item != item) continue;
@@ -61,7 +61,7 @@ public class InventoryManager : MonoBehaviour
                 break;
         }
 
-        // ³²Àº ¼ö·®À» »õ ½½·Ô¿¡ ÀúÀå
+        // ë‚¨ì€ ìˆ˜ëŸ‰ì„ ìƒˆ ìŠ¬ë¡¯ì— ì €ì¥
         while (remaining > 0)
         {
             int add = Math.Min(maxStack, remaining);

@@ -33,6 +33,8 @@ public class JinaActorVisual : MonoBehaviour
             : kind==JinaArt.Ghost ? obj.AddComponent<GhostVisual>()
             : kind==JinaArt.Elder ? obj.AddComponent<ElderVisual>()
             : kind==JinaArt.Peddler ? obj.AddComponent<PeddlerVisual>()
+            : kind==JinaArt.Ferryman ? obj.AddComponent<FerrymanVisual>()
+            : kind.StartsWith("16_Kong/") ? obj.AddComponent<VillagerVisual>()
             : obj.AddComponent<JinaActorVisual>();
         v.source=source; v.kind=kind; v.combat=combat; v.last=source.transform.position;
         var child=new GameObject("표시 이미지"); child.transform.SetParent(source.transform,false);

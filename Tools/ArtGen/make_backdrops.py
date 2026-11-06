@@ -2,7 +2,7 @@
 # They are silhouettes in flat tones close to each area's sky, one shade each and no black outline, so the
 # outlined characters and props stay in front: a far layer (mountains, moon, distant pines) that drifts with
 # the camera, and a near layer (walls, graves, standing stones, pines) that stays put.
-#   bg_<area>_far.png, bg_<area>_near.png for stele, camp, village, forest
+#   bg_<area>_far.png, bg_<area>_near.png for stele, camp, village, forest, ferry, pass
 # Usage: python make_backdrops.py Assets/Resources/JinaV4/13_Props   [--preview DIR]
 import sys, os, math; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
@@ -12,8 +12,8 @@ OUT = sys.argv[1]
 preview = sys.argv[sys.argv.index('--preview') + 1] if '--preview' in sys.argv else None
 PPU = 546 / 1.9 / 12            # art pixels per unit, as JinaArt.PropPixelsPerUnit
 # Area spans in units (PrototypeWorld): the layers are 4 units wider and fade out at their ends.
-AREAS = {'stele': 30, 'camp': 28, 'village': 40, 'forest': 36}
-SKY = {'stele': (43, 46, 71), 'camp': (77, 51, 51), 'village': (61, 77, 87), 'forest': (26, 59, 51)}
+AREAS = {'stele': 30, 'camp': 28, 'village': 40, 'forest': 36, 'ferry': 46, 'pass': 48}
+SKY = {'stele': (43, 46, 71), 'camp': (77, 51, 51), 'village': (61, 77, 87), 'forest': (26, 59, 51), 'ferry': (58, 76, 94), 'pass': (70, 66, 86)}
 
 def mix(a, b, t): return tuple(int(round(x + (y - x) * t)) for x, y in zip(a, b))
 def lighter(c, t): return mix(c, (236, 232, 220), t)
@@ -148,7 +148,42 @@ def forest():
         pine(near, x + int(rng.integers(-10, 10)), 109, int(rng.integers(60, 96)), darker(sky, .22), darker(sky, .36))
     return save(far, 'bg_forest_far'), save(near, 'bg_forest_near')
 
-names = [p for fn in (stele, camp, village, forest) for p in fn()]
+def ferry():
+    """Low blue hills across a wide river, and drooping willows on the near bank."""
+    sky, w = SKY['ferry'], width('ferry')
+    far = Canvas(w, 150)
+    mountains(far, ridge(w, 58, [(16, 300), (6, 90)], 21), lighter(sky, .12), lighter(sky, .06))
+    mountains(far, ridge(w, 30, [(8, 160), (3, 50)], 22), lighter(sky, .05), sky)
+    near = Canvas(w, 110)
+    rng = np.random.default_rng(23)
+    for x in range(30, w - 30, 150):
+        x += int(rng.integers(-24, 24)); h = int(rng.integers(70, 96))
+        trunk = near.poly([(x - 3, 109), (x + 3, 109), (x + 1, 109 - h), (x - 1, 109 - h)])
+        near.paint(trunk, darker(sky, .32), inside=False)
+        top = 109 - h
+        crown = near.ellipse(x - 30, top - 10, x + 30, top + 14)
+        near.paint(crown, darker(sky, .2), inside=False)
+        near.paint(crown & near.rect(x + 8, 0, w, 200), darker(sky, .3), inside=False)
+        for dx in range(-28, 29, 3):   # long strands hanging from the crown (none past the left edge: rect() would wrap)
+            if x + dx < 0: continue
+            length = 34 + (28 - abs(dx)) + (dx * 7) % 11
+            near.paint(near.rect(x + dx, top + 4, x + dx + 1, top + length), darker(sky, .2 if dx < 8 else .3), inside=False)
+    return save(far, 'bg_ferry_far'), save(near, 'bg_ferry_near')
+
+def pass_():
+    """High peaks at dusk behind the pass, and a ridge of pines on the near slope."""
+    sky, w = SKY['pass'], width('pass')
+    far = Canvas(w, 150)
+    mountains(far, ridge(w, 96, [(36, 260), (14, 80)], 31), lighter(sky, .14), lighter(sky, .07))
+    mountains(far, ridge(w, 50, [(14, 180), (6, 60)], 32), lighter(sky, .05), sky)
+    near = Canvas(w, 110)
+    mountains(near, ridge(w, 26, [(10, 200), (4, 70)], 33), darker(sky, .12), darker(sky, .2))
+    rng = np.random.default_rng(34)
+    for x in range(16, w - 16, 33):
+        pine(near, x + int(rng.integers(-8, 8)), 109, int(rng.integers(50, 84)), darker(sky, .22), darker(sky, .34))
+    return save(far, 'bg_pass_far'), save(near, 'bg_pass_near')
+
+names = [p for fn in (stele, camp, village, forest, ferry, pass_) for p in fn()]
 if preview:
     ims = [Image.open(p).convert("RGBA") for p in names]
     for area in AREAS:

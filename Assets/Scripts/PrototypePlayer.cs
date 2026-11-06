@@ -10,6 +10,10 @@ public class PrototypePlayer : MonoBehaviour
     public const float DodgeLength = .3f, DodgeSpeed = 9f, DodgeCooldown = .7f;
     private float dodgeUntil, nextDodge;
     public bool Dodging => Time.time < dodgeUntil;
+    // Light straw sandals (JinaItems) quicken his walk and run until then.
+    public const float HasteBoost = 1.35f;
+    public float HasteUntil { get; set; }
+    public bool Hasted => Time.time < HasteUntil;
     private Rigidbody2D body;
     private BoxCollider2D hitbox;
     private float horizontal;
@@ -63,11 +67,17 @@ public class PrototypePlayer : MonoBehaviour
         filter.useTriggers = false;
         int count = hitbox.Cast(Vector2.down, filter, groundHits, 0.08f);
         bool grounded = false;
+        float carry = 0;   // standing on the ferry boat, he moves with it
         for (int i = 0; i < count; i++)
-            if (groundHits[i].normal.y > 0.65f) grounded = true;
+            if (groundHits[i].normal.y > 0.65f)
+            {
+                grounded = true;
+                var boat = groundHits[i].collider.GetComponent<PrototypeBoat>();
+                if (boat != null) carry = boat.Velocity.x;
+            }
 
         IsGrounded = grounded && body.velocity.y <= 0.1f;
-        body.velocity = new Vector2(Dodging ? -Facing * DodgeSpeed : horizontal * (IsRunning ? runSpeed : moveSpeed), body.velocity.y);
+        body.velocity = new Vector2(Dodging ? -Facing * DodgeSpeed : horizontal * (IsRunning ? runSpeed : moveSpeed) * (Hasted ? HasteBoost : 1) + carry, body.velocity.y);
         if (jumpRequestedUntil > Time.time && grounded && body.velocity.y <= 0.1f)
         {
             body.velocity = new Vector2(body.velocity.x, jumpSpeed);
@@ -82,6 +92,7 @@ public class PrototypePlayer : MonoBehaviour
         body.velocity = Vector2.zero;
         jumpRequestedUntil = 0f;
         dodgeUntil = nextDodge = 0f;
+        HasteUntil = 0f;
         IsGrounded = true;
         IsRunning = false;
         Facing = 1;
