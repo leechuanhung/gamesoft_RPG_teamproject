@@ -3,7 +3,17 @@ using UnityEngine;
 public class PrototypePlayer : MonoBehaviour
 {
     public float moveSpeed = 6f;
+    public float runSpeed = 10f;
+    public KeyCode runKey = KeyCode.LeftShift;
     public float jumpSpeed = 11f;
+    // Backstep (K): a short hop away from where he faces, untouchable while it lasts.
+    public const float DodgeLength = .3f, DodgeSpeed = 9f, DodgeCooldown = .7f;
+    private float dodgeUntil, nextDodge;
+    public bool Dodging => Time.time < dodgeUntil;
+    // Light straw sandals (JinaItems) quicken his walk and run until then.
+    public const float HasteBoost = 1.35f;
+    public float HasteUntil { get; set; }
+    public bool Hasted => Time.time < HasteUntil;
     private Rigidbody2D body;
     private BoxCollider2D hitbox;
     private float horizontal;
@@ -11,7 +21,10 @@ public class PrototypePlayer : MonoBehaviour
     private Vector3 spawn;
     public int Facing { get; private set; } = 1;
     public bool CanMove { get; set; } = true;
+    // Struck down: no control, but gravity still brings him to the ground.
+    public bool Downed { get; set; }
     public bool IsGrounded { get; private set; }
+    public bool IsRunning { get; private set; }
     public float HorizontalSpeed => body == null ? 0 : body.velocity.x;
     public float VerticalSpeed => body == null ? 0 : body.velocity.y;
     private readonly RaycastHit2D[] groundHits = new RaycastHit2D[8];
@@ -26,8 +39,17 @@ public class PrototypePlayer : MonoBehaviour
     void Update()
     {
         horizontal = Input.GetAxisRaw("Horizontal");
-        if (!CanMove) { horizontal = 0; return; }
+        if (!CanMove) { horizontal = 0; IsRunning = false; return; }
+        if (Dodging) { IsRunning = false; return; }
         if (horizontal != 0) Facing = horizontal > 0 ? 1 : -1;
+        if (Input.GetKeyDown(KeyCode.K) && IsGrounded && Time.time >= nextDodge)
+        {
+            dodgeUntil = Time.time + DodgeLength;
+            nextDodge = Time.time + DodgeCooldown;
+            IsRunning = false;
+            return;
+        }
+        IsRunning = horizontal != 0 && (Input.GetKey(runKey) || Input.GetKey(KeyCode.RightShift));
         if (Input.GetKeyDown(KeyCode.Space)) jumpRequestedUntil = Time.time + 0.12f;
         if (Input.GetKeyDown(KeyCode.R) || transform.position.y < -8f)
         {
@@ -39,17 +61,23 @@ public class PrototypePlayer : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (!CanMove) { body.velocity = Vector2.zero; return; }
+        if (!CanMove) { body.velocity = Downed ? new Vector2(0, body.velocity.y) : Vector2.zero; return; }
         var filter = new ContactFilter2D();
         filter.SetLayerMask(1 << 8);
         filter.useTriggers = false;
         int count = hitbox.Cast(Vector2.down, filter, groundHits, 0.08f);
         bool grounded = false;
+        float carry = 0;   // standing on the ferry boat, he moves with it
         for (int i = 0; i < count; i++)
-            if (groundHits[i].normal.y > 0.65f) grounded = true;
+            if (groundHits[i].normal.y > 0.65f)
+            {
+                grounded = true;
+                var boat = groundHits[i].collider.GetComponent<PrototypeBoat>();
+                if (boat != null) carry = boat.Velocity.x;
+            }
 
         IsGrounded = grounded && body.velocity.y <= 0.1f;
-        body.velocity = new Vector2(horizontal * moveSpeed, body.velocity.y);
+        body.velocity = new Vector2(Dodging ? -Facing * DodgeSpeed : horizontal * (IsRunning ? runSpeed : moveSpeed) * (Hasted ? HasteBoost : 1) + carry, body.velocity.y);
         if (jumpRequestedUntil > Time.time && grounded && body.velocity.y <= 0.1f)
         {
             body.velocity = new Vector2(body.velocity.x, jumpSpeed);
@@ -63,9 +91,13 @@ public class PrototypePlayer : MonoBehaviour
         transform.position = spawn;
         body.velocity = Vector2.zero;
         jumpRequestedUntil = 0f;
+        dodgeUntil = nextDodge = 0f;
+        HasteUntil = 0f;
         IsGrounded = true;
+        IsRunning = false;
         Facing = 1;
         CanMove = true;
+        Downed = false;
     }
 
     public void SetSpawn(Vector2 position)

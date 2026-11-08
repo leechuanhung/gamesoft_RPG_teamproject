@@ -3,6 +3,11 @@ using UnityEngine;
 public class PrototypeView : MonoBehaviour
 {
     public Transform target;
+    static float shakeUntil, shakeLength, shakeAmount;
+    public static void Shake(float amount, float length) { shakeAmount = amount; shakeLength = length; shakeUntil = Time.time + length; }
+    // A cutscene can turn the camera toward a point: 0 follows the seonbi, 1 looks at `x`.
+    static float focusX, focusWeight;
+    public static void Focus(float x, float weight) { focusX = x; focusWeight = weight; }
     void Start()
     {
         if (target != null && FindObjectOfType<PrototypeCombat>() == null)
@@ -17,21 +22,36 @@ public class PrototypeView : MonoBehaviour
     void LateUpdate()
     {
         if (target != null)
-            transform.position = new Vector3(Mathf.Clamp(target.position.x, -60f, 54f), 2f, -10f);
+        {
+            float shake = Time.time < shakeUntil ? Mathf.Sin(Time.time * 80) * shakeAmount * (shakeUntil - Time.time) / shakeLength : 0;
+            transform.position = new Vector3(ViewX(Mathf.Lerp(target.position.x, focusX, focusWeight)) + shake, 2f, -10f);
+        }
+    }
+    // Where the camera looks for a point of interest at `x`: inside the world, and inside the current map.
+    public float ViewX(float x)
+    {
+        var maps = GetComponent<PrototypeMaps>();
+        var cam = GetComponent<Camera>();
+        return maps != null && cam != null ? maps.ClampView(x, cam.orthographicSize * cam.aspect) : Mathf.Clamp(x, -60f, 54f);
     }
 
     void OnGUI()
     {
         PrototypeKoreanUI.Apply();
         var combat = GetComponent<PrototypeCombat>();
-        GUI.Box(new Rect(15, 15, 440, 85), "지나가던 선비 · " + (combat != null && combat.UsingBow ? "활" : "환도"));
-        GUI.Label(new Rect(30, 43, 410, 25), "이동: A·D / 방향키    도약: 스페이스바    무기: Q");
-        GUI.Label(new Rect(30, 66, 410, 25), "공격: J    대화: E    정화: F    다시 시작: R");
-        if (target != null)
+        GUI.Box(new Rect(15, 15, 520, 85), "지나가던 선비 · " + (combat != null && combat.UsingBow ? "활" : "환도")
+            + (combat != null ? " · 화살 " + combat.Arrows + "/" + ShopRules.MaxArrows : ""));
+        GUI.Label(new Rect(30, 43, 495, 25), "이동: A·D / 방향키    도약: 스페이스바    무기: Q    물러서기: K    보따리: I");
+        GUI.Label(new Rect(30, 66, 495, 25), "달리기: Shift+이동    공격: J    대화: E    정화: F    다시 시작: R");
+        // The map strip steps aside while a shop, a talk or the inventory is open.
+        if (target != null && (combat == null || !combat.Paused))
         {
             float mapWidth = Mathf.Min(560, Screen.width - 30);
-            GUI.Box(new Rect((Screen.width - mapWidth) / 2, Screen.height - 103, mapWidth, 40),
-                "비석 ← 일반 몬스터 ← 마을 → 보스    |    " + PrototypeWorld.Area(target.position.x));
+            var maps = GetComponent<PrototypeMaps>();
+            string route = "";
+            for (int i = 0; i < PrototypeMaps.All.Length; i++)
+                route += (i > 0 ? "  ·  " : "") + (maps != null && i == maps.Current ? "[" + PrototypeMaps.All[i].name + "]" : PrototypeMaps.All[i].name);
+            GUI.Box(new Rect((Screen.width - mapWidth) / 2, Screen.height - 103, mapWidth, 40), route);
         }
         if (combat != null && combat.Quest != null)
         {
@@ -46,14 +66,9 @@ public class PrototypeView : MonoBehaviour
             GUI.color = Color.white;
             GUI.DrawTexture(new Rect(x + 20 + (progress.Honor + 100) * 1.5f - 2, 43, 4, 20), Texture2D.whiteTexture);
             GUI.color = savedColor;
-            GUI.Label(new Rect(x + 15, 68, 315, 50), "일반 몬스터: " + (combat.Camp == null ? 3 : combat.Camp.Remaining) + "마리 남음\n" + (progress.ElderDead ? "노인 희생 −40 · 보스에게 마지막 반격 10" : "노인 생존 · 토벌 +10 / 정화 +30"));
+            GUI.Label(new Rect(x + 15, 68, 315, 50), "일반 몬스터: " + (combat.Camp == null ? 3 : combat.Camp.Remaining) + "마리 남음"
+                + (combat.River != null && combat.RiverFelled < PrototypeCombat.KeepsakeAt && (combat.RiverFelled > 0 || combat.River.Inside(target.position))  ? " · 물귀신 " + combat.RiverFelled + "/" + PrototypeCombat.KeepsakeAt : "")
+                + (combat.Kong != null && combat.Kong.InVillage && !combat.Kong.Revealed ? " · 콩밭 단서 " + combat.Kong.Clues + "/3" : "") + "\n" +(progress.ElderDead ? "노인 희생 −40 · 보스에게 마지막 반격 10" : "노인 생존 · 토벌 +10 / 정화 +30"));
         }
-        if (target != null && target.position.x > PrototypeWorld.GoalX - 1 && combat != null && combat.EnemyDefeated)
-            GUI.Box(new Rect(Screen.width / 2f - 220, 280, 440, 95),
-                combat.Quest != null && combat.Quest.progress.ElderDead
-                ? "결말 · 희생 위의 승리\n도깨비의 위협은 사라졌으나 노인은 돌아오지 않았다.\n선비의 선택은 마을에 깊은 상처를 남겼다.\nR: 처음부터 다시 시작"
-                : combat.Quest != null && combat.Quest.progress.Outcome == EncounterOutcome.Purified
-                ? "결말 · 자비로운 해결사\n저주가 풀리고, 도깨비는 선비에게 고개를 숙였다.\n선비는 다시 한양으로 발길을 옮겼다.\nR: 처음부터 다시 시작"
-                : "결말 · 토벌의 영웅\n도깨비는 쓰러지고, 마을에는 평온이 돌아왔다.\n선비는 다시 한양으로 발길을 옮겼다.\nR: 처음부터 다시 시작");
     }
 }
