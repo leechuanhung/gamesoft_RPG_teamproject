@@ -67,7 +67,7 @@ public partial class PrototypeCombat
                         DamageEnemy(10);
                     }
                 }
-                else if (!strikeElder && strikeBounds.Intersects(playerArt.bounds)) HurtPlayer();
+                else if (!strikeElder && strikeBounds.Intersects(playerArt.bounds)) HurtPlayer(BossAttack);
                 windupUntil = -1;
                 bossRecoveryUntil = Time.time + (killedElder ? .7f : .24f);
                 enemyReadyAt = Time.time + .9f;
@@ -126,7 +126,7 @@ public partial class PrototypeCombat
             case BossMove.Charging:
                 position.x = Mathf.Clamp(position.x + moveDir * ChargeSpeed * Time.deltaTime, PrototypeWorld.EnemyMin, PrototypeWorld.EnemyMax);
                 enemy.transform.position = position;
-                if (!moveHit && enemy.bounds.Intersects(playerArt.bounds)) { moveHit = true; HurtPlayer(); }
+                if (!moveHit && enemy.bounds.Intersects(playerArt.bounds)) { moveHit = true; HurtPlayer(BossAttack); }
                 if (Time.time >= moveUntil || position.x <= PrototypeWorld.EnemyMin || position.x >= PrototypeWorld.EnemyMax) EndMove(.5f);
                 break;
             case BossMove.LeapWindup:
@@ -138,7 +138,7 @@ public partial class PrototypeCombat
                 position.y = BossGround + 4 * LeapHeight * k * (1 - k);
                 enemy.transform.position = position;
                 // It also crashes into a seonbi in its path, up on a ledge or not.
-                if (!moveHit && enemy.bounds.Intersects(playerArt.bounds)) { moveHit = true; HurtPlayer(); }
+                if (!moveHit && enemy.bounds.Intersects(playerArt.bounds)) { moveHit = true; HurtPlayer(BossAttack); }
                 if (k >= 1) Land();
                 break;
             case BossMove.Landed:
@@ -154,7 +154,7 @@ public partial class PrototypeCombat
         Move = BossMove.Landed; moveUntil = Time.time + LandedLength;
         PrototypeView.Shake(.14f, .4f);
         bool onGround = player.IsGrounded && playerArt.bounds.min.y < -.3f;
-        if (!moveHit && (enemy.bounds.Intersects(playerArt.bounds) || onGround && Mathf.Abs(player.transform.position.x - position.x) < SlamRadius)) { moveHit = true; HurtPlayer(); }
+        if (!moveHit && (enemy.bounds.Intersects(playerArt.bounds) || onGround && Mathf.Abs(player.transform.position.x - position.x) < SlamRadius)) { moveHit = true; HurtPlayer(BossAttack); }
     }
 
     void EndMove(float recovery)
@@ -184,10 +184,10 @@ public partial class PrototypeCombat
         return true;
     }
 
-    void DamageEnemy(int amount = 1)
+    void DamageEnemy(int amount = ArrowDamage)
     {
         if (EnemyDefeated) return;
-        EnemyHealth = Mathf.Max(0, EnemyHealth - amount);
+        EnemyHealth = Mathf.Max(0, EnemyHealth - CalcDamage(amount, BossDefense));
         alerted = true;
         hitFlashUntil = Time.time + .12f;
         if (!EnemyDefeated) return;

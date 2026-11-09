@@ -8,8 +8,10 @@ public partial class PrototypeCombat : MonoBehaviour
     public bool InventoryPauseActive { get; set; }
     public event System.Action Restarted;
     public PrototypePlayer player;
-    public const int MaxPlayerHealth = 5;
+    public const int MaxPlayerHealth = 100;
     public int PlayerHealth { get; private set; } = MaxPlayerHealth;
+    public const int PlayerAttack = 10;
+    public int PlayerDefense = 0;
     // A ward charm (JinaItems) takes the next blow in his place; the message shows for a moment after.
     public bool Warded { get; private set; }
     public float WardBrokeAt { get; private set; } = -1;
@@ -18,9 +20,19 @@ public partial class PrototypeCombat : MonoBehaviour
     public float CoinsFoundAt { get; private set; } = -1;
     public int CoinsFound { get; private set; }
     public void FindCoins(int amount) { if (Tavern == null) return; Tavern.wallet.Earn(amount); CoinsFound = amount; CoinsFoundAt = Time.time; }
-    public const int EnemyMaxHealth = 30;
-    public const int SwordDamage = 2, ArrowDamage = 1;
+    // ── 보스(도깨비) 능력치 ──
+    public const int EnemyMaxHealth = 200;
+    public const int BossAttack = 20;
+    public int BossDefense = 0;
+    // ── 일반 몬스터 능력치 (PrototypeCamp.cs에서 사용할 예정) ──
+    public const int MonsterMaxHealth = 30;
+    public const int MonsterAttack = 10;
+    public const int MonsterDefense = 0;
+    // 환도와 화살 모두 플레이어 공격력을 그대로 사용
+    public const int SwordDamage = PlayerAttack, ArrowDamage = PlayerAttack;
     public int EnemyHealth { get; private set; } = EnemyMaxHealth;
+    // 데미지 공식: 공격력 - 방어력, 최소 1
+    public static int CalcDamage(int attack, int defense) => Mathf.Max(1, attack - defense);
     public bool BossPurified => Quest != null && Quest.progress.Outcome == EncounterOutcome.Purified;
     public bool EnemyDefeated => EnemyHealth <= 0 || BossPurified;
     private float playerImpactAt = -1;
@@ -201,9 +213,9 @@ public partial class PrototypeCombat : MonoBehaviour
             // State and appearance are updated together by TryPurifyBoss.
         }
 
-        if (Input.GetKeyDown(KeyCode.J) && Time.time >= nextAttack && UsingBow && Arrows <= 0)
+        if ((Input.GetKeyDown(KeyCode.J) || Input.GetMouseButtonDown(0)) && Time.time >= nextAttack && UsingBow && Arrows <= 0)
             noArrowsUntil = Time.time + 1.5f;
-        else if (Input.GetKeyDown(KeyCode.J) && Time.time >= nextAttack && !player.Dodging)
+        else if ((Input.GetKeyDown(KeyCode.J) || Input.GetMouseButtonDown(0)) && Time.time >= nextAttack && !player.Dodging)
         {
             nextAttack = Time.time + (UsingBow ? .65f : .4f);
             attackFacing = player.Facing;
@@ -237,11 +249,11 @@ public partial class PrototypeCombat : MonoBehaviour
         UpdateBoss();
     }
 
-    public void HurtPlayer()
+    public void HurtPlayer(int attack = MonsterAttack)
     {
         if (PlayerHealth <= 0 || Time.time < invulnerableUntil || player.Dodging) return;
         if (Warded) { Warded = false; WardBrokeAt = Time.time; invulnerableUntil = Time.time + 1; return; }
-        PlayerHealth--;
+        PlayerHealth = Mathf.Max(0, PlayerHealth - CalcDamage(attack, PlayerDefense));
         invulnerableUntil = Time.time + 1;
         if (PlayerHealth > 0) { PlayerHurtAt = Time.time; return; }
         PlayerDownAt = Time.time;
