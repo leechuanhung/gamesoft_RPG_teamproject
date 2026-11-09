@@ -120,15 +120,10 @@ public class PrototypeQuest : MonoBehaviour
     {
         if (combat == null || Player == null) return;
         PrototypeKoreanUI.Apply();
-        GUI.Box(new Rect(15, 185, 440, 85), "사건: " + PrototypeKoreanUI.Outcome(progress.Outcome));
-        GUI.Label(new Rect(30, 211, 410, 50), "E: 대화·조사    F: 가까운 도깨비 정화\n부적: " + (progress.HasCharm ? "있음" : "없음") + "    단서: " + (progress.HeardClue ? "확인함" : "마을 노인에게 묻기"));
-        if (!IsDialogOpen && combat.PlayerHealth > 0 && (combat.Tavern == null || (!combat.Tavern.IsOpen && !combat.Tavern.Near))
-            && (combat.Peddler == null || (!combat.Peddler.IsOpen && !combat.Peddler.Near)))
+        if (!IsDialogOpen && combat.PlayerHealth > 0 && !combat.Paused)
         {
-            string hint = Near(PrototypeWorld.Elder) ? (progress.ElderDead ? "E: 노인이 남긴 쪽지 살펴보기" : "E: 마을 노인과 대화") : Near(PrototypeWorld.Stone) ? "E: 비석 살펴보기" : "";
-            if (hint == "" && progress.Outcome == EncounterOutcome.Unresolved)
-                hint = Player.transform.position.x < PrototypeWorld.ForestStart ? "서쪽 몬스터를 모두 물리치면 비석 길이 열립니다." : "J: 공격    ·    부적이 있다면 가까이에서 F: 정화";
-            GUI.Box(new Rect(Screen.width / 2f - 220, Screen.height - 55, 440, 35), hint);
+            if (Near(PrototypeWorld.Elder)) JinaUI.Prompt(progress.ElderDead ? "E: 노인이 남긴 쪽지 살펴보기" : "E: 마을 노인과 대화");
+            else if (Near(PrototypeWorld.Stone)) JinaUI.Prompt("E: 비석 살펴보기");
         }
         if (!IsDialogOpen) return;
         if (!shrineDialog && !progress.ElderDead)
@@ -137,14 +132,17 @@ public class PrototypeQuest : MonoBehaviour
             SpeechBubble.Draw(new Vector3(PrototypeWorld.Elder.x, 1.45f, 0), "마을 노인", message, "E / Esc: 닫기 · 대화 중에는 전투가 멈춥니다.");
             return;
         }
-        float width = Mathf.Min(760, Screen.width - 30);
-        var box = new Rect((Screen.width - width) / 2, Screen.height - 255, width, 235);
-        GUI.Box(box, shrineDialog ? "오래된 비석" : progress.ElderDead ? "노인이 남긴 흔적" : "마을 노인");
-        var style = new GUIStyle(GUI.skin.label) { wordWrap = true, fontSize = 16 };
-        GUI.Label(new Rect(box.x + 15, box.y + 30, width - 30, 130), message, style);
-        if (shrineDialog && progress.HeardClue)
-            GUI.Label(new Rect(box.x + 15, box.y + 167, width - 30, 30), "1: 강    2: 달    3: 산     맞춘 문양: " + progress.PuzzleStep + "/3");
-        GUI.Label(new Rect(box.x + 15, box.y + 202, width - 30, 25), "E / Esc: 닫기    ·    대화 중에는 전투가 멈춥니다.");
+        // The stone and the note: a paper window as tall as its words.
+        float width = Mathf.Min(760, Screen.width - 30), inner = width - JinaUI.WindowPad * 2;
+        float textHeight = JinaUI.Height(message, 17, inner);
+        bool puzzle = shrineDialog && progress.HeardClue;
+        float height = JinaUI.TitleHeight + 12 + textHeight + (puzzle ? 34 : 0) + 30 + JinaUI.WindowPad;
+        var box = new Rect((Screen.width - width) / 2, Screen.height - height - 14, width, height);
+        var inside = JinaUI.Window(box, shrineDialog ? "오래된 비석" : "노인이 남긴 흔적", "E / Esc 닫기");
+        JinaUI.Text(new Rect(inside.x, inside.y, inner, textHeight), message, 17, JinaUI.TextDark);
+        if (puzzle)
+            JinaUI.Text(new Rect(inside.x, inside.y + textHeight + 8, inner, 24), "1: 강     2: 달     3: 산          맞춘 문양: " + progress.PuzzleStep + " / 3", 16, JinaUI.Red, TextAnchor.MiddleLeft, true);
+        JinaUI.Text(new Rect(inside.x, box.yMax - JinaUI.WindowPad - 20, inner, 20), "대화 중에는 전투가 멈춥니다.", 13, JinaUI.TextDim);
         if (charmReveal >= 0) DrawCharmReveal(charmReveal);
     }
 

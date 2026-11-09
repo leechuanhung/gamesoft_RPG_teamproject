@@ -38,7 +38,7 @@ public static partial class JinaPlayChecks
         }
         Set(combat,"<BossDownAt>k__BackingField",Time.time-BossVisual.DeathLength-.01f); bossVisual.Refresh();
         Check(boss.enabled && !Picture(bossVisual).enabled,"Boss vanishes after the death motion");
-        Set(combat,"<EnemyHealth>k__BackingField",30); Set(combat,"<BossDownAt>k__BackingField",-1f); bossVisual.Refresh();
+        Set(combat,"<EnemyHealth>k__BackingField",PrototypeCombat.EnemyMaxHealth); Set(combat,"<BossDownAt>k__BackingField",-1f); bossVisual.Refresh();
         Check(Picture(bossVisual).enabled,"Boss visible again while alive");
     }
 
@@ -81,7 +81,7 @@ public static partial class JinaPlayChecks
         Check(combat.BossPurified && combat.EnemyDefeated && boss.enabled,"Friendly boss remains visible and resolves encounter");
         Check(boss.GetComponentInChildren<SpriteRenderer>().enabled,"Boss renderer enabled");
         typeof(PrototypeCombat).GetMethod("DamageEnemy",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(combat,new object[]{5});
-        Check(combat.EnemyHealth==30,"Purified boss ignores damage");
+        Check(combat.EnemyHealth==PrototypeCombat.EnemyMaxHealth,"Purified boss ignores damage");
         Check(!combat.TryPurifyBoss() && quest.Honor==30,"No duplicate reward");
 
         System.Func<string,SpriteRenderer> part=name=>Field<SpriteRenderer>(bossVisual,name);

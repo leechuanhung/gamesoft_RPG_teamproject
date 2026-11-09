@@ -64,7 +64,7 @@ public partial class PrototypeCombat
                         killedElder = true;
                         Quest.ShowElderDeath();
                         PrototypeView.Shake(.12f, .4f);
-                        DamageEnemy(10);
+                        DamageEnemy(ElderCounterDamage);
                     }
                 }
                 else if (!strikeElder && strikeBounds.Intersects(playerArt.bounds)) HurtPlayer(BossAttack);

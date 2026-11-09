@@ -3,6 +3,7 @@
 #   17_Portraits/patjwi       open, steady eyes under straight brows, red daenggi ribbon, jade jacket
 #   17_Portraits/kongjwi      eyes closed in smiling crescents, flower pin, yellow jacket
 #   17_Portraits/kongjwi_true the same face unmasked: eyes open, red slit pupils, a wide grin, shadow over the brow
+#   17_Portraits/patjwi_down, kongjwi_stare   the evening's argument over letting him stay
 # Usage: python make_portraits.py Assets/Resources/JinaV4/17_Portraits
 import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
@@ -84,11 +85,35 @@ def kongjwi_true():
     for x in range(23, 34, 2): c.paint(c.rect(x, 36, x, 36), WHITE)                                # teeth
     return c
 
+def eyes_lowered(c):
+    """Looking down: the lids drawn low, only the lower half of each iris showing."""
+    for x0 in (18, 31):
+        c.paint(c.rect(x0, 27, x0 + 7, 28), K)
+        c.paint(c.rect(x0 + 1, 29, x0 + 6, 30), WHITE)
+        c.paint(c.rect(x0 + 2, 29, x0 + 5, 30), IRIS)
+        for i in range(6): c.paint(c.rect(x0 + 1 + i, 22, x0 + 1 + i, 22), HAIR)
+
+def patjwi_down():
+    """Giving in: eyes lowered, mouth pressed thin."""
+    c = bust((150, 204, 186), (110, 168, 152), (196, 58, 58))
+    eyes_lowered(c)
+    c.paint(c.rect(27, 38, 29, 38), MOUTH)
+    c.layer(c.rect(42, 30, 46, 33) | c.poly([(44, 33), (48, 41), (45, 41)]), (196, 58, 58))
+    return c
+
+def kongjwi_stare():
+    """The silence: the smile gone, eyes open and fixed, nothing else moving. Not yet the demon."""
+    c = bust((244, 214, 110), (214, 178, 70), (150, 38, 44))
+    eyes_open(c, 0, iris=K)
+    c.paint(c.rect(26, 37, 30, 37), (150, 96, 90))
+    c.layer(c.ellipse(10, 9, 16, 15), (240, 150, 170)); c.paint(c.rect(13, 12, 13, 12), WHITE)
+    return c
+
 def save(c, name):
     img = np.zeros((c.h, c.w, 4), np.uint8); img[..., :3] = c.c; img[..., 3] = np.where(c.a, 255, 0)
     Image.fromarray(img).save(f"{OUT}/{name}.png")
     if "--preview" in sys.argv: Image.fromarray(img).resize((c.w * 6, c.h * 6), Image.NEAREST).save(f"{OUT}/{name}_x6.png")
 
 os.makedirs(OUT, exist_ok=True)
-for name, draw in (("patjwi", patjwi), ("kongjwi", kongjwi), ("kongjwi_true", kongjwi_true)):
+for name, draw in (("patjwi", patjwi), ("kongjwi", kongjwi), ("kongjwi_true", kongjwi_true), ("patjwi_down", patjwi_down), ("kongjwi_stare", kongjwi_stare)):
     save(draw(), name)

@@ -48,13 +48,15 @@ python Tools/ArtGen/sheet.py <scratchpad>/out.png 01_Player/player_idle 13_Props
 | `make_player_down.py` | `01_Player/player_hit_00~01`, `player_corpse` | bend, rot90 (캔버스 좌우 48px 넓힘) |
 | `make_player_ko.py` | `01_Player/player_ko_00~02`, `player_facedown` (게임 오버) | bend, 상체를 엉덩이 중심으로 회전, rot90 시계 방향 (캔버스 좌우 240px 넓힘) |
 | `make_items.py` | `14_Items/item_*` 인벤토리 아이콘 (24도트 격자) | pixlib |
-| `make_portraits.py` | `17_Portraits/patjwi·kongjwi·kongjwi_true` 대화창 초상화 (56×60, 게임에서 3배) | pixlib |
+| `make_portraits.py` | `17_Portraits/patjwi·patjwi_down·kongjwi·kongjwi_stare·kongjwi_true` 대화창 초상화 (56×60, 게임에서 3배) | pixlib |
+| `make_room.py` | `13_Props/room_bg·room_door·door_shadow·bed_under·quilt_sleep·quilt_sit` 손님방 (인물과 같은 축척, 문 칸은 구멍이라 뒤의 창호지와 그림자가 보임), `01_Player/player_sit·player_sleep` (대기 그림의 갓을 벗겨 상투를 올리고 허리에서 자름, rot90) | pixlib, 대기 그림 변형 |
 | `make_kong.py` | `16_Kong/kongjwi·patjwi·anak·namu` (보부상 12px 블록, 격자 전체 폭 유지라 발 x=138), `13_Props/jangdok·well·laundry·feast_list` | 블록 격자, pixlib |
 | `make_pass.py` | `13_Props/jangseung·seonang_tree·cairn·boulder` | pixlib |
-| `make_ferry.py` | `15_Ferryman/ferryman_idle` (보부상과 같은 12px 블록, 발 x=126), `13_Props/ferry_boat·ferry_hut·reeds·water` | 블록 격자, pixlib |
+| `make_ferry.py` | `15_Ferryman/ferryman_idle` (보부상과 같은 12px 블록, 발 x=126), `13_Props/ferry_boat·ferry_hut·reeds·water·thorn_wall` | 블록 격자, pixlib |
 | `make_bow_aim.py` | `03_Player_Attack_Bow/bow_up_00~03`, `bow_down_00~03` | 팔·활·화살을 잘라 어깨 중심 30° 회전. 프레임마다 어깨 위치와 자르는 선이 다르다 |
 | `make_boss_death.py` | `05_Boss_Brainwashed/boss_death_00~04` | bend, scatter |
 | `make_boss_remorse.py` | `06_Boss_Purified/boss_grieve_00~01` | bend. 눈(감김)과 송곳니만 기존 색으로 덮음 |
+| `make_ghost_attack.py` | `07_Ghost/ghost_attack_00~02` | 팔을 어깨 중심으로 25px 격자에서 회전하고 외곽선을 다시 두름, bend. 물귀신은 같은 프레임에 색만 입힘 |
 | `make_ghost_death.py` | `07_Ghost/ghost_death_00~02` | bend, scatter |
 | `make_elder.py` | `08_Village_Elder/elder_cane·startle·draw_00~01·hit_00~01·down·corpse` | 지팡이 잘라 내기, bend, 갓 내리기, rot90 |
 

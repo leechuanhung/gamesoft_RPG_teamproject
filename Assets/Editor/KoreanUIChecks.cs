@@ -9,7 +9,7 @@ public static class KoreanUIChecks
         var font = PrototypeKoreanUI.Font;
         if (font == null) throw new Exception("Korean font could not be loaded.");
         int count = 0;
-        foreach (var file in new[] { "PrototypeView.cs", "PrototypeCombat.cs", "PrototypeQuest.cs", "PrototypeKoreanUI.cs", "PrototypeTavern.cs", "PrototypePeddler.cs", "TavernWallet.cs", "PrototypeIntro.cs", "PrototypeNarration.cs", "PrototypeEnding.cs", "PrototypeVillage.cs", "BossRemorse.cs", "PrototypeEncounter.cs", "PrototypeChatter.cs", "PrototypeBossTalk.cs", "PrototypeGameOver.cs", "JinaItems.cs", "InventoryUI.cs", "PrototypeMaps.cs", "PrototypeFerry.cs", "PrototypePass.cs", "PrototypeKongVillage.cs", "SpeechBubble.cs" })
+        foreach (var file in new[] { "PrototypeView.cs", "PrototypeCombat.cs", "PrototypeQuest.cs", "PrototypeKoreanUI.cs", "PrototypeTavern.cs", "PrototypePeddler.cs", "TavernWallet.cs", "PrototypeIntro.cs", "PrototypeNarration.cs", "PrototypeEnding.cs", "PrototypeVillage.cs", "BossRemorse.cs", "PrototypeEncounter.cs", "PrototypeChatter.cs", "PrototypeBossTalk.cs", "PrototypeGameOver.cs", "JinaItems.cs", "InventoryUI.cs", "PrototypeMaps.cs", "PrototypeFerry.cs", "PrototypePass.cs", "PrototypeKongVillage.cs", "PrototypeHud.cs", "PrototypeKongStay.cs", "SpeechBubble.cs" })
             foreach (char c in File.ReadAllText("Assets/Scripts/" + file))
                 // Hangul syllables plus the Hanja used in the intro narration.
                 if ((c >= '\uac00' && c <= '\ud7a3') || (c >= '\u4e00' && c <= '\u9fff'))

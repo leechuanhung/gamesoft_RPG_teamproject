@@ -31,7 +31,6 @@ public class PrototypeMaps : MonoBehaviour
     public float EnteredAt { get; private set; } = -1;
     public bool Travelling => LeftAt >= 0;
     public Map Here => All[Current];
-    private GUIStyle titleStyle, lineStyle;
 
     public static int Index(float x)
     {
@@ -96,19 +95,11 @@ public class PrototypeMaps : MonoBehaviour
         // The map's name, after walking into it (not at the start or after R).
         float t = EnteredAt < 0 ? -1 : Time.time - EnteredAt;
         if (t < 0 || t > CardLength || combat == null || combat.Paused) return;
-        if (titleStyle == null)
-        {
-            titleStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 30 };
-            lineStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 15 };
-        }
-        float a = Mathf.Clamp01(t / .4f) * Mathf.Clamp01((CardLength - t) / .6f);
-        var band = new Rect(0, Screen.height * .2f, Screen.width, 84);
-        GUI.color = new Color(0, 0, 0, .45f * a);
-        GUI.DrawTexture(band, Texture2D.whiteTexture);
-        GUI.color = Color.white;
-        titleStyle.normal.textColor = new Color(.95f, .85f, .6f, a);
-        lineStyle.normal.textColor = new Color(.92f, .9f, .85f, a);
-        GUI.Label(new Rect(0, band.y + 6, Screen.width, 44), "― " + Here.name + " ―", titleStyle);
-        GUI.Label(new Rect(0, band.y + 50, Screen.width, 26), Here.line, lineStyle);
+        float fade = Mathf.Clamp01(t / .4f) * Mathf.Clamp01((CardLength - t) / .6f);
+        float w = JinaUI.CenterWidth, lineHeight = JinaUI.Height(Here.line, 15, w - 24);
+        var card = new Rect((Screen.width - w) / 2, Screen.height * .3f, w, 56 + lineHeight);
+        JinaUI.Fill(card, new Color(.1f, .085f, .08f, .78f * fade));
+        JinaUI.Text(new Rect(card.x, card.y + 8, w, 36), "― " + Here.name + " ―", 26, new Color(1f, .86f, .52f, fade), TextAnchor.MiddleCenter, true);
+        JinaUI.Text(new Rect(card.x + 12, card.y + 46, w - 24, lineHeight), Here.line, 15, new Color(.97f, .94f, .86f, fade), TextAnchor.UpperCenter);
     }
 }

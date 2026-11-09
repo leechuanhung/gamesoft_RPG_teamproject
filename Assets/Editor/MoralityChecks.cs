@@ -34,9 +34,9 @@ public static class MoralityChecks
         camp.ResetCamp();
         Require(camp.Remaining == 3 && gate.gameObject.activeSelf, "Restart restores gate and monsters");
         camp.Hit(camp.mobs[0], PrototypeCombat.SwordDamage);
-        Require(camp.mobs[0].hp == PrototypeCamp.GhostHealth - 2, "Sword deals 2");
-        camp.Hit(camp.mobs[0], PrototypeCombat.SwordDamage);
-        Require(camp.mobs[0].hp == 0 && camp.Remaining == 2, "Two sword hits fell a monster");
+        Require(camp.mobs[0].hp == PrototypeCamp.GhostHealth - PrototypeCombat.SwordDamage, "A sword hit deals its damage");
+        for (int i = 1; i * PrototypeCombat.SwordDamage < PrototypeCamp.GhostHealth; i++) camp.Hit(camp.mobs[0], PrototypeCombat.SwordDamage);
+        Require(camp.mobs[0].hp == 0 && camp.Remaining == 2, "Enough sword hits fell a monster");
         camp.ResetCamp();
         UnityEngine.Object.DestroyImmediate(camp.gameObject);
         WorldChecks.Run();

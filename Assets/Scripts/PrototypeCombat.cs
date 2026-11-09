@@ -23,6 +23,8 @@ public partial class PrototypeCombat : MonoBehaviour
     // ── 보스(도깨비) 능력치 ──
     public const int EnemyMaxHealth = 200;
     public const int BossAttack = 20;
+    // The elder's last blow takes a third of the boss's health.
+    public const int ElderCounterDamage = 67;
     public int BossDefense = 0;
     // ── 일반 몬스터 능력치 (PrototypeCamp.cs에서 사용할 예정) ──
     public const int MonsterMaxHealth = 30;
@@ -82,9 +84,11 @@ public partial class PrototypeCombat : MonoBehaviour
     public PrototypeGameOver GameOver { get; private set; }
     public PrototypeMaps Maps { get; private set; }
     public PrototypeFerry Ferry { get; private set; }
+    public PrototypeHud Hud { get; private set; }
     public PrototypePass Pass { get; private set; }
     public PrototypeKongVillage Kong { get; private set; }
-    public bool Paused => (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || InventoryPauseActive;
+    public PrototypeKongStay Stay { get; private set; }
+    public bool Paused => (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || InventoryPauseActive;
     public void RestoreHealth(int amount) { if (PlayerHealth > 0) PlayerHealth = Mathf.Clamp(PlayerHealth + amount, 1, MaxPlayerHealth); }
 
     void Start()
@@ -119,12 +123,16 @@ public partial class PrototypeCombat : MonoBehaviour
         playerVisual = SeonbiVisual.Attach(player, this);
         Maps = gameObject.AddComponent<PrototypeMaps>();
         Maps.combat = this;
+        Hud = gameObject.AddComponent<PrototypeHud>();
+        Hud.combat = this;
         Ferry = gameObject.AddComponent<PrototypeFerry>();
         Ferry.combat = this;
         Pass = gameObject.AddComponent<PrototypePass>();
         Pass.combat = this;
         Kong = gameObject.AddComponent<PrototypeKongVillage>();
         Kong.combat = this;
+        Stay = gameObject.AddComponent<PrototypeKongStay>();
+        Stay.combat = this;
         Restart();
         Intro = gameObject.AddComponent<PrototypeIntro>();
         Intro.combat = this;
@@ -185,6 +193,7 @@ public partial class PrototypeCombat : MonoBehaviour
         if (Ferry != null) Ferry.ResetFerry();
         if (Pass != null) Pass.ResetPass();
         if (Kong != null) Kong.ResetVillage();
+        if (Stay != null) Stay.ResetStay();
         Restarted?.Invoke();
     }
 
@@ -268,21 +277,11 @@ public partial class PrototypeCombat : MonoBehaviour
     void OnGUI()
     {
         PrototypeKoreanUI.Apply();
-        string charms = (Warded ? " · 액막이" : "") + (player.Hasted ? " · 짚신 " + Mathf.CeilToInt(player.HasteUntil - Time.time) + "초" : "");
-        GUI.Box(new Rect(15, 105, 440, 75), "선비 체력: " + PlayerHealth + " / " + MaxPlayerHealth + charms + "     " + (BossPurified ? "도깨비: 정화됨 · 우호적" : "도깨비 체력: " + EnemyHealth + " / " + EnemyMaxHealth));
-        GUI.Label(new Rect(30, 133, 410, 40), EnemyDefeated
-            ? (Quest != null && Quest.progress.Outcome == EncounterOutcome.Purified
-                ? "저주를 풀었습니다. 오른쪽 금빛 표식으로 향하세요."
-                : "도깨비를 물리쳤습니다. 오른쪽 금빛 표식으로 향하세요.")
-            : "주황빛은 공격의 전조입니다. K로 물러서거나 뛰어 피하세요.");
-        if (Time.time < noArrowsUntil && PlayerHealth > 0)
-            GUI.Box(new Rect(Screen.width / 2f - 220, 280, 440, 35), "화살이 떨어졌습니다. 주막 옆 보부상에게서 사세요.");
-        if (WardBrokeAt >= 0 && Time.time - WardBrokeAt < 1.6f && PlayerHealth > 0)
-            GUI.Box(new Rect(Screen.width / 2f - 220, 240, 440, 35), "액막이 부적이 공격을 막고 재가 되었습니다.");
-        if (KeepsakeFreedAt >= 0 && Time.time - KeepsakeFreedAt < 4f && PlayerHealth > 0)
-            GUI.Box(new Rect(Screen.width / 2f - 260, 160, 520, 35), "흩어지는 물귀신 사이로 한 여인의 넋이 비쳤다가… 은비녀 하나가 남았습니다.");
-        if (CoinsFoundAt >= 0 && Time.time - CoinsFoundAt < 1.6f && PlayerHealth > 0)
-            GUI.Box(new Rect(Screen.width / 2f - 220, 200, 440, 35), "쓰러진 망령이 엽전 " + CoinsFound + "문을 떨어뜨렸습니다.");
+        if (PlayerHealth <= 0) return;
+        if (Time.time < noArrowsUntil) JinaUI.Toast("화살이 떨어졌습니다. 주막 옆 보부상에게서 사세요.");
+        if (WardBrokeAt >= 0 && Time.time - WardBrokeAt < 1.6f) JinaUI.Toast("액막이 부적이 공격을 막고 재가 되었습니다.");
+        if (KeepsakeFreedAt >= 0 && Time.time - KeepsakeFreedAt < 4f) JinaUI.Toast("흩어지는 물귀신 사이로 한 여인의 넋이 비쳤다가… 은비녀 하나가 남았습니다.");
+        if (CoinsFoundAt >= 0 && Time.time - CoinsFoundAt < 1.6f) JinaUI.Toast("쓰러진 망령이 엽전 " + CoinsFound + "문을 떨어뜨렸습니다.");
     }
 
     void OnDestroy()

@@ -54,7 +54,7 @@ public static class JinaArt
         {
             var idle=Load(idlePath);
             var feet=new Vector2(idle.rect.x+idle.pivot.x+pad,idle.rect.y+idle.pivot.y);
-            if(path.EndsWith("_corpse")) anchor=new Vector2(t.width-feet.y,feet.x);
+            if(path.EndsWith("_corpse") || path.EndsWith("_sleep")) anchor=new Vector2(t.width-feet.y,feet.x);
             // Face down is the other quarter turn: his feet go to the left edge, the pivot under his front.
             else if(path.EndsWith("_facedown")) anchor=new Vector2(feet.y,t.height-feet.x);
             else { rect=canvas; anchor=feet; }
@@ -86,8 +86,9 @@ public static class JinaArt
     {
         idle=null; pad=0;
         if(path.StartsWith("01_Player/player_hit_") || path=="01_Player/player_corpse" || path=="01_Player/player_dodge") { idle=Player; pad=48; }
+        else if(path=="01_Player/player_sit" || path=="01_Player/player_sleep") idle=Player;
         else if(path.StartsWith("01_Player/player_ko_") || path=="01_Player/player_facedown") { idle=Player; pad=240; }
-        else if(path.StartsWith("07_Ghost/ghost_death_")) idle=Ghost;
+        else if(path.StartsWith("07_Ghost/ghost_death_") || path.StartsWith("07_Ghost/ghost_attack_")) idle=Ghost;
         else if(path.StartsWith("08_Village_Elder/elder_")) idle=Elder;
         return idle!=null;
     }

@@ -84,9 +84,8 @@ public class PrototypePass : MonoBehaviour
         if (combat == null || combat.PlayerHealth <= 0 || combat.Paused) return;
         PrototypeKoreanUI.Apply();
         if (ShrineAt >= 0 && Time.time - ShrineAt < 3f)
-            GUI.Box(new Rect(Screen.width / 2f - 260, 240, 520, 55), shrineSaid);
-        else if (NearShrine)
-            GUI.Box(new Rect(Screen.width / 2f - 220, Screen.height - 55, 440, 35), ShrineUsed ? "서낭당 돌무더기" : "E: 서낭당 돌무더기에 돌 얹기");
+            JinaUI.Toast(shrineSaid);
+        if (NearShrine && !ShrineUsed) JinaUI.Prompt("E: 서낭당 돌무더기에 돌 얹기");
     }
 
     void OnDestroy() { foreach (var r in rocks) if (r.art != null) Destroy(r.art.gameObject); }

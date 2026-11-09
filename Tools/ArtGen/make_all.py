@@ -12,6 +12,7 @@ JOBS = [
     ("make_props.py", [f"{ART}/13_Props"]),                       # ledges, tavern, keeper (+ run), charm ...
     ("make_backdrops.py", [f"{ART}/13_Props"]),                   # bg_<area>_far / _near
     ("make_portraits.py", [f"{ART}/17_Portraits"]),            # talk-window portraits
+    ("make_room.py", [f"{ART}/13_Props"]),                       # the guest room of the night cutscene
     ("make_kong.py", [ART]),                                     # Kongbat village people and props
     ("make_pass.py", [f"{ART}/13_Props"]),                       # jangseung, shrine tree, cairn, boulder
     ("make_ferry.py", [ART]),                                    # ferryman, boat, hut, reeds, water
@@ -24,6 +25,7 @@ JOBS = [
     ("make_boss_death.py", [ART]),
     ("make_boss_remorse.py", [ART]),
     ("make_ghost_death.py", [ART]),
+    ("make_ghost_attack.py", [ART]),
     ("make_elder.py", [ART]),
 ]
 

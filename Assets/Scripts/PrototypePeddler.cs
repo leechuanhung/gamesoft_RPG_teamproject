@@ -94,52 +94,31 @@ public class PrototypePeddler : MonoBehaviour
     {
         if (combat == null) return;
         PrototypeKoreanUI.Apply();
-        if (Near && !IsOpen && combat.PlayerHealth > 0)
-            GUI.Box(new Rect(Screen.width / 2f - 220, Screen.height - 55, 440, 35), "E: 보부상 등짐 보기");
+        if (Near && !IsOpen && combat.PlayerHealth > 0 && !combat.Paused) JinaUI.Prompt("E: 보부상 등짐 보기");
         if (!IsOpen) return;
-        // A solid window at the bottom (the map strip hides while it is open): arrows, then the goods two to a row,
-        // each with its icon, name, price and (in green) what it does.
-        const float row = 56, gap = 8;
-        float w = Mathf.Min(780, Screen.width - 30), half = (w - 28 - gap) / 2;
-        int rows = 1 + (JinaItems.All.Length + 1) / 2;
-        float h = 60 + rows * (row + gap) + 30;
-        var box = new Rect((Screen.width - w) / 2, Screen.height - h - 12, w, h);
-        int discount = ShopRules.Discount(Progress);
-        var inside = JinaUI.Window(box, "보부상 등짐", "E / Esc 나가기");
-        string purse = "엽전 " + Wallet.Coins + "문   ·   화살 " + combat.Arrows + "/" + ShopRules.MaxArrows + (discount > 0 ? "   ·   " + discount + "% 할인" : "");
-        JinaUI.Text(new Rect(box.x + 140, box.y + 4, w - 300, 26), purse, 15, JinaUI.Gold, TextAnchor.MiddleCenter, true);
-
+        // Arrows, then the goods two to a row, each with its icon, name, price and what it does.
+        const float gap = 8;
+        float w = Mathf.Min(780, Screen.width - 30), half = (w - JinaUI.WindowPad * 2 - gap) / 2;
+        int rows = 1 + (JinaItems.All.Length + 1) / 2, discount = ShopRules.Discount(Progress);
+        float say = JinaUI.SayHeight("보부상:  " + message, w - JinaUI.WindowPad * 2);
+        float h = JinaUI.TitleHeight + 12 + say + gap + rows * (JinaUI.GoodHeight + gap) + 28 + JinaUI.WindowPad;
+        var box = new Rect((Screen.width - w) / 2, Screen.height - h - 14, w, h);
+        var inside = JinaUI.Window(box, "보부상 등짐", "엽전 " + Wallet.Coins + "문   ·   화살 " + combat.Arrows + "/" + ShopRules.MaxArrows + (discount > 0 ? "   ·   " + discount + "% 할인" : "") + "   ·   E / Esc 나가기");
+        JinaUI.Say(new Rect(inside.x, inside.y, inside.width, say), "보부상", message);
+        float top = inside.y + say + gap;
         bool bundle = ShopRules.BundleOpen(Progress);
-        if (Good(new Rect(inside.x, inside.y, half, row), null, "1 · 화살 한 대", Cost(ShopRules.ArrowPrice), "화살통에 바로", true)) Purchase(false);
-        if (Good(new Rect(inside.x + half + gap, inside.y, half, row), null, "2 · 화살 " + ShopRules.BundleSize + "대 묶음",
-            bundle ? Cost(ShopRules.BundlePrice) : "", bundle ? "화살통에 바로" : "흉사로 팔지 않음", bundle)) Purchase(true);
+        if (JinaUI.Good(new Rect(inside.x, top, half, JinaUI.GoodHeight), JinaItems.Get("arrows").Icon, "1 · 화살 한 대", Cost(ShopRules.ArrowPrice), "화살통에 바로 넣습니다", true)) Purchase(false);
+        if (JinaUI.Good(new Rect(inside.x + half + gap, top, half, JinaUI.GoodHeight), JinaItems.Get("arrows").Icon, "2 · 화살 " + ShopRules.BundleSize + "대 묶음",
+            bundle ? Cost(ShopRules.BundlePrice) : "", bundle ? "화살통에 바로 넣습니다" : "흉사로 팔지 않음", bundle)) Purchase(true);
         for (int i = 0; i < JinaItems.All.Length; i++)
         {
             var item = JinaItems.All[i];
-            var r = new Rect(inside.x + (i % 2) * (half + gap), inside.y + (1 + i / 2) * (row + gap), half, row);
+            var r = new Rect(inside.x + (i % 2) * (half + gap), top + (1 + i / 2) * (JinaUI.GoodHeight + gap), half, JinaUI.GoodHeight);
             bool open = ShopRules.ItemOpen(item, Progress);
             string effect = item.Description.Substring(item.Description.LastIndexOf('\n') + 1);
-            if (Good(r, item.Icon, (i + 3) + " · " + item.ItemName, open ? Cost(item.price) : "", open ? effect : "흉사로 팔지 않음", open)) Purchase(item);
+            if (JinaUI.Good(r, item.Icon, (i + 3) + " · " + item.ItemName, open ? Cost(item.price) : "", open ? effect : "흉사로 팔지 않음", open)) Purchase(item);
         }
-        JinaUI.Text(new Rect(inside.x, box.yMax - 28, inside.width, 22), "화살은 화살통에 " + ShopRules.MaxArrows + "대까지, 나머지는 보따리(I)에 들어갑니다. 흥정하는 동안 전투가 멈춥니다.", 13, JinaUI.Ink);
-        SpeechBubble.Draw(new Vector3(PrototypeWorld.Peddler.x, 1.55f, 0), "보부상", message);
-    }
-    // One good on sale: a slot that lights up under the mouse; true when clicked (and on sale).
-    static bool Good(Rect r, Sprite icon, string name, string price, string effect, bool open)
-    {
-        bool over = open && r.Contains(Event.current.mousePosition);
-        JinaUI.Frame(r, over ? JinaUI.Hover : JinaUI.SlotBack, over ? JinaUI.Gold : JinaUI.SlotEdge, over ? 2 : 1);
-        float x = r.x + 10;
-        if (icon != null)
-        {
-            var saved = GUI.color; if (!open) GUI.color = new Color(1, 1, 1, .4f);
-            InventoryUI.DrawIcon(icon, new Rect(r.x + 8, r.y + 8, 40, 40));
-            GUI.color = saved; x = r.x + 58;
-        }
-        JinaUI.Text(new Rect(x, r.y + 7, r.xMax - x - 10, 22), name, 16, open ? JinaUI.Ink : JinaUI.Dim, TextAnchor.UpperLeft, true);
-        JinaUI.Text(new Rect(x, r.y + 7, r.xMax - x - 10, 22), price, 16, JinaUI.Gold, TextAnchor.UpperRight, true);
-        JinaUI.Text(new Rect(x, r.y + 31, r.xMax - x - 10, 20), effect, 13, open ? JinaUI.Effect : JinaUI.Dim);
-        return GUI.Button(r, "", GUIStyle.none) && open;
+        JinaUI.Text(new Rect(inside.x, box.yMax - JinaUI.WindowPad - 20, inside.width, 20), "화살은 화살통에 " + ShopRules.MaxArrows + "대까지, 나머지는 보따리(I)에 들어갑니다. 흥정하는 동안 전투가 멈춥니다.", 13, JinaUI.TextDim);
     }
     string Cost(int basePrice)
     {

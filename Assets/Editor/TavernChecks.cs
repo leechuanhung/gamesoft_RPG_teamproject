@@ -7,9 +7,9 @@ public static class TavernChecks
     {
         var wallet = new TavernWallet();
         int heal;
-        Require(!wallet.Buy(0, 5, out heal) && wallet.Coins == 30, "No charge at full health");
-        Require(wallet.Buy(0, 4, out heal) && heal == 1 && wallet.Coins == 25, "Clamp healing and deduct price");
-        Require(wallet.Buy(1, 1, out heal) && heal == 4 && wallet.Coins == 15, "Soup recovery");
+        Require(!wallet.Buy(0, PrototypeCombat.MaxPlayerHealth, out heal) && wallet.Coins == 30, "No charge at full health");
+        Require(wallet.Buy(0, PrototypeCombat.MaxPlayerHealth - 20, out heal) && heal == 20 && wallet.Coins == 25, "Clamp healing and deduct price");
+        Require(wallet.Buy(1, 10, out heal) && heal == 80 && wallet.Coins == 15, "Soup recovery");
         wallet.Buy(1, 1, out heal);
         Require(!wallet.Buy(1, 1, out heal) && wallet.Coins == 5, "Insufficient funds");
         Require(!wallet.Buy(0, 0, out heal) && wallet.Coins == 5, "Cannot revive by buying");
@@ -40,7 +40,7 @@ public static class TavernChecks
         int heal, bought;
         var wallet = new TavernWallet();
         Require(!wallet.Buy(1, 1, out heal, mourning) && wallet.Coins == 30, "Banned menu cannot be bought");
-        Require(wallet.Buy(2, 1, out heal, purified) && heal == 4 && wallet.Coins == 18, "Discounted samgyetang");
+        Require(wallet.Buy(2, 1, out heal, purified) && heal == 99 && wallet.Coins == 18, "Discounted samgyetang");
         wallet.Reset();
         Require(!wallet.BuyArrows(false, 20, out bought) && wallet.Coins == 30, "Full quiver");
         Require(!wallet.BuyArrows(true, 11, out bought) && wallet.Coins == 30, "Bundle must fit the quiver");

@@ -32,7 +32,8 @@ public static class WorldChecks
         Require(PrototypeWorld.CanDetect(new Vector2(PrototypeWorld.ForestStart, .2f), enemy), "Detect at forest entrance");
         Require(!PrototypeWorld.CanDetect(PrototypeWorld.Spawn, enemy), "Spawn must be safe");
         Require(!PrototypeWorld.CanDetect(new Vector2(11.9f, .2f), new Vector2(13.2f, .7f)), "Village boundary must remain safe even near enemy");
-        Require(PrototypeCombat.EnemyMaxHealth == 30, "Health must be 30");
+        Require(PrototypeCombat.EnemyMaxHealth == 200, "Health must be 200");
+        Require(PrototypeCombat.ElderCounterDamage * 3 >= PrototypeCombat.EnemyMaxHealth && PrototypeCombat.ElderCounterDamage * 2 < PrototypeCombat.EnemyMaxHealth, "The elder's last blow takes a third of the boss");
         foreach (var prop in new[] { "주막", "주막 주모", "주막 평상", "마을 기와집", "거북 받침 비석", "숲 소나무", "뱃사공 오두막", "갈대", "강물", "장승", "서낭나무", "서낭당 돌무더기", "팥쥐네 장독대", "잔치 명단", "콩밭 마을 우물", "콩밭 마을 빨랫줄" })
             Require(GameObject.Find(prop) != null && GameObject.Find(prop).GetComponent<SpriteRenderer>().sprite != null, "Prop placed: " + prop);
         Require(GameObject.Find("주막 건물") == null && GameObject.Find("숲 수관") == null, "Placeholder blocks replaced");

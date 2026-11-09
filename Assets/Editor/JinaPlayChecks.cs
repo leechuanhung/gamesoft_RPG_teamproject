@@ -70,7 +70,7 @@ public static partial class JinaPlayChecks
                 KongVillage();
                 PlayerFall();
                 Endings();
-                Check(!combat.BossPurified && !combat.EnemyDefeated && combat.EnemyHealth==30,"Restart restores hostile boss");
+                Check(!combat.BossPurified && !combat.EnemyDefeated && combat.EnemyHealth==PrototypeCombat.EnemyMaxHealth,"Restart restores hostile boss");
                 Check(combat.Quest.progress.Honor==0,"Restart resets honor");
                 combat.AddArrows(-5); Check(combat.Arrows==15,"Arrows spent");
                 combat.Restart(); Check(combat.Arrows==ShopRules.MaxArrows,"Restart refills quiver");

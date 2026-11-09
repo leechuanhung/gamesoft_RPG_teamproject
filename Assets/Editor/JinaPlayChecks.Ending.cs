@@ -31,7 +31,7 @@ public static partial class JinaPlayChecks
         }
         Check(Mathf.Abs(actor.transform.eulerAngles.z)<.01f && veil.color.a==1,"He lies face down in full black");
         combat.Restart(); visual.SendMessage("LateUpdate");
-        Check(combat.PlayerHealth==5 && !combat.player.Downed && body.sprite.name==JinaArt.Player && body.transform.rotation==Quaternion.identity && weapon.color==Color.white,"Restart stands him back up");
+        Check(combat.PlayerHealth==PrototypeCombat.MaxPlayerHealth && !combat.player.Downed && body.sprite.name==JinaArt.Player && body.transform.rotation==Quaternion.identity && weapon.color==Color.white,"Restart stands him back up");
         Call(over,"LateUpdate");
         Check(!veil.enabled && !actor.enabled,"Restart lifts the black");
     }
@@ -49,7 +49,7 @@ public static partial class JinaPlayChecks
         Set(combat,"<EnemyHealth>k__BackingField",0); Call(ending);
         Check(!ending.Active,"No ending before the road");
         player.position=new Vector3(PrototypeWorld.GoalX,player.position.y,0);
-        Set(combat,"<EnemyHealth>k__BackingField",30); Call(ending);
+        Set(combat,"<EnemyHealth>k__BackingField",PrototypeCombat.EnemyMaxHealth); Call(ending);
         Check(!ending.Active,"No ending while the boss stands");
         Set(combat,"<EnemyHealth>k__BackingField",0); combat.Quest.progress.Resolve(false); Call(ending);
         Check(ending.Active && ending.IsPlaying && ending.Ending==PrototypeEnding.Kind.Slain && combat.Paused && !combat.player.CanMove,"Reaching the road plays the ending");

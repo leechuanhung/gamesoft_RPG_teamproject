@@ -1,7 +1,7 @@
 # Draws the ferry crossing (the map right of the forest): the ferryman, on the peddler's 12 px block grid and
 # palette, and the props at one texel per art pixel (boat, hut, reeds, river water).
 #   15_Ferryman/ferryman_idle.png         facing left like the peddler, feet at x 108 (block 9 of the grid)
-#   13_Props/ferry_boat, ferry_hut, reeds, water
+#   13_Props/ferry_boat, ferry_hut, reeds, water, thorn_wall (the thorns that bar the forest's end)
 # Usage: python make_ferry.py Assets/Resources/JinaV4
 import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
@@ -141,10 +141,31 @@ def water():
         c.paint(c.rect(x + 10, 9, x + 13, 9), FOAM, inside=False)
     return c
 
+def thorn_wall():
+    """A thicket of dark thorny vines from the ground past the top of the screen, 8.5 units tall, 2 wide."""
+    c = Canvas(48, 204)
+    rng = np.random.default_rng(9)
+    VINE, VINE2, THORN, LEAF = (54, 44, 52), (78, 60, 62), (150, 140, 120), (44, 74, 58)
+    for x0 in (8, 24, 40, 15, 32):
+        points = []
+        for y in range(203, -8, -14):
+            points.append((x0 + int(rng.integers(-7, 8)), y))
+        vine = c.line(points, 4)
+        c.layer(vine, VINE)
+        c.paint(vine & c.line([(p[0] - 1, p[1]) for p in points], 1), VINE2)
+        for (x, y) in points[1::2]:
+            side = 1 if rng.random() < .5 else -1
+            thorn = c.poly([(x + side, y - 2), (x + side * 7, y - 1), (x + side, y + 2)])
+            c.layer(thorn, THORN)
+    for _ in range(14):
+        x, y = int(rng.integers(5, 43)), int(rng.integers(6, 198))
+        c.layer(c.ellipse(x - 2, y - 1, x + 2, y + 1), LEAF)
+    return c
+
 def save_prop(c, name):
     # keep the full canvas (no crop): the water strip must tile and the boat's deck line is measured
     img = np.zeros((c.h, c.w, 4), np.uint8); img[..., :3] = c.c; img[..., 3] = np.where(c.a, 255, 0)
     Image.fromarray(img).save(f"{ROOT}/13_Props/{name}.png")
 
-for name, draw in (("ferry_boat", boat), ("ferry_hut", hut), ("reeds", reeds), ("water", water)):
+for name, draw in (("ferry_boat", boat), ("ferry_hut", hut), ("reeds", reeds), ("water", water), ("thorn_wall", thorn_wall)):
     save_prop(draw(), name)

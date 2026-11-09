@@ -21,15 +21,15 @@ public static class ShopRules
 public class TavernWallet
 {
     public static readonly string[] MenuNames = { "보리밥과 김치 한 상", "장국밥 한 그릇", "삼계탕 한 그릇" };
-    public static readonly int[] MenuPrices = { 5, 10, 15 }, MenuHeals = { 2, 4, 5 };
+    public static readonly int[] MenuPrices = { 5, 10, 15 }, MenuHeals = { 40, 80, 100 };
     public int Coins { get; private set; } = 30;
     public bool Buy(int menu, int health, out int restored, QuestProgress quest = null)
     {
         restored = 0;
-        if (menu < 0 || menu >= MenuPrices.Length || !ShopRules.MenuOpen(menu, quest) || health <= 0 || health >= 5) return false;
+        if (menu < 0 || menu >= MenuPrices.Length || !ShopRules.MenuOpen(menu, quest) || health <= 0 || health >= PrototypeCombat.MaxPlayerHealth) return false;
         int cost = ShopRules.Price(MenuPrices[menu], quest);
         if (Coins < cost) return false;
-        restored = System.Math.Min(5 - health, MenuHeals[menu]);
+        restored = System.Math.Min(PrototypeCombat.MaxPlayerHealth - health, MenuHeals[menu]);
         Coins -= cost;
         return true;
     }

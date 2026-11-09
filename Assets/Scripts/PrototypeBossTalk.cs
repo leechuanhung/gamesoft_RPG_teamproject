@@ -52,7 +52,7 @@ public class PrototypeBossTalk : MonoBehaviour
         if (!IsOpen)
         {
             if (Near && !combat.Paused)
-                GUI.Box(new Rect(Screen.width / 2f - 220, Screen.height - 55, 440, 35), "E: 도깨비와 이야기하기");
+                JinaUI.Prompt("E: 도깨비와 이야기하기");
             return;
         }
         var pages = Pages;

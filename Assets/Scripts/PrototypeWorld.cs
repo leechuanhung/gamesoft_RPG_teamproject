@@ -16,7 +16,7 @@ public class PrototypeWorld : MonoBehaviour
     public const float KongStart = FerryEnd, KongEnd = 150f;
     public static readonly Vector2 Kongjwi = new Vector2(133f, .2f), Patjwi = new Vector2(135.2f, .2f),
         Anak = new Vector2(116.5f, .2f), Namu = new Vector2(123f, .2f);
-    public const float JangdokX = 146.5f, FeastListX = 139f;
+    public const float JangdokX = 146.5f, FeastListX = 143.9f, KongHouseX = 141.5f;
     public const float PassStart = KongEnd, PassEnd = 198f, ShrineX = 180.5f, RockStart = 185.5f;
     public static readonly (float left, float right, float top)[] PassSteps =
         { (150, 162, -.5f), (162, 168, 1f), (168, 186, 2.5f), (186, 190, 1f), (190, 198, -.5f) };

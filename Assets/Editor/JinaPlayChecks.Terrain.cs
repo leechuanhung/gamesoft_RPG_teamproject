@@ -100,6 +100,6 @@ public static partial class JinaPlayChecks
         Set(combat,"moveUntil",Time.time-.01f); Call(combat); bossVisual.Refresh();
         Check(combat.Move==PrototypeCombat.BossMove.Landed && Mathf.Abs(boss.transform.position.y-PrototypeCombat.BossGround)<.01f && Picture(bossVisual).sprite.name.EndsWith("boss_attack_02"),"It slams down on the ground");
         combat.Restart();
-        Check(combat.Move==PrototypeCombat.BossMove.None && combat.PlayerHealth==5,"Restart calms the boss");
+        Check(combat.Move==PrototypeCombat.BossMove.None && combat.PlayerHealth==PrototypeCombat.MaxPlayerHealth,"Restart calms the boss");
     }
 }

@@ -99,7 +99,7 @@ public class PrototypeCamp : MonoBehaviour
         m.hp = Mathf.Max(0, m.hp - PrototypeCombat.CalcDamage(damage, PrototypeCombat.MonsterDefense));
         if (m.hp == 0)
         {
-            m.visual.Down(); m.windup = -1;
+            m.visual.Down(); m.windup = -1; m.visual.Winding = false;
             m.vanishAt = Time.time + 1.5f;
             if (combat != null) { combat.FindCoins(coins); if (river) combat.FellWaterGhost(); }
         }
@@ -114,7 +114,7 @@ public class PrototypeCamp : MonoBehaviour
         if (combat == null || combat.PlayerHealth <= 0) return;
         if (combat.Paused)
         {
-            foreach (var m in mobs) { m.windup = -1; m.ready = Time.time + .5f; }
+            foreach (var m in mobs) { m.windup = -1; m.ready = Time.time + .5f; m.visual.Winding = false; }
             return;
         }
         var p = combat.player.transform.position;
@@ -143,12 +143,14 @@ public class PrototypeCamp : MonoBehaviour
                 {
                     if (new Bounds(m.strike, new Vector3(1.5f, 1.5f, 1)).Intersects(combat.player.GetComponent<SpriteRenderer>().bounds)) combat.HurtPlayer(PrototypeCombat.MonsterAttack);
                     m.windup = -1; m.ready = Time.time + StrikeCooldown;
+                    m.visual.Strike();
                 }
             }
             else if (inCamp && delta.magnitude < StrikeRange && Time.time >= m.ready)
             {
                 m.strike = (Vector2)pos + (Vector2)delta.normalized * .7f;
                 m.windup = Time.time + StrikeWindup;
+                m.visual.Winding = true; m.visual.AimX = p.x;
             }
             else
             {

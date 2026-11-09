@@ -48,15 +48,15 @@ public static class JinaItems
 {
     public static readonly JinaItem[] All =
     {
-        JinaItem.Make("misutgaru", "미숫가루", "볶은 곡식 가루 한 주머니. 물에 타 마시면 기운이 조금 돈다.\n체력 +1", JinaItem.Effect.Heal, 1, 4, 10),
-        JinaItem.Make("jumeokbap", "주먹밥", "주모가 싸 준 김 두른 주먹밥.\n체력 +2", JinaItem.Effect.Heal, 2, 7, 10),
-        JinaItem.Make("cheongsimhwan", "청심환", "금박을 입힌 귀한 환약. 막힌 기운을 단숨에 뚫는다.\n체력 +3", JinaItem.Effect.Heal, 3, 13, 5),
+        JinaItem.Make("misutgaru", "미숫가루", "볶은 곡식 가루 한 주머니. 물에 타 마시면 기운이 조금 돈다.\n체력 +20", JinaItem.Effect.Heal, 20, 4, 10),
+        JinaItem.Make("jumeokbap", "주먹밥", "주모가 싸 준 김 두른 주먹밥.\n체력 +40", JinaItem.Effect.Heal, 40, 7, 10),
+        JinaItem.Make("cheongsimhwan", "청심환", "금박을 입힌 귀한 환약. 막힌 기운을 단숨에 뚫는다.\n체력 +60", JinaItem.Effect.Heal, 60, 13, 5),
         JinaItem.Make("arrows", "화살 꾸러미", "끈으로 묶은 화살 다섯 대. 화살통이 비었을 때 푼다.\n화살 +5", JinaItem.Effect.Arrows, 5, 5, 10),
         JinaItem.Make("ward", "액막이 부적", "붉은 글씨로 액을 막는 작은 부적.\n다음에 받는 공격 한 번을 막는다", JinaItem.Effect.Ward, 1, 12, 3),
         JinaItem.Make("jipsin", "날랜 짚신", "가볍게 삼은 새 짚신. 오래 신으면 해진다.\n15초 동안 이동이 빨라진다", JinaItem.Effect.Haste, 15, 10, 3),
     };
     // Not for sale: freed from the river's ghosts (PrototypeCombat.FellWaterGhost).
-    public static readonly JinaItem Keepsake = JinaItem.Make("binyeo", "은비녀", "누군가 아끼던 은비녀. 강물에 오래 잠겨 있었다.\n물귀신들 사이에서 한 여인의 넋이 남기고 갔다", JinaItem.Effect.Keepsake, 0, 0, 1);
+    public static readonly JinaItem Keepsake = JinaItem.Make("binyeo", "은비녀", "누군가 아끼던 은비녀. 강물에 오래 잠겨 있었다. 물귀신들 사이에서 한 여인의 넋이 남기고 갔다.\n아직 쓸 곳을 모른다", JinaItem.Effect.Keepsake, 0, 0, 1);
     public static JinaItem Get(string id) => System.Array.Find(All, i => i.id == id);
 
     // The inventory the teammate's InventorySystem keeps in the scene (null in scenes without it).

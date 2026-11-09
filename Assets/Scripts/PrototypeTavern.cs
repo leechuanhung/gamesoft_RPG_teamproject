@@ -56,34 +56,32 @@ public class PrototypeTavern : MonoBehaviour
             combat.RestoreHealth(restored);
             message = "든든히 드셨구려. 부디 남은 길도 평안히 가시오. (체력 +" + restored + ")";
         }
-        else message = combat.PlayerHealth >= 5 ? "이미 기운이 넉넉하오. 음식값은 받지 않겠소." : "엽전이 모자라는구려.";
+        else message = combat.PlayerHealth >= PrototypeCombat.MaxPlayerHealth ? "이미 기운이 넉넉하오. 음식값은 받지 않겠소." : "엽전이 모자라는구려.";
     }
     void OnGUI()
     {
         if (combat == null) return;
         PrototypeKoreanUI.Apply();
-        GUI.Box(new Rect(15, 275, 235, 35), "노잣돈: " + wallet.Coins + "문 · 상평통보");
-        if (Near && !IsOpen && combat.PlayerHealth > 0)
-            GUI.Box(new Rect(Screen.width / 2f - 220, Screen.height - 55, 440, 35), "E: 주막에서 음식 사 먹기");
+        if (Near && !IsOpen && combat.PlayerHealth > 0 && !combat.Paused) JinaUI.Prompt("E: 주막에서 음식 사 먹기");
         if (!IsOpen) return;
         bool special = ShopRules.MenuOpen(ShopRules.SpecialMenu, Progress);
-        float w = Mathf.Min(650, Screen.width - 30), h = special ? 275 : 225;
-        var box = new Rect((Screen.width - w) / 2, Screen.height - h - 15, w, h);
-        int discount = ShopRules.Discount(Progress);
-        GUI.Box(box, "길손 주막 · 가진 돈 " + wallet.Coins + "문" + (discount > 0 ? " · 선행 덕에 " + discount + "% 할인" : ""));
-        for (int menu = 0; menu < TavernWallet.MenuPrices.Length; menu++)
+        int rows = special ? 3 : 2, discount = ShopRules.Discount(Progress);
+        const float gap = 8;
+        float w = Mathf.Min(620, Screen.width - 30);
+        float say = JinaUI.SayHeight("주모:  " + message, w - JinaUI.WindowPad * 2);
+        float h = JinaUI.TitleHeight + 12 + say + gap + rows * (JinaUI.GoodHeight + gap) + 28 + JinaUI.WindowPad;
+        var box = new Rect((Screen.width - w) / 2, Screen.height - h - 14, w, h);
+        var inside = JinaUI.Window(box, "길손 주막", "엽전 " + wallet.Coins + "문" + (discount > 0 ? "   ·   선행 덕에 " + discount + "% 할인" : "") + "   ·   E / Esc 나가기");
+        JinaUI.Say(new Rect(inside.x, inside.y, inside.width, say), "주모", message);
+        for (int menu = 0; menu < rows; menu++)
         {
-            if (menu == ShopRules.SpecialMenu && !special) continue;
             bool open = ShopRules.MenuOpen(menu, Progress);
             int price = ShopRules.Price(TavernWallet.MenuPrices[menu], Progress);
-            string cost = price < TavernWallet.MenuPrices[menu] ? TavernWallet.MenuPrices[menu] + "문 → " + price + "문" : price + "문";
-            string label = (menu + 1) + " · " + TavernWallet.MenuNames[menu] + (menu == ShopRules.SpecialMenu ? " (특별)" : "")
-                + (open ? " — " + cost + " / 체력 " + TavernWallet.MenuHeals[menu] + " 회복" : " — 상중이라 팔지 않음");
-            GUI.enabled = open;
-            if (GUI.Button(new Rect(box.x + 20, box.y + 40 + menu * 50, w - 40, 42), label)) Purchase(menu);
-            GUI.enabled = true;
+            string cost = price < TavernWallet.MenuPrices[menu] ? TavernWallet.MenuPrices[menu] + " → " + price + "문" : price + "문";
+            string title = (menu + 1) + " · " + TavernWallet.MenuNames[menu] + (menu == ShopRules.SpecialMenu ? " (특별)" : "");
+            var r = new Rect(inside.x, inside.y + say + gap + menu * (JinaUI.GoodHeight + gap), inside.width, JinaUI.GoodHeight);
+            if (JinaUI.Good(r, null, title, open ? cost : "", open ? "체력 +" + TavernWallet.MenuHeals[menu] : "상중이라 팔지 않음", open)) Purchase(menu);
         }
-        GUI.Label(new Rect(box.x + 20, box.y + h - 72, w - 40, 55), "구매하면 바로 먹습니다. 최대 체력은 5입니다.\nE / Esc: 나가기 · 메뉴를 보는 동안 전투가 멈춥니다.");
-        SpeechBubble.Draw(new Vector3(PrototypeWorld.Tavern.x, 1.4f, 0), "주모", message);
+        JinaUI.Text(new Rect(inside.x, box.yMax - JinaUI.WindowPad - 20, inside.width, 20), "구매하면 바로 먹습니다. 메뉴를 보는 동안 전투가 멈춥니다.", 13, JinaUI.TextDim);
     }
 }

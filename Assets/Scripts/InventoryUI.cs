@@ -164,27 +164,22 @@ public class InventoryUI : MonoBehaviour
         GUI.depth = -100;
         PrototypeKoreanUI.Apply();
 
-        // 오른쪽 위, 선악 창 아래. 화면이 낮으면 위로 올린다.
-        const float cell = 54, gap = 6, pad = 14, titleHeight = 32;
+        // 오른쪽 위 구석. 열려 있는 동안 선악 창은 숨는다(PrototypeHud).
+        const float cell = 54, gap = 6;
         int rows = Mathf.CeilToInt(inventory.MaxSlots / (float)Columns);
         float gridWidth = Columns * cell + (Columns - 1) * gap, gridHeight = rows * cell + (rows - 1) * gap;
-        float width = gridWidth + pad * 2, height = titleHeight + pad + gridHeight + 44;
-        var window = new Rect(Screen.width - width - 15, Mathf.Min(150, Mathf.Max(10, Screen.height - height - 10)), width, height);
-
-        Frame(window, Back, Edge, 2);
-        Fill(new Rect(window.x + 2, window.y + 2, window.width - 4, titleHeight - 2), Title);
-        Text(new Rect(window.x + 12, window.y + 4, window.width - 24, titleHeight - 6), "보따리", 18, Gold, TextAnchor.MiddleLeft, true);
-        Text(new Rect(window.x + 12, window.y + 4, window.width - 24, titleHeight - 6), "I / Esc 닫기", 13, Ink, TextAnchor.MiddleRight);
+        float width = gridWidth + WindowPad * 2, height = TitleHeight + 12 + gridHeight + 12 + 28 + WindowPad;
+        var window = new Rect(Screen.width - width - 12, 12, width, height);
+        var inside = Window(window, "보따리", "I / Esc 닫기");
 
         // 아이템 칸: 아이콘과 개수. 누르면 고르고, 고른 칸을 다시 누르면 쓴다. 마우스를 올리면 그 칸의 설명이 뜬다.
-        float x = window.x + pad, y = window.y + titleHeight + pad;
         int hovered = -1;
         for (int i = 0; i < inventory.MaxSlots; i++)
         {
-            var r = new Rect(x + (i % Columns) * (cell + gap), y + (i / Columns) * (cell + gap), cell, cell);
+            var r = new Rect(inside.x + (i % Columns) * (cell + gap), inside.y + (i / Columns) * (cell + gap), cell, cell);
             bool filled = i < inventory.Slots.Count, over = r.Contains(Event.current.mousePosition);
             if (over && filled) hovered = i;
-            Frame(r, over ? Hover : SlotBack, filled && i == selected ? Gold : SlotEdge, filled && i == selected ? 2 : 1);
+            Slot(r, filled && i == selected, over && filled);
             if (GUI.Button(r, "", GUIStyle.none) && filled)
             {
                 if (i == selected) UseSelected();
@@ -194,58 +189,75 @@ public class InventoryUI : MonoBehaviour
 
             var slot = inventory.Slots[i];
             if (slot.Item.Icon != null) DrawIcon(slot.Item.Icon, new Rect(r.x + 7, r.y + 5, cell - 14, cell - 14));
-            else Text(new Rect(r.x + 3, r.y + 3, cell - 6, cell - 6), slot.Item.ItemName, 12, Ink, TextAnchor.MiddleCenter);
-            if (slot.Quantity > 1) Text(new Rect(r.x + 3, r.y, cell - 6, cell - 2), slot.Quantity.ToString(), 14, Ink, TextAnchor.LowerRight, true);
+            else Text(new Rect(r.x + 3, r.y + 3, cell - 6, cell - 6), slot.Item.ItemName, 12, TextDark, TextAnchor.MiddleCenter);
+            if (slot.Quantity > 1)
+            {
+                string count = slot.Quantity.ToString();
+                float tagWidth = Width(count, 13, true) + 8;
+                var tag = new Rect(r.xMax - tagWidth - 2, r.yMax - 20, tagWidth, 18);
+                Box(tag, Night, Ink, 0);
+                Text(tag, count, 13, Bright, TextAnchor.MiddleCenter, true);
+            }
         }
 
         // 아래 줄: 가진 엽전
         int coins = combat != null && combat.Tavern != null ? combat.Tavern.wallet.Coins : 0;
-        var bottom = new Rect(x, window.yMax - 36, gridWidth, 26);
-        Frame(bottom, SlotBack, SlotEdge, 1);
-        Text(new Rect(bottom.x + 10, bottom.y, bottom.width - 20, bottom.height), "엽전", 15, Ink, TextAnchor.MiddleLeft);
-        Text(new Rect(bottom.x + 10, bottom.y, bottom.width - 20, bottom.height), coins + " 문", 15, Gold, TextAnchor.MiddleRight, true);
+        var bottom = new Rect(inside.x, inside.y + gridHeight + 12, gridWidth, 28);
+        Box(bottom, PaperDark, SlotEdge, 1);
+        Text(new Rect(bottom.x + 12, bottom.y, bottom.width - 24, bottom.height), "엽전", 15, TextDark, TextAnchor.MiddleLeft);
+        Text(new Rect(bottom.x + 12, bottom.y, bottom.width - 24, bottom.height), coins + "문", 15, Red, TextAnchor.MiddleRight, true);
 
         DrawDetails(window, hovered >= 0 ? hovered : selected);
 
         // 에디터에서만 보이는 시험용 버튼(팀원 테스트 아이템)
-        if (Application.isEditor && testItem != null && GUI.Button(new Rect(window.x, window.yMax + 4, 120, 22), "테스트 아이템 +1"))
+        if (Application.isEditor && testItem != null && Button(new Rect(window.x, window.yMax + 6, 170, 28), "테스트 아이템 +1"))
             inventory.TryAdd(testItem);
     }
 
-    // 창 왼쪽의 설명 창: 큰 아이콘, 이름, 설명, 효과(마지막 줄), 사용 버튼, 방금 쓴 결과.
+    // 창 왼쪽의 설명 창. 글 높이를 재서 쌓으므로 설명이 길어도 잘리지 않는다.
     void DrawDetails(Rect window, int index)
     {
-        var box = new Rect(window.x - 290, window.y, 280, 250);
-        Frame(box, Back, Edge, 2);
-        float x = box.x + 14, w = box.width - 28;
+        const float boxWidth = 300, pad = 16, inner = boxWidth - pad * 2;
+        float x = window.x - boxWidth - 8, top = window.y;
         if (index >= inventory.Slots.Count)
         {
-            Text(new Rect(x, box.y + 14, w, 80), "보따리가 비었습니다.\n주막 옆 보부상에게서 길에 요긴한 것들을 살 수 있습니다.", 15, Ink);
-            Text(new Rect(x, box.yMax - 30, w, 22), message, 14, Note);
+            string empty = "보따리가 비었습니다.\n주막 옆 보부상에게서 길에 요긴한 것들을 살 수 있습니다.";
+            float emptyHeight = Height(empty, 15, inner), said = Height(message, 14, inner);
+            var plain = new Rect(x, top, boxWidth, pad * 2 + 6 + emptyHeight + (said > 0 ? said + 8 : 0));
+            Box(plain, Paper, Wood, 3);
+            Text(new Rect(x + pad, top + pad + 3, inner, emptyHeight), empty, 15, TextDark);
+            Text(new Rect(x + pad, top + pad + 11 + emptyHeight, inner, said), message, 14, Red);
             return;
         }
         var item = inventory.Slots[index].Item;
-        var iconBox = new Rect(x, box.y + 14, 56, 56);
-        Frame(iconBox, SlotBack, SlotEdge, 1);
+        string description = item.Description ?? "", story = description, effect = null;
+        int cut = description.LastIndexOf('\n');
+        if (cut >= 0) { story = description.Substring(0, cut); effect = description.Substring(cut + 1); }
+        const string hint = "스페이스 · 칸 한 번 더 누르기";
+        float storyHeight = Height(story, 15, inner), effectHeight = Height(effect, 15, inner, true), messageHeight = Height(message, 14, inner);
+        float hintHeight = Mathf.Max(34, Height(hint, 12, inner - 116));
+        float total = pad + 3 + 56 + 12 + storyHeight + (effectHeight > 0 ? effectHeight + 8 : 0) + 12 + hintHeight + (messageHeight > 0 ? messageHeight + 10 : 0) + pad + 3;
+        Box(new Rect(x, top, boxWidth, total), Paper, Wood, 3);
+
+        float left = x + pad, y = top + pad + 3;
+        var iconBox = new Rect(left, y, 56, 56);
+        Box(iconBox, PaperDark, SlotEdge, 1);
         if (item.Icon != null) DrawIcon(item.Icon, new Rect(iconBox.x + 6, iconBox.y + 6, 44, 44));
-        Text(new Rect(x + 68, box.y + 14, w - 68, 26), item.ItemName, 18, Gold, TextAnchor.MiddleLeft, true);
-        Text(new Rect(x + 68, box.y + 42, w - 68, 22), "x" + inventory.Slots[index].Quantity, 14, Ink, TextAnchor.MiddleLeft);
-
-        // 설명의 마지막 줄은 효과라서 따로 초록색으로
-        string text = item.Description ?? "";
-        int cut = text.LastIndexOf('\n');
-        Text(new Rect(x, box.y + 80, w, 70), cut >= 0 ? text.Substring(0, cut) : text, 15, Ink);
-        if (cut >= 0) Text(new Rect(x, box.y + 150, w, 24), text.Substring(cut + 1), 15, Effect, TextAnchor.UpperLeft, true);
-
-        GUI.enabled = item is JinaItem;
-        if (GUI.Button(new Rect(x, box.y + 180, 110, 30), "사용하기") && index < inventory.Slots.Count)
+        Text(new Rect(left + 68, y + 4, inner - 68, 26), item.ItemName, 18, TextDark, TextAnchor.MiddleLeft, true);
+        Text(new Rect(left + 68, y + 32, inner - 68, 20), "가진 수 " + inventory.Slots[index].Quantity, 13, TextDim, TextAnchor.MiddleLeft);
+        y += 56 + 12;
+        Text(new Rect(left, y, inner, storyHeight), story, 15, TextDark);
+        y += storyHeight + 8;
+        if (effect != null) { Text(new Rect(left, y, inner, effectHeight), effect, 15, Green, TextAnchor.UpperLeft, true); y += effectHeight; }
+        y += 12;
+        if (Button(new Rect(left, y, 106, 34), "사용하기", item is JinaItem usable && usable.effect != JinaItem.Effect.Keepsake) && index < inventory.Slots.Count)
         {
             selected = index;
             UseSelected();
         }
-        GUI.enabled = true;
-        Text(new Rect(x + 120, box.y + 180, w - 120, 30), "스페이스 · 한 번 더 누르기", 12, Ink, TextAnchor.MiddleLeft);
-        Text(new Rect(x, box.y + 214, w, 30), message, 14, Note);
+        Text(new Rect(left + 116, y, inner - 116, hintHeight), hint, 12, TextDim, TextAnchor.MiddleLeft);
+        y += hintHeight + 10;
+        Text(new Rect(left, y, inner, messageHeight), message, 14, Red);
     }
 
     // 스프라이트 하나를 칸 안에 비율을 지켜 그린다(도트가 번지지 않게 텍스처는 Point 필터).
