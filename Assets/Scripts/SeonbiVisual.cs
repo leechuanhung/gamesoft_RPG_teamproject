@@ -3,11 +3,16 @@ public class SeonbiVisual : MonoBehaviour
 {
     private PrototypePlayer player;
     private PrototypeCombat combat;
-    private SpriteRenderer source,body,weapon;
+    private SpriteRenderer source,body,weapon,gripFingers;
+    private Sprite fingerSprite;
     private Sprite[] swordFrames,bowFrames,bowUpFrames,bowDownFrames,jumpFrames,walkFrames,runFrames,hitFrames;
     private bool wasAirborne;
     private float airTime,landingTime,walkTime;
     private float attackTime=10;
+    private const float SheathDelay=3f, SheathMotion=.32f;
+    private float swordOutTime;
+    string EquippedWeapon => combat.UsingBow ? "04_Weapons/bow" :
+        swordOutTime>SheathMotion*.5f ? "04_Weapons/hwando" : "04_Weapons/hwando_sheathed";
     private bool bowAttack;
     private int attackFacing=1,attackAim,attackStep;
     private float nextDust,nextGhost;
@@ -35,6 +40,12 @@ public class SeonbiVisual : MonoBehaviour
         v.player=player; v.combat=combat; v.source=player.GetComponent<SpriteRenderer>();
         // Body and weapon hang under nothing: they tip over when he falls, which would shear under his scaled square.
         v.body=v.MakePart("선비 프레임",5); v.weapon=v.MakePart("장착 무기",6);
+        // Reuse the idle fist to draw just the gripping fingers over the weapon handle.
+        var idle=LoadSprite();
+        v.fingerSprite=Sprite.Create(idle.texture,new Rect(183,idle.texture.height-363,30,34),
+            new Vector2(.5f,18f/34f),idle.pixelsPerUnit,0,SpriteMeshType.FullRect);
+        v.gripFingers=v.MakePart("무기 쥔 손",7);
+        v.gripFingers.sprite=v.fingerSprite;
         v.swordFrames=JinaArt.Frames("02_Player_Attack_Sword/sword_attack_");
         v.bowFrames=JinaArt.Frames("03_Player_Attack_Bow/bow_attack_");
         v.bowUpFrames=JinaArt.Frames("03_Player_Attack_Bow/bow_up_");
@@ -50,12 +61,17 @@ public class SeonbiVisual : MonoBehaviour
         var art=new GameObject(name).AddComponent<SpriteRenderer>(); art.sortingOrder=order; return art;
     }
     // aim: +1 up, -1 down, 0 level (bow only).
-    public void Attack(bool bow,int facing,int aim=0,int step=0) { bowAttack=bow; attackFacing=facing; attackAim=bow ? aim : 0; attackStep=bow ? 0 : step; attackTime=0; }
-    public void ResetPose() { attackTime=10; walkTime=0; airTime=0; landingTime=0; wasAirborne=false; }
+    public void Attack(bool bow,int facing,int aim=0,int step=0) { bowAttack=bow; attackFacing=facing; attackAim=bow ? aim : 0; attackStep=bow ? 0 : step; attackTime=0; swordOutTime=bow ? 0 : SwordLength(step)+SheathDelay+SheathMotion; }
+    public void ResetPose() { swordOutTime=0; ResetMovementPose(); }
+    void ResetMovementPose() { attackTime=10; walkTime=0; airTime=0; landingTime=0; wasAirborne=false; }
     void LateUpdate()
     {
         if(body==null) return;
-        if(combat.Paused || combat.PlayerHealth<=0) ResetPose();
+        gripFingers.enabled=false;
+        if(combat.PlayerHealth<=0) ResetPose();
+        else if(combat.Paused) ResetMovementPose();
+        if(combat.UsingBow) swordOutTime=0;
+        else if(!combat.Paused) swordOutTime=Mathf.Max(0,swordOutTime-Time.deltaTime);
         float duration=bowAttack ? BowDuration : SwordLength(attackStep);
         bool attacking=attackTime<duration;
         int facing=attacking ? attackFacing : player.Facing;
@@ -81,7 +97,8 @@ public class SeonbiVisual : MonoBehaviour
         bool hurt=combat.PlayerHurtAt>=0 && Time.time-combat.PlayerHurtAt<HurtLength && !attacking;
         bool dodging=player.Dodging && combat.PlayerHealth>0;
         var shot=attackAim>0 ? bowUpFrames : attackAim<0 ? bowDownFrames : bowFrames;
-        body.sprite=dodging ? JinaArt.Load("01_Player/player_dodge") : hurt ? hitFrames[0] : attacking ? (bowAttack ? shot[Mathf.Min(3,(int)(attackTime/(duration/4)))] : swordFrames[SwordFrame(attackTime)]) : jumping ? jumpFrames[jumpFrame] : running ? runFrames[(int)(walkTime/.08f)%4] : walking ? walkFrames[(int)(walkTime/.12f)%4] : LoadSprite();
+        int strideFrame=(int)(walkTime/(running ? .08f : .12f))%4;
+        body.sprite=dodging ? JinaArt.Load("01_Player/player_dodge") : hurt ? hitFrames[0] : attacking ? (bowAttack ? shot[Mathf.Min(3,(int)(attackTime/(duration/4)))] : swordFrames[SwordFrame(attackTime)]) : jumping ? jumpFrames[jumpFrame] : running ? runFrames[strideFrame] : walking ? walkFrames[strideFrame] : LoadSprite();
         JinaArt.Place(body,feet,facing<0);
         body.transform.rotation=Quaternion.identity; weapon.transform.rotation=Quaternion.identity; weapon.color=Color.white;
         // Standing still, his chest rises and falls by one art pixel.
@@ -103,11 +120,62 @@ public class SeonbiVisual : MonoBehaviour
         weapon.enabled=!attacking && !jumping && !dodging && !hurt && combat.PlayerHealth>0;
         if(weapon.enabled)
         {
-            weapon.sprite=JinaArt.Load(combat.UsingBow ? "04_Weapons/bow" : "04_Weapons/hwando");
-            JinaArt.Place(weapon,Carry(feet,facing,running)+Vector3.up*(breath*.02f),facing<0);
+            weapon.sprite=JinaArt.Load(EquippedWeapon);
+            PlaceHeldWeapon(facing,walking,running,strideFrame);
         }
         if(!combat.Paused) attackTime+=Time.deltaTime;
     }
+    // Texture coordinates from the top left. The near sleeve swings from back to front
+    // between frames 1 and 2; the far sleeve swings in the opposite direction.
+    static readonly Vector2[] FarWalkPalm={new Vector2(263,347),new Vector2(284,348),new Vector2(72,357),new Vector2(62,334)};
+    static readonly Vector2[] FarRunPalm={new Vector2(313,375),new Vector2(333,356),new Vector2(117,385),new Vector2(111,342)};
+    static readonly Vector2[] NearWalkPalm={new Vector2(78,395),new Vector2(76,373),new Vector2(279,350),new Vector2(268,347)};
+    static readonly Vector2[] NearRunPalm={new Vector2(117,423),new Vector2(125,381),new Vector2(330,378),new Vector2(317,355)};
+    void PlaceHeldWeapon(int facing,bool walking,bool running,int frame)
+    {
+        bool bow=combat.UsingBow;
+        bool handNear=bow ? facing<0 : facing>0;
+        var palm=handNear ? new Vector2(67,342) : new Vector2(198,345);
+        if(running) palm=(handNear ? NearRunPalm : FarRunPalm)[frame];
+        else if(walking) palm=(handNear ? NearWalkPalm : FarWalkPalm)[frame];
+        weapon.sortingOrder=body.sortingOrder+(handNear ? 1 : -1);
+        var sprite=body.sprite;
+        palm.y=sprite.texture.height-palm.y;
+        var hand=(palm-sprite.rect.min-sprite.pivot)/sprite.pixelsPerUnit;
+        hand.x*=facing;
+        var grip=weapon.sprite;
+        bool sheathed=!bow && swordOutTime<=SheathMotion*.5f;
+        var gripPixel=sheathed ? new Vector2(305,grip.texture.height-398) : bow ? new Vector2(134,grip.texture.height-374) : new Vector2(143,grip.texture.height-493);
+        var wrap=(gripPixel-grip.rect.min-grip.pivot)/grip.pixelsPerUnit;
+        wrap.x*=facing;
+        float angle=0;
+        if(bow)
+        {
+            angle=running ? -64f : walking ? -59f : -52f;
+            if(walking) angle+=frame==1 ? 4f : frame==3 ? -4f : 0f;
+        }
+        else if(walking)
+        {
+            // Lower the blade as the right arm swings back, lift it on the forward swing.
+            angle=Mathf.Clamp(hand.x*facing*35f,-16f,16f);
+        }
+        if(!bow)
+        {
+            if(sheathed) angle+=150f; // Hilt forward, scabbard trailing behind the hand.
+            if(swordOutTime>0 && swordOutTime<SheathMotion)
+                angle-=(sheathed ? 16f : 46f)*Mathf.Sin(Mathf.PI*swordOutTime/SheathMotion);
+        }
+        var rotation=Quaternion.Euler(0,0,angle*facing);
+        Vector3 palmWorld=body.transform.TransformPoint(hand);
+        float carryScale=bow ? 1f : .92f;
+        JinaArt.Place(weapon,palmWorld-rotation*(Vector3)(wrap*carryScale),facing<0);
+        weapon.transform.localScale*=carryScale;
+        JinaArt.Place(gripFingers,palmWorld,facing<0);
+        gripFingers.enabled=handNear;
+        gripFingers.color=body.color;
+        weapon.transform.rotation=rotation;
+    }
+
     // Where the carried weapon sits. Run frames lean the torso ~45 px (~.16 units) forward, so it follows.
     Vector3 Carry(Vector3 feet,int facing,bool running) =>
         feet+new Vector3(facing*((combat.UsingBow ? .14f : .27f)+(running ? .16f : 0)),combat.UsingBow ? .86f : .75f,0);
@@ -133,8 +201,9 @@ public class SeonbiVisual : MonoBehaviour
         body.color=tint;
         // The hwando lies flat (its blade is drawn ~40° up); the bow lies on its back.
         float drop=Mathf.Clamp01(t/.35f);
+        weapon.sortingOrder=body.sortingOrder+1;
         weapon.enabled=true;
-        weapon.sprite=JinaArt.Load(combat.UsingBow ? "04_Weapons/bow" : "04_Weapons/hwando");
+        weapon.sprite=JinaArt.Load(EquippedWeapon);
         JinaArt.Place(weapon,Vector3.Lerp(Carry(feet,facing,false),feet+new Vector3(facing*.6f,.05f,0),drop*drop),facing<0);
         weapon.transform.rotation=Quaternion.Euler(0,0,Mathf.Lerp(0,combat.UsingBow ? -90 : -40,drop)*facing);
         weapon.color=Color.Lerp(Color.white,Color.gray,drop);
@@ -144,5 +213,7 @@ public class SeonbiVisual : MonoBehaviour
         if(source!=null) source.forceRenderingOff=false;
         if(body!=null) Destroy(body.gameObject);
         if(weapon!=null) Destroy(weapon.gameObject);
+        if(gripFingers!=null) Destroy(gripFingers.gameObject);
+        if(fingerSprite!=null) Destroy(fingerSprite);
     }
 }

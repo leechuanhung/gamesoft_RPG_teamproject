@@ -49,8 +49,35 @@ public static partial class JinaPlayChecks
         }
         Set(combat,"<UsingBow>k__BackingField",true);
         visual.ResetPose(); visual.SendMessage("LateUpdate");
-        Check(Mathf.Abs(Field<SpriteRenderer>(visual,"weapon").bounds.size.y-JinaArt.BowHeight)<.01f,"Equipped bow matches attack bow height");
+        var carriedWeapon=Field<SpriteRenderer>(visual,"weapon");
+        Check(Mathf.Abs(carriedWeapon.sprite.bounds.size.y-JinaArt.BowHeight)<.01f,"Equipped bow matches attack bow length");
+        Check(carriedWeapon.bounds.min.y>combat.player.GetComponent<SpriteRenderer>().bounds.min.y,"Carried bow clears the ground");
         Capture("bow-equipped",new Vector3(0,1,-10),2);
+        var actor=Field<SpriteRenderer>(visual,"body");
+        var fingers=Field<SpriteRenderer>(visual,"gripFingers");
+        foreach(bool usingBow in new[]{false,true})
+        {
+            Set(combat,"<UsingBow>k__BackingField",usingBow);
+            foreach(int direction in new[]{1,-1})
+            {
+                Set(combat.player,"<Facing>k__BackingField",direction);
+                Set(combat.player,"<IsRunning>k__BackingField",true);
+                rb.velocity=Vector2.right*(direction*combat.player.runSpeed);
+                for(int i=0;i<4;i++)
+                {
+                    Set(visual,"walkTime",i*.08f+.01f); visual.SendMessage("LateUpdate");
+                    bool handNear=usingBow ? direction<0 : direction>0;
+                    Check((carriedWeapon.sortingOrder>actor.sortingOrder)==handNear &&
+                        fingers.enabled==handNear,"Weapon depth matches the carrying hand");
+                    float forward=(fingers.transform.position.x-actor.transform.position.x)*direction;
+                    Check((forward>0)==(handNear ? i>=2 : i<2),"Weapon follows its carrying arm through both halves of the stride");
+                    Capture((usingBow ? "bow-run-" : "sword-run-")+direction+"-"+i,new Vector3(0,1,-10),2);
+                }
+            }
+        }
+        Set(combat.player,"<IsRunning>k__BackingField",false);
+        Set(combat.player,"<Facing>k__BackingField",1);
+        rb.velocity=Vector2.zero;
         foreach(int direction in new[]{1,-1})
         {
             visual.Attack(true,direction); Set(visual,"attackTime",.31f); visual.SendMessage("LateUpdate");
@@ -66,6 +93,12 @@ public static partial class JinaPlayChecks
         }
         Set(combat,"<UsingBow>k__BackingField",false);
 
+        visual.ResetPose(); visual.SendMessage("LateUpdate");
+        Check(carriedWeapon.sprite.name.EndsWith("hwando_sheathed"),"Equipped sword starts sheathed");
+        visual.Attack(false,1); Set(visual,"attackTime",1f); visual.SendMessage("LateUpdate");
+        Check(carriedWeapon.sprite.name.EndsWith("/hwando"),"Sword stays drawn after a cut");
+        Set(visual,"swordOutTime",0f); visual.SendMessage("LateUpdate");
+        Check(carriedWeapon.sprite.name.EndsWith("hwando_sheathed"),"Sword returns to the sheath");
         visual.Attack(false,1); Set(visual,"attackTime",.21f);
         visual.SendMessage("LateUpdate");
         Capture("player-sword",new Vector3(0,1,-10),2);

@@ -77,7 +77,12 @@ public static class JinaArt
         else if(path.StartsWith("04_Weapons"))
         {
             anchor=bounds.center; ppu=path.EndsWith("bow") ? bounds.height/BowHeight : bounds.width/(path.EndsWith("arrow") ? .7f : 1f);
-            if(path.EndsWith("hwando")) anchor=new Vector2(95,95);
+            if(path.EndsWith("hwando") || path.EndsWith("hwando_sheathed"))
+            {
+                // Grip to tip: ~706 texture pixels, ~380 pixels on the 450px attack figure.
+                ppu=706f/(380f*1.9f/450f);
+                anchor=new Vector2(95,95);
+            }
         }
         return Sprite.Create(t,rect,new Vector2((anchor.x-rect.x)/rect.width,(anchor.y-rect.y)/rect.height),ppu,0,SpriteMeshType.FullRect);
     });

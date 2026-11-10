@@ -19,6 +19,7 @@ JOBS = [
     ("make_kong.py", [ART]),                                     # Kongbat village people and props
     ("make_pass.py", [f"{ART}/13_Props"]),                       # jangseung, shrine tree, cairn, boulder
     ("make_ferry.py", [ART]),                                    # ferryman, boat, hut, reeds, water
+    ("make_hwando_sheath.py", [f"{ART}/04_Weapons"]),
     ("make_items.py", [f"{ART}/14_Items"]),                       # inventory item icons
     ("make_peddler.py", [f"{ART}/12_Peddler/peddler_idle.png"]),  # peddler idle + run
     ("make_young.py", [ART]),                                    # clean-shaven seonbi; everything below is derived from it
