@@ -337,7 +337,7 @@ public static partial class JinaPlayChecks
         }
         foreach(var part in new[]{"arc_0","arc_2","spark_3","dust_3","ring_0","glint","seal"}) Check(JinaArt.Fx(part)!=null,"Effect "+part);
         foreach(var part in new[]{"grain_paper","grain_wood","grain_night","corner","vignette","icon_sword","icon_coin"}) Check(JinaUI.Art(part)!=null,"UI art "+part);
-        foreach(var part in new[]{"ext_evening","ext_night","ext_morning","room_night","room_morning","stare","close_door","close_eye_2","bed_lie_night","quilt_sit_morning","shadow_2"}) Check(JinaArt.Night(part)!=null,"Picture "+part);
+        foreach(var part in new[]{"ext_evening","ext_evening_flinch","ext_night","ext_night_dark","ext_morning","ext_rooster","room_night","room_night_front","room_night_floor","room_night_sit","room_morning","stare","close_paper","close_front","close_shadow","close_hole_2","close_eye_2","shadow_2"}) Check(JinaArt.Night(part)!=null,"Picture "+part);
         // Sparks and numbers leave no trace after a restart, and the clock is never left held.
         JinaFx.Hit(Vector3.zero,1,Color.white); JinaFx.Number(Vector3.zero,10,Color.white); JinaFx.Shock(Vector3.zero);
         combat.Restart();

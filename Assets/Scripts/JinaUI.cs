@@ -303,4 +303,28 @@ public static class JinaUI
         }
         Text(new Rect(x, r.y, r.xMax - x - 14, h), words, 15, Bright, TextAnchor.MiddleLeft, true);
     }
+
+    // A talk window with the speaker's portrait (17_Portraits) inside its left end, the name on a plate and the line
+    // typed out; `menacing` reddens the words, `toLeft` keeps it to the left of the screen. Returns the window.
+    public static Rect TalkWindow(string name, string portrait, string line, string hint, bool menacing, float since = -1, bool toLeft = false)
+    {
+        const float h = 200;
+        var sprite = JinaArt.Portrait(portrait);
+        // The portrait sits inside the window at its full height, in a thin frame.
+        float ph = h - 24, pw = ph * sprite.rect.width / sprite.rect.height;
+        float w = Mathf.Min(toLeft ? Mathf.Max(640, W * .7f) : 880, W - 30);
+        var box = new Rect(toLeft ? 16 : (W - w) / 2, H - h - 14, w, h);
+        Fill(new Rect(box.x + 5, box.y + 6, box.width, box.height), new Color(0, 0, 0, .28f));
+        Box(box, Paper, Wood, 3);
+        var face = new Rect(box.x + 12, box.y + 12, pw, ph);
+        Box(new Rect(face.x - 2, face.y - 2, face.width + 4, face.height + 4), Wood, Wood, 2);
+        InventoryUI.DrawIcon(sprite, face);
+        float x = face.xMax + 20, tw = box.xMax - x - 18;
+        var nameplate = new Rect(x, box.y + 14, Width(name, 18, true) + 28, 32);
+        Box(nameplate, Wood, WoodLight, 1);
+        Text(nameplate, name, 18, Gold, TextAnchor.MiddleCenter, true);
+        Text(new Rect(x, box.y + 58, tw, h - 58 - 34), line, 19, menacing ? Red : TextDark, TextAnchor.UpperLeft, false, since >= 0 ? Visible(line, since) : VisibleAuto(line));
+        Text(new Rect(x, box.yMax - 32, tw, 20), hint, 13, TextDim, TextAnchor.MiddleRight);
+        return box;
+    }
 }

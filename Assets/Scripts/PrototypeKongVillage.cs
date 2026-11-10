@@ -318,26 +318,6 @@ public class PrototypeKongVillage : MonoBehaviour
     void DrawTalk() => TalkWindow(Speaker, Portrait, lines[Page], "E 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc 그만 듣기", unmasking && Page >= 1);
     // The window, with the portrait inside its left end; returns the window's rectangle.
     public static Rect TalkWindow(Who who, string portrait, string line, string hint, bool menacing, float since = -1, bool toLeft = false)
-    {
-        const float h = 200;
-        var sprite = JinaArt.Portrait(portrait);
-        // The portrait sits inside the window at its full height, in a thin frame.
-        float ph = h - 24, pw = ph * sprite.rect.width / sprite.rect.height;
-        float w = Mathf.Min(toLeft ? Mathf.Max(640, JinaUI.W * .7f) : 880, JinaUI.W - 30);
-        var box = new Rect(toLeft ? 16 : (JinaUI.W - w) / 2, JinaUI.H - h - 14, w, h);
-        JinaUI.Fill(new Rect(box.x + 5, box.y + 6, box.width, box.height), new Color(0, 0, 0, .28f));
-        JinaUI.Box(box, JinaUI.Paper, JinaUI.Wood, 3);
-        var face = new Rect(box.x + 12, box.y + 12, pw, ph);
-        JinaUI.Box(new Rect(face.x - 2, face.y - 2, face.width + 4, face.height + 4), JinaUI.Wood, JinaUI.Wood, 2);
-        InventoryUI.DrawIcon(sprite, face);
-        float x = face.xMax + 20, tw = box.xMax - x - 18;
-        var nameplate = new Rect(x, box.y + 14, JinaUI.Width(Name(who), 18, true) + 28, 32);
-        JinaUI.Box(nameplate, JinaUI.Wood, JinaUI.WoodLight, 1);
-        JinaUI.Text(nameplate, Name(who), 18, JinaUI.Gold, TextAnchor.MiddleCenter, true);
-        JinaUI.Text(new Rect(x, box.y + 58, tw, h - 58 - 34), line, 19, menacing ? JinaUI.Red : JinaUI.TextDark, TextAnchor.UpperLeft, false, since >= 0 ? JinaUI.Visible(line, since) : JinaUI.VisibleAuto(line));
-        JinaUI.Text(new Rect(x, box.yMax - 32, tw, 20), hint, 13, JinaUI.TextDim, TextAnchor.MiddleRight);
-        return box;
-    }
-
+        => JinaUI.TalkWindow(Name(who), portrait, line, hint, menacing, since, toLeft);
     void OnDestroy() { if (people != null) foreach (var p in people) if (p != null) Destroy(p.gameObject); }
 }

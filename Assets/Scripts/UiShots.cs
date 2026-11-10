@@ -146,7 +146,7 @@ public class UiShots : MonoBehaviour
         Fresh(PrototypeWorld.Elder.x - 1);
         Set(q, "IsDialogOpen", true); Set(q, "shrineDialog", false);
         Set(q, "message", "숲의 도깨비는 본디 산을 지키던 주인이었소. 망한 나라의 원한이 씌어 저리 되었으니, 서쪽 비석 터의 옛 비석을 찾아가 보시오. 달이 먼저요, 그다음이 강, 마지막이 산이라오.");
-        yield return Shot("elder_bubble");
+        yield return Shot("elder_talk");
         Fresh(PrototypeWorld.Stone.x + 1);
         q.progress.HearClue();
         Set(q, "IsDialogOpen", true); Set(q, "shrineDialog", true);

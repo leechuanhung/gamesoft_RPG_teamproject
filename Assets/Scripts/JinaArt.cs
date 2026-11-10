@@ -124,11 +124,13 @@ public static class JinaArt
         return Sprite.Create(t,new Rect(0,0,t.width,t.height),new Vector2(.5f,1),PropPixelsPerUnit,0,SpriteMeshType.FullRect);
     });
 
-    // A cutscene picture (18_Night): 64 dots to the unit, hung by its centre.
+    // A cutscene picture (18_Night): 128 pixels to the unit, hung by its centre. These are painted pictures, not dot
+    // art, and are shown a little larger or smaller than they are, so they are smoothed rather than kept blocky.
     public static Sprite Night(string name) => Cached("18_Night/"+name,()=>
     {
         var t=Texture("18_Night/"+name);
-        return Sprite.Create(t,new Rect(0,0,t.width,t.height),new Vector2(.5f,.5f),64,0,SpriteMeshType.FullRect);
+        t.filterMode=FilterMode.Bilinear;
+        return Sprite.Create(t,new Rect(0,0,t.width,t.height),new Vector2(.5f,.5f),128,0,SpriteMeshType.FullRect);
     });
 
     // A prop that turns about its middle (the rolling boulder).

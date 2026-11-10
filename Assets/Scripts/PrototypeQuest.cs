@@ -107,7 +107,7 @@ public class PrototypeQuest : MonoBehaviour
             pages = null;
             message = progress.Outcome != EncounterOutcome.Unresolved ? "이곳의 일은 이미 끝났다.\n다른 선택을 해 보려면 R을 눌러 처음부터 시작하세요."
                 : progress.HasCharm ? "정화 부적을 지니고 있다.\n창을 닫고 도깨비 가까이에서 F를 누르세요."
-                : !progress.HeardClue ? "비석에 낯선 문양이 새겨져 있다.\n먼저 파란 옷을 입은 마을 노인에게 이야기를 들어 보세요."
+                : !progress.HeardClue ? "비석에 낯선 문양이 새겨져 있다.\n먼저 갈색 갓을 쓴 마을 노인에게 이야기를 들어 보세요."
                 : "달과 강과 산의 문양이 새겨져 있다.\n노인에게 들은 차례대로 문양을 고르세요.";
         }
         else return;
@@ -146,8 +146,9 @@ public class PrototypeQuest : MonoBehaviour
         if (!IsDialogOpen) return;
         if (!shrineDialog && !progress.ElderDead)
         {
-            // People speak in bubbles; the stone and the elder's note stay as narration boxes.
-            SpeechBubble.Draw(new Vector3(PrototypeWorld.Elder.x, 1.45f, 0), "마을 노인", message, pages != null && pageAt + 1 < pages.Length ? "E: 다음 (" + (pageAt + 1) + "/" + pages.Length + ")" : "E / Esc: 닫기");
+            // The elder talks in a window with his portrait; the stone and his note stay as narration boxes.
+            bool more = pages != null && pageAt + 1 < pages.Length;
+            JinaUI.TalkWindow("마을 노인", "elder", message, more ? "E 다음 (" + (pageAt + 1) + "/" + pages.Length + ")   ·   Esc 닫기" : "E / Esc 닫기", false);
             return;
         }
         // The stone and the note: a paper window as tall as its words.
