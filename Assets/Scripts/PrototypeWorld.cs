@@ -37,7 +37,11 @@ public class PrototypeWorld : MonoBehaviour
     public static readonly Vector2[] ForestLedges = { new Vector2(35, 1.3f), new Vector2(41, 2.9f), new Vector2(47, 1.3f), new Vector2(53, 2.8f), new Vector2(58.5f, 1.4f) };
     public const float LedgeWidth = 3f;
     // Each area's centre and its background art, behind the props (far drifts with the camera, near stays).
-    static readonly (string art, float x)[] Backdrops = { ("stele", -55), ("camp", -26), ("village", 8), ("forest", 46), ("ferry", 87), ("village", 130), ("pass", 174) };
+    static readonly (string art, float x)[] Backdrops = { ("stele", -55), ("camp", -26), ("village", 8), ("forest", 46), ("ferry", 87), ("kong", 130), ("pass", 174) };
+    // What each map stands on and under: its name in the art, and its span.
+    static readonly (string art, float left, float right)[] Lands = { ("stele", -70.5f, GateX), ("camp", GateX, VillageLeft), ("village", VillageLeft, ForestStart), ("forest", ForestStart, FerryStart), ("ferry", FerryStart, FerryEnd), ("kong", KongStart, KongEnd), ("pass", PassStart, PassEnd + 1) };
+    // The walking surface sits this many dots below the top of a ground strip (grass stands above it).
+    const float GroundLip = 6;
 
     public static string Area(float x) => x < GateX ? "옛 비석 터" : x < VillageLeft ? "일반 몬스터 지역" : x >= PassStart ? "고개와 서낭당" : x >= KongStart ? "콩밭 마을" : x >= FerryStart ? "나루터" : x >= ForestStart ? "보스 지역" : "리스폰 마을";
     public static bool CanDetect(Vector2 player, Vector2 enemy) => player.x >= ForestStart && player.x < FerryStart
@@ -56,16 +60,16 @@ public class PrototypeWorld : MonoBehaviour
         Tile("숲 땅", 46, -1, 36, 1, new Color(.2f,.36f,.26f), sprite, true);
         Tile("나루터 땅", (FerryStart + RiverLeft) / 2, -1, RiverLeft - FerryStart, 1, new Color(.5f,.45f,.33f), sprite, true);
         Tile("건너편 강가", (RiverRight + FerryEnd) / 2, -1, FerryEnd - RiverRight, 1, new Color(.5f,.45f,.33f), sprite, true);
-        Tile("비석 배경", -55, 4, 30, 10, new Color(.17f,.18f,.28f), sprite, false, -20);
-        Tile("일반 지역 배경", -26, 4, 28, 10, new Color(.3f,.2f,.2f), sprite, false, -20);
-        Tile("마을 배경", 8, 4, 40, 10, new Color(.24f,.3f,.34f), sprite, false, -20);
-        Tile("숲 배경", 46, 4, 36, 10, new Color(.1f,.23f,.2f), sprite, false, -20);
+        Tile("비석 배경", -55, 4, 30, 10, new Color(.17f,.18f,.28f), sprite, false, -22);
+        Tile("일반 지역 배경", -26, 4, 28, 10, new Color(.3f,.2f,.2f), sprite, false, -22);
+        Tile("마을 배경", 8, 4, 40, 10, new Color(.24f,.3f,.34f), sprite, false, -22);
+        Tile("숲 배경", 46, 4, 36, 10, new Color(.1f,.23f,.2f), sprite, false, -22);
         foreach (var (left, right, top) in PassSteps)
             Tile("고갯길", (left + right) / 2, (top - 1.5f) / 2, right - left, top + 1.5f, new Color(.42f,.38f,.36f), sprite, true);
         Tile("콩밭 마을 땅", (KongStart + KongEnd) / 2, -1, KongEnd - KongStart, 1, new Color(.48f,.4f,.28f), sprite, true);
-        Tile("콩밭 마을 배경", (KongStart + KongEnd) / 2, 4, KongEnd - KongStart, 10, new Color(.24f,.3f,.34f), sprite, false, -20);
-        Tile("고개 배경", (PassStart + PassEnd) / 2, 4, PassEnd - PassStart, 12, new Color(.27f,.26f,.34f), sprite, false, -20);
-        Tile("나루터 배경", (FerryStart + FerryEnd) / 2, 3.5f, FerryEnd - FerryStart, 11, new Color(.23f,.3f,.37f), sprite, false, -20);
+        Tile("콩밭 마을 배경", (KongStart + KongEnd) / 2, 4, KongEnd - KongStart, 10, new Color(.24f,.3f,.34f), sprite, false, -22);
+        Tile("고개 배경", (PassStart + PassEnd) / 2, 4, PassEnd - PassStart, 12, new Color(.27f,.26f,.34f), sprite, false, -22);
+        Tile("나루터 배경", (FerryStart + FerryEnd) / 2, 3.5f, FerryEnd - FerryStart, 11, new Color(.23f,.3f,.37f), sprite, false, -22);
         Tile("왼쪽 끝", -70.5f, 3, 1, 8, new Color(.3f,.3f,.38f), sprite, true);
         Tile("오른쪽 끝", PassEnd + .5f, 3, 1, 8, new Color(.4f,.38f,.3f), sprite, true);
         Tile("한양으로 가는 길", GoalX, 1, .4f, 3, new Color(1,.75f,.2f), sprite, false);
@@ -95,8 +99,48 @@ public class PrototypeWorld : MonoBehaviour
             Prop("원경 " + art, "bg_" + art + "_far", x, -19).gameObject.AddComponent<PrototypeParallax>().home = x;
             Prop("근경 " + art, "bg_" + art + "_near", x, -18);
         }
+        foreach (var (art, left, right) in Lands)
+        {
+            Sky(art, left, right);
+            if (art == "pass") foreach (var (l, r, top) in PassSteps) Land(art, l, r == PassEnd ? r + 1 : r, top);
+            else if (art == "ferry") { Land(art, left, RiverLeft, -.5f); Land(art, RiverRight, right, -.5f); River(); }
+            else Land(art, left, right, -.5f);
+        }
         foreach (var ledge in CampLedges) Ledge("바위 발판", "ledge_stone", ledge);
         foreach (var ledge in ForestLedges) Ledge("통나무 발판", "ledge_log", ledge);
+    }
+
+    // The ground's picture over its collider: earth down past the bottom of the screen, grass on top.
+    void Land(string art, float left, float right, float top)
+    {
+        var land = new GameObject("지면 " + art).AddComponent<SpriteRenderer>();
+        land.transform.SetParent(transform);
+        land.sprite = JinaArt.Strip("ground_" + art);
+        land.drawMode = SpriteDrawMode.Tiled;
+        land.size = new Vector2(right - left, land.sprite.bounds.size.y);
+        land.transform.position = new Vector3((left + right) / 2, top + GroundLip / JinaArt.PropPixelsPerUnit, 0);
+        land.sortingOrder = 2;
+    }
+    // The map's sky: a column of colour stretched across it, its horizon near the ground.
+    void Sky(string art, float left, float right)
+    {
+        var sky = new GameObject("하늘 " + art).AddComponent<SpriteRenderer>();
+        sky.transform.SetParent(transform);
+        sky.sprite = JinaArt.Prop("sky_" + art);
+        sky.transform.position = new Vector3((left + right) / 2, -4f, 0);
+        sky.transform.localScale = new Vector3((right - left) * JinaArt.PropPixelsPerUnit, 1, 1);
+        sky.sortingOrder = -21;
+    }
+    // The dark water under the river's surface strip.
+    void River()
+    {
+        var deep = new GameObject("깊은 강물").AddComponent<SpriteRenderer>();
+        deep.transform.SetParent(transform);
+        deep.sprite = JinaArt.Strip("river_deep");
+        deep.drawMode = SpriteDrawMode.Tiled;
+        deep.size = new Vector2(RiverRight - RiverLeft, deep.sprite.bounds.size.y);
+        deep.transform.position = new Vector3((RiverLeft + RiverRight) / 2, WaterBottom + .1f, 0);
+        deep.sortingOrder = 5;
     }
 
     // A one-way ledge: jump up through it from below, land on its top.

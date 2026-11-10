@@ -13,6 +13,7 @@ public class JinaActorVisual : MonoBehaviour
     // Direction the art is drawn facing, and the direction it faces now (+1 right, -1 left).
     protected int native=1,facing=1;
     protected Vector3 last;
+    public SpriteRenderer Picture => picture;
 
     // What one frame shows. Subclasses start from the idle and change what their motion needs.
     protected struct Frame
@@ -70,6 +71,12 @@ public class JinaActorVisual : MonoBehaviour
         if(f.hidden) { picture.enabled=false; return; }
         picture.sprite=f.sprite;
         JinaArt.Place(picture,f.feet,facing!=native);
+        // Standing idle, the chest rises and falls by one art pixel, each at its own time.
+        if(f.sprite==JinaArt.Load(kind) && f.rotation==0 && (combat==null || !combat.Paused))
+        {
+            float breath=Mathf.Sin(Time.time*2.1f+transform.position.x*1.7f)>0 ? 1 : 0;
+            var scale=picture.transform.localScale; scale.y*=1+breath*ArtPixel/1.9f; picture.transform.localScale=scale;
+        }
         picture.transform.rotation=Quaternion.Euler(0,0,f.rotation);
         picture.color=f.tint;
         if(f.hitTint && source.color.r>.9f && source.color.g>.4f && source.color.g<.8f) picture.color=new Color(1,.7f,.4f);

@@ -44,6 +44,8 @@ public partial class PrototypeCombat
         arrow.transform.position = new Vector3(player.transform.position.x + attackFacing * launch.x,
             playerArt.bounds.min.y + launch.y, 0);
         arrows.Add(new FlyingArrow { art = arrow, direction = ArrowDirection(pendingAim, attackFacing) });
+        JinaFx.Glint(arrow.transform.position, new Color(1, .96f, .8f));
+        JinaFx.Dots(arrow.transform.position, 3, Color.white, 1.8f, .18f, attackFacing);
     }
 
     // Sweep each frame so fast arrows cannot pass through a target or a wall.
@@ -68,8 +70,11 @@ public partial class PrototypeCombat
                         if (distance < enemyDistance) { enemyDistance = distance; mob = candidate; mobCamp = camp; }
                     }
             bool hitsEnemy = enemyDistance <= step && (wall.collider == null || enemyDistance < wall.distance);
-            if (hitsEnemy) { if (mob != null) mobCamp.Hit(mob, ArrowDamage); else DamageEnemy(ArrowDamage); }
+            if (hitsEnemy) { if (mob != null) mobCamp.Hit(mob, ArrowDamage); else DamageEnemy(ArrowDamage); JinaFx.Stop(.03f); }
             arrow.remaining -= step;
+            // A pale streak behind it, and chips where it strikes the ground.
+            if (Time.frameCount % 2 == 0) JinaFx.Rise(origin, 1, new Color(1, .96f, .84f, .7f), 0, 0, .14f);
+            if (wall.collider != null && !hitsEnemy) JinaFx.Dots(origin + direction * wall.distance, 5, new Color(.7f, .6f, .46f), 2.2f, .28f, 0, 10);
             if (hitsEnemy || wall.collider != null || arrow.remaining <= 0)
             {
                 Destroy(arrow.art.gameObject);

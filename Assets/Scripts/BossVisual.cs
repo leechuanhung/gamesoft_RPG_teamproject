@@ -43,6 +43,12 @@ public class BossVisual : JinaActorVisual
         // Its roar at the first encounter: the club raised high.
         if(!purified && !slain && combat.Encounter!=null && combat.Encounter.Roaring) f.sprite=attacks[0];
         f.hitTint=!purified && !slain;
+        float sinceHit=combat.BossHitAt<0 ? 1000 : Time.time-combat.BossHitAt;
+        if(!purified && !slain && sinceHit<.11f)
+        {
+            f.flash=.8f*(1-sinceHit/.11f);
+            f.feet.x+=(combat.player.transform.position.x<transform.position.x ? 1 : -1)*ArtPixel;
+        }
         if(slain) Die(ref f,Time.time-combat.BossDownAt);
         else if(purified && Time.time-combat.PurifiedAt<PurifyLength) Purify(ref f,Time.time-combat.PurifiedAt);
         else if(purified && combat.Remorse!=null && combat.Remorse.Active) Grieve(ref f,combat.Remorse.Elapsed);

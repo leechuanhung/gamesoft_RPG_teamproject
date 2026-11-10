@@ -10,6 +10,11 @@ public class PrototypePlayer : MonoBehaviour
     public const float DodgeLength = .3f, DodgeSpeed = 9f, DodgeCooldown = .7f;
     private float dodgeUntil, nextDodge;
     public bool Dodging => Time.time < dodgeUntil;
+    // A swing: he steps forward with the blow, and his feet are slowed while the sword is moving.
+    private float lungeUntil, lungeSpeed;
+    public float SlowUntil { get; set; }
+    public const float SwingSlow = .4f;
+    public void Lunge(int direction, float speed, float length) { lungeSpeed = direction * speed; lungeUntil = Time.time + length; }
     // Light straw sandals (JinaItems) quicken his walk and run until then.
     public const float HasteBoost = 1.35f;
     public float HasteUntil { get; set; }
@@ -77,7 +82,9 @@ public class PrototypePlayer : MonoBehaviour
             }
 
         IsGrounded = grounded && body.velocity.y <= 0.1f;
-        body.velocity = new Vector2(Dodging ? -Facing * DodgeSpeed : horizontal * (IsRunning ? runSpeed : moveSpeed) * (Hasted ? HasteBoost : 1) + carry, body.velocity.y);
+        float walk = horizontal * (IsRunning ? runSpeed : moveSpeed) * (Hasted ? HasteBoost : 1) * (grounded && Time.time < SlowUntil ? SwingSlow : 1);
+        if (Time.time < lungeUntil && grounded) walk += lungeSpeed;
+        body.velocity = new Vector2(Dodging ? -Facing * DodgeSpeed : walk + carry, body.velocity.y);
         if (jumpRequestedUntil > Time.time && grounded && body.velocity.y <= 0.1f)
         {
             body.velocity = new Vector2(body.velocity.x, jumpSpeed);
@@ -91,7 +98,7 @@ public class PrototypePlayer : MonoBehaviour
         transform.position = spawn;
         body.velocity = Vector2.zero;
         jumpRequestedUntil = 0f;
-        dodgeUntil = nextDodge = 0f;
+        dodgeUntil = nextDodge = lungeUntil = 0f; SlowUntil = 0f;
         HasteUntil = 0f;
         IsGrounded = true;
         IsRunning = false;

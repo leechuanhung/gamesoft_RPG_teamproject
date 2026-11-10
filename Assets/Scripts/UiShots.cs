@@ -167,6 +167,42 @@ public class UiShots : MonoBehaviour
         Set(combat, "noArrowsUntil", Time.time + 5);
         yield return Shot("toasts_bossbar");
 
+        // A blow landing, numbers and sparks in the air
+        Fresh(40);
+        Set(combat, "alerted", true);
+        Set(combat.Encounter, "played", true); Set(combat.Encounter, "finished", true);
+        combat.player.transform.position = new Vector3(PrototypeWorld.EnemyHome - 1.6f, .3f, 0);
+        JinaFx.Arc(combat.player.transform.position + new Vector3(1.2f, .3f, 0), 1, 0, 1.3f, new Color(1, .93f, .68f), 2f);
+        JinaFx.Hit(combat.BossPosition + Vector3.up * .3f, 1, new Color(1, .94f, .78f), 1.2f);
+        JinaFx.Number(combat.BossPosition + Vector3.up * 1.2f, 10, Color.white, 22);
+        JinaFx.Shock(combat.BossPosition - Vector3.up * 1.2f, 1.2f);
+        yield return new WaitForSecondsRealtime(.04f);
+        yield return Shot("fight");
+        // The sword's three steps, held at the moment each blow lands
+        Fresh(0);
+        Set(combat, "invulnerableUntil", 0f);
+        var visual = combat.player.GetComponent<SeonbiVisual>();
+        var ghostAt = combat.player.transform.position;
+        foreach (var (step, time) in new[] { (0, .25f), (1, .1f), (2, .1f), (2, .22f) })
+        {
+            Time.timeScale = 1;
+            visual.Attack(false, 1, 0, step);
+            Set(visual, "attackTime", time);
+            Set(combat, "attackFacing", 1);
+            Call(combat, "SwordFeel", step, true);
+            yield return new WaitForSecondsRealtime(.02f);
+            Set(visual, "attackTime", time);
+            Time.timeScale = 0;
+            yield return Shot("combo" + step + "_" + time);
+            Time.timeScale = 1;
+        }
+        // Ground and sky of each map
+        foreach (var map in new[] { -50f, -25f, 45f, 75f, 120f, 170f })
+        {
+            Fresh(map); Solve();
+            yield return Shot("world_" + map);
+        }
+
         // Cinematics
         Fresh(30);
         combat.Encounter.Play();
@@ -216,15 +252,31 @@ public class UiShots : MonoBehaviour
             if (i == 0 || i == 1 || i == 3 || i == 5) yield return Shot("stay_evening" + i);
             stay.NextLine();
         }
-        foreach (float t in new[] { 2f, 6f, 9f, 11f, 13.5f, 18.5f })
+        foreach (float t in new[] { 2f, 7f, 9f, 16.6f, 19.6f, 24f, 25.8f, 27.2f, 32.5f })
         {
             stay.Show(PrototypeKongStay.Phase.Night, t);
             yield return Shot("stay_night" + t);
         }
-        foreach (float t in new[] { 2f, 5f })
+        foreach (float t in new[] { 2f, 6f })
         {
             stay.Show(PrototypeKongStay.Phase.Morning, t);
             yield return Shot("stay_morning" + t);
+        }
+        // Her plea, his choice, each way it can go.
+        foreach (bool blunt in new[] { false, true })
+        {
+            stay.Show(PrototypeKongStay.Phase.Parting, 5);
+            yield return Shot("stay_parting_ask");
+            stay.NextPart();
+            yield return Shot("stay_parting_choice");
+            stay.Choose(blunt);
+            for (int i = 0; i < stay.PartingLines.Length; i++)
+            {
+                if (stay.PartingLines[stay.PartingPage].portrait != "stare") Set(stay, "startedAt", Time.time - 5);
+                else Set(stay, "startedAt", Time.time);
+                yield return Shot("stay_parting_" + (blunt ? "blunt" : "polite") + i);
+                stay.NextPart();
+            }
         }
         stay.Wake();
         yield return new WaitForSecondsRealtime(1f);

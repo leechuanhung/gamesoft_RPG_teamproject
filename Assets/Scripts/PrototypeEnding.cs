@@ -30,6 +30,21 @@ public class PrototypeEnding : PrototypeNarration
         new[] { "도깨비는 노인이 쓰러진 자리를 떠나지 못하고", "오래도록 그 곁을 지켰다" },
         new[] { "선비의 선택은 마을에 깊은 상처를 남겼고", "선비는 무거운 걸음으로 한양을 향했다" },
     };
+    // What he leaves behind him in Kongbat. The road to Hanyang goes on; the full moon has not come yet.
+    public static string[] Coda(bool unmasked, bool stayed, bool keepsake)
+    {
+        if (unmasked && keepsake) return new[] { "품속의 은비녀가 유난히 차가웠다", "뒷산에서 기다리는 이를 두고, 선비는 오래 걸음을 떼지 못했다" };
+        if (unmasked) return new[] { "뒷산에서는 아직도 누군가 기다리고 있었다", "선비는 고갯마루에서 한 번, 오래 뒤를 돌아보았다" };
+        if (stayed) return new[] { "그날 밤 문종이에 뚫린 구멍과", "뒷산으로 와 달라던 목소리를, 선비는 오래도록 잊지 못했다" };
+        return new[] { "강 건너 콩밭 마을에서는 보름 잔치 준비가 한창이었다", "선비는 그 잔칫상이 무엇으로 차려지는지 알지 못했다" };
+    }
+    static string[][] WithCoda(string[][] story, string[] coda)
+    {
+        var pages = new string[story.Length + 1][];
+        System.Array.Copy(story, pages, story.Length);
+        pages[story.Length] = coda;
+        return pages;
+    }
     public static string Title(Kind kind) => kind == Kind.Sacrifice ? "희생 위의 승리" : kind == Kind.Purified ? "자비로운 해결사" : "토벌의 영웅";
     const float FadeToBlack = 1f, TitleFade = 1.2f;
 
@@ -37,7 +52,6 @@ public class PrototypeEnding : PrototypeNarration
     public bool Active { get; private set; }
     public Kind Ending { get; private set; }
     private float time, titleTime = -1;
-    private GUIStyle titleStyle, subStyle;
 
     public static Kind For(QuestProgress progress) => progress.ElderDead ? Kind.Sacrifice
         : progress.Outcome == EncounterOutcome.Purified ? Kind.Purified : Kind.Slain;
@@ -46,7 +60,9 @@ public class PrototypeEnding : PrototypeNarration
         Ending = kind; Active = true; time = 0; titleTime = -1;
         if (combat != null) combat.player.CanMove = false;
         bool remorse = combat != null && combat.Quest != null && combat.Quest.progress.Outcome == EncounterOutcome.Purified;
-        Begin(kind == Kind.Sacrifice ? (remorse ? RemorsePages : SacrificePages) : kind == Kind.Purified ? PurifiedPages : SlainPages);
+        var story = kind == Kind.Sacrifice ? (remorse ? RemorsePages : SacrificePages) : kind == Kind.Purified ? PurifiedPages : SlainPages;
+        Begin(WithCoda(story, Coda(combat != null && combat.Kong != null && combat.Kong.Revealed, combat != null && combat.Kong != null && combat.Kong.Stayed,
+            JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0)));
     }
     public void ResetEnding() { Active = IsPlaying = false; titleTime = -1; }
     protected override float Lead => FadeToBlack;
@@ -73,19 +89,11 @@ public class PrototypeEnding : PrototypeNarration
         DrawCover();
         if (IsPlaying && pageTime >= 0) DrawPage();
         if (titleTime < 0) return;
-        if (titleStyle == null)
-        {
-            titleStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
-            subStyle = new GUIStyle(titleStyle);
-        }
-        float size = Mathf.Clamp(Screen.height / 24f, 18, 40), alpha = Mathf.Clamp01(titleTime / TitleFade);
-        titleStyle.fontSize = Mathf.RoundToInt(size * 1.6f);
-        titleStyle.normal.textColor = new Color(.95f, .85f, .6f, alpha);
-        subStyle.fontSize = Mathf.RoundToInt(size * .7f);
-        subStyle.normal.textColor = new Color(.92f, .9f, .85f, alpha * .9f);
-        float y = Screen.height / 2f;
-        GUI.Label(new Rect(0, y - size * 3.2f, Screen.width, size * 1.4f), "결말", subStyle);
-        GUI.Label(new Rect(0, y - size * 1.6f, Screen.width, size * 2.4f), Title(Ending), titleStyle);
-        GUI.Label(new Rect(0, y + size * 1.6f, Screen.width, size * 1.4f), "R: 처음부터 다시 시작", subStyle);
+        float alpha = Mathf.Clamp01(titleTime / TitleFade), y = JinaUI.H / 2f;
+        var sub = new Color(.92f, .9f, .85f, alpha * .9f);
+        JinaUI.Text(new Rect(0, y - 96, JinaUI.W, 42), "결말", 21, sub, TextAnchor.MiddleCenter);
+        JinaUI.Text(new Rect(0, y - 48, JinaUI.W, 72), Title(Ending), 48, new Color(.95f, .85f, .6f, alpha), TextAnchor.MiddleCenter, true);
+        JinaUI.Fill(new Rect(JinaUI.W / 2 - 120 * alpha, y + 30, 240 * alpha, 2), new Color(.95f, .85f, .6f, alpha * .7f));
+        JinaUI.Text(new Rect(0, y + 48, JinaUI.W, 42), "R: 처음부터 다시 시작", 21, sub, TextAnchor.MiddleCenter);
     }
 }

@@ -16,7 +16,6 @@ public class PrototypeGameOver : MonoBehaviour
     private Sprite facedown;
     private float shownFor = -1;
     private bool landed;
-    private GUIStyle titleStyle, lineStyle;
 
     public bool Showing => combat != null && combat.PlayerHealth <= 0 && combat.PlayerDownAt >= 0;
     public float Elapsed => Showing ? Time.time - combat.PlayerDownAt : -1;
@@ -100,22 +99,12 @@ public class PrototypeGameOver : MonoBehaviour
         float t = Elapsed;
         if (t < TextAt) return;
         PrototypeKoreanUI.Apply();
-        if (titleStyle == null)
-        {
-            titleStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
-            lineStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
-        }
-        float size = Mathf.Clamp(Screen.height / 24f, 18, 40);
+        const float size = 30;
         float a = Mathf.Clamp01((t - TextAt) / .6f), b = Mathf.Clamp01((t - TextAt - .8f) / .6f), c = Mathf.Clamp01((t - TextAt - 1.6f) / .6f);
-        titleStyle.fontSize = Mathf.RoundToInt(size * 1.35f);
-        titleStyle.normal.textColor = new Color(.8f, .25f, .22f, a);
-        lineStyle.fontSize = Mathf.RoundToInt(size * .8f);
-        float y = Screen.height * .22f;
-        GUI.Label(new Rect(40, y, Screen.width - 80, size * 2.2f), Title, titleStyle);
-        lineStyle.normal.textColor = new Color(.92f, .9f, .85f, b);
-        GUI.Label(new Rect(40, y + size * 2.2f, Screen.width - 80, size * 1.6f), Words, lineStyle);
-        lineStyle.normal.textColor = new Color(.95f, .85f, .6f, c * (.65f + .35f * Mathf.Sin(t * 3)));
-        GUI.Label(new Rect(40, Screen.height * .78f, Screen.width - 80, size * 1.6f), Retry, lineStyle);
+        float y = JinaUI.H * .22f;
+        JinaUI.Text(new Rect(40, y, JinaUI.W - 80, size * 2.2f), Title, 40, new Color(.8f, .25f, .22f, a), TextAnchor.MiddleCenter, true);
+        JinaUI.Text(new Rect(40, y + size * 2.2f, JinaUI.W - 80, size * 1.6f), Words, 24, new Color(.92f, .9f, .85f, b), TextAnchor.MiddleCenter);
+        JinaUI.Text(new Rect(40, JinaUI.H * .78f, JinaUI.W - 80, size * 1.6f), Retry, 24, new Color(.95f, .85f, .6f, c * (.65f + .35f * Mathf.Sin(t * 3))), TextAnchor.MiddleCenter);
     }
 
     void OnDestroy()

@@ -9,8 +9,21 @@ public class SeonbiVisual : MonoBehaviour
     private float airTime,landingTime,walkTime;
     private float attackTime=10;
     private bool bowAttack;
-    private int attackFacing=1,attackAim;
+    private int attackFacing=1,attackAim,attackStep;
+    private float nextDust,nextGhost;
+    private bool wasDodging;
     public const float SwordDuration=.4f,BowDuration=.6f,HitDelay=.2f,BowReleaseDelay=.3f;
+    // The sword's three steps: how long each takes and when its blow lands.
+    //   The first cut is the drawn four frames. The second is quick, the blade rising from low guard to overhead.
+    //   The third holds overhead a moment, then comes down with all his weight.
+    public static float SwordLength(int step) => step==1 ? .3f : step==2 ? .48f : SwordDuration;
+    public static float SwordHit(int step) => step==1 ? .08f : step==2 ? .18f : HitDelay;
+    int SwordFrame(float t)
+    {
+        if(attackStep==1) return t<.06f ? 0 : t<.24f ? 1 : 0;
+        if(attackStep==2) return t<.18f ? 1 : t<.32f ? 2 : 3;
+        return Mathf.Min(3,(int)(t/(SwordDuration/4)));
+    }
     // Struck down: reel back, knees give way, then a quarter turn onto his back.
     public const float FallLength=.85f;
     // A hit he survives: he reels back for a moment (the death recoil frame), unless mid-swing.
@@ -37,20 +50,25 @@ public class SeonbiVisual : MonoBehaviour
         var art=new GameObject(name).AddComponent<SpriteRenderer>(); art.sortingOrder=order; return art;
     }
     // aim: +1 up, -1 down, 0 level (bow only).
-    public void Attack(bool bow,int facing,int aim=0) { bowAttack=bow; attackFacing=facing; attackAim=bow ? aim : 0; attackTime=0; }
+    public void Attack(bool bow,int facing,int aim=0,int step=0) { bowAttack=bow; attackFacing=facing; attackAim=bow ? aim : 0; attackStep=bow ? 0 : step; attackTime=0; }
     public void ResetPose() { attackTime=10; walkTime=0; airTime=0; landingTime=0; wasAirborne=false; }
     void LateUpdate()
     {
         if(body==null) return;
         if(combat.Paused || combat.PlayerHealth<=0) ResetPose();
-        float duration=bowAttack ? BowDuration : SwordDuration;
+        float duration=bowAttack ? BowDuration : SwordLength(attackStep);
         bool attacking=attackTime<duration;
         int facing=attacking ? attackFacing : player.Facing;
         bool airborne=!player.IsGrounded && combat.PlayerHealth>0;
         if(!combat.Paused)
         {
-            if(airborne) { airTime+=Time.deltaTime; landingTime=0; }
-            else { if(wasAirborne) landingTime=.12f; airTime=0; landingTime=Mathf.Max(0,landingTime-Time.deltaTime); }
+            var ground=new Vector3(transform.position.x,source.bounds.min.y,0);
+            if(airborne) { if(!wasAirborne) { JinaFx.Dust(ground,0,.8f); } airTime+=Time.deltaTime; landingTime=0; }
+            else
+            {
+                if(wasAirborne) { landingTime=.12f; JinaFx.Dust(ground,-.9f,1); JinaFx.Dust(ground,.9f,1); }
+                airTime=0; landingTime=Mathf.Max(0,landingTime-Time.deltaTime);
+            }
             wasAirborne=airborne;
         }
         int jumpFrame=airborne ? (airTime<.10f && player.VerticalSpeed>0 ? 0 : player.VerticalSpeed>0 ? 1 : 2) : 3;
@@ -63,15 +81,30 @@ public class SeonbiVisual : MonoBehaviour
         bool hurt=combat.PlayerHurtAt>=0 && Time.time-combat.PlayerHurtAt<HurtLength && !attacking;
         bool dodging=player.Dodging && combat.PlayerHealth>0;
         var shot=attackAim>0 ? bowUpFrames : attackAim<0 ? bowDownFrames : bowFrames;
-        body.sprite=dodging ? JinaArt.Load("01_Player/player_dodge") : hurt ? hitFrames[0] : attacking ? (bowAttack ? shot : swordFrames)[Mathf.Min(3,(int)(attackTime/(duration/4)))] : jumping ? jumpFrames[jumpFrame] : running ? runFrames[(int)(walkTime/.08f)%4] : walking ? walkFrames[(int)(walkTime/.12f)%4] : LoadSprite();
+        body.sprite=dodging ? JinaArt.Load("01_Player/player_dodge") : hurt ? hitFrames[0] : attacking ? (bowAttack ? shot[Mathf.Min(3,(int)(attackTime/(duration/4)))] : swordFrames[SwordFrame(attackTime)]) : jumping ? jumpFrames[jumpFrame] : running ? runFrames[(int)(walkTime/.08f)%4] : walking ? walkFrames[(int)(walkTime/.12f)%4] : LoadSprite();
         JinaArt.Place(body,feet,facing<0);
         body.transform.rotation=Quaternion.identity; weapon.transform.rotation=Quaternion.identity; weapon.color=Color.white;
+        // Standing still, his chest rises and falls by one art pixel.
+        bool idle=!attacking && !jumping && !walking && !dodging && !hurt && !combat.Paused && combat.PlayerHealth>0;
+        float breath=idle && Mathf.Sin(Time.time*2.1f)>0 ? 1 : 0;
+        if(breath>0) body.transform.localScale=new Vector3(1,1+.042f/1.9f,1);
+        // His feet kick up dust on the run; the backstep leaves a fading trail of himself.
+        if(!combat.Paused)
+        {
+            if(running && Time.time>=nextDust) { nextDust=Time.time+.2f; JinaFx.Dust(feet,-facing*.8f,.72f); }
+            if(dodging)
+            {
+                if(!wasDodging) { JinaFx.Dust(feet,facing*1.2f,1); }
+                if(Time.time>=nextGhost) { nextGhost=Time.time+.045f; JinaFx.AfterImage(body,new Color(.7f,.84f,1,.55f)); }
+            }
+            wasDodging=dodging;
+        }
         body.color=source.color==Color.gray ? Color.gray : source.color==Color.red ? new Color(1,.4f,.4f) : Color.white;
         weapon.enabled=!attacking && !jumping && !dodging && !hurt && combat.PlayerHealth>0;
         if(weapon.enabled)
         {
             weapon.sprite=JinaArt.Load(combat.UsingBow ? "04_Weapons/bow" : "04_Weapons/hwando");
-            JinaArt.Place(weapon,Carry(feet,facing,running),facing<0);
+            JinaArt.Place(weapon,Carry(feet,facing,running)+Vector3.up*(breath*.02f),facing<0);
         }
         if(!combat.Paused) attackTime+=Time.deltaTime;
     }

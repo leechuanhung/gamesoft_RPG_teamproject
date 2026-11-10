@@ -13,7 +13,6 @@ public class PrototypeEncounter : MonoBehaviour
 
     private bool played, finished, shaken;
     private float startAt;
-    private GUIStyle nameStyle, epithetStyle;
 
     public bool Playing => played && Time.time - startAt < Length;
     public float Elapsed => Time.time - startAt;
@@ -54,30 +53,18 @@ public class PrototypeEncounter : MonoBehaviour
         GUI.depth = -50;
         PrototypeKoreanUI.Apply();
         float t = Elapsed, bars = Mathf.Clamp01(t / .4f) * Mathf.Clamp01((Length - t) / .4f);
-        float bar = Screen.height * .11f * bars;
-        GUI.color = Color.black;
-        GUI.DrawTexture(new Rect(0, 0, Screen.width, bar), Texture2D.whiteTexture);
-        GUI.DrawTexture(new Rect(0, Screen.height - bar, Screen.width, bar), Texture2D.whiteTexture);
-        GUI.color = Color.white;
-        if (nameStyle == null)
-        {
-            nameStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleLeft };
-            epithetStyle = new GUIStyle(nameStyle);
-        }
+        float bar = JinaUI.H * .11f * bars;
+        JinaUI.Fill(new Rect(0, 0, JinaUI.W, bar), Color.black);
+        JinaUI.Fill(new Rect(0, JinaUI.H - bar, JinaUI.W, bar), Color.black);
         // Name card slides in from the left at the lower left, above the bottom bar.
         float card = Mathf.Clamp01((t - CardAt) / .5f) * Mathf.Clamp01((Length - .4f - t) / .4f);
         if (card > 0)
         {
-            float size = Mathf.Clamp(Screen.height / 22f, 20, 44), x = 60 - (1 - card) * 80, y = Screen.height - bar - size * 3.4f;
-            epithetStyle.fontSize = Mathf.RoundToInt(size * .55f);
-            epithetStyle.normal.textColor = new Color(.92f, .9f, .85f, card);
-            nameStyle.fontSize = Mathf.RoundToInt(size * 1.3f);
-            nameStyle.normal.textColor = new Color(.95f, .45f, .35f, card);
-            GUI.Label(new Rect(x, y, Screen.width, size), Epithet, epithetStyle);
-            GUI.color = new Color(.95f, .45f, .35f, card);
-            GUI.DrawTexture(new Rect(x, y + size * 1.05f, size * 7 * card, 3), Texture2D.whiteTexture);
-            GUI.color = Color.white;
-            GUI.Label(new Rect(x, y + size * 1.15f, Screen.width, size * 1.8f), Name, nameStyle);
+            const float size = 33;
+            float x = 60 - (1 - card) * 80, y = JinaUI.H - bar - size * 3.4f;
+            JinaUI.Text(new Rect(x, y, JinaUI.W, size), Epithet, 18, new Color(.92f, .9f, .85f, card), TextAnchor.MiddleLeft);
+            JinaUI.Fill(new Rect(x, y + size * 1.05f, size * 7 * card, 3), new Color(.95f, .45f, .35f, card));
+            JinaUI.Text(new Rect(x, y + size * 1.15f, JinaUI.W, size * 1.8f), Name, 43, new Color(.95f, .45f, .35f, card), TextAnchor.MiddleLeft, true);
         }
         if (t >= LineAt && t < Length - .3f)
             SpeechBubble.Draw(new Vector3(combat.BossPosition.x, 2.3f, 0), "도깨비", Line);

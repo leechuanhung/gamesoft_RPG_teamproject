@@ -98,11 +98,11 @@ public class PrototypePeddler : MonoBehaviour
         if (!IsOpen) return;
         // Arrows, then the goods two to a row, each with its icon, name, price and what it does.
         const float gap = 8;
-        float w = Mathf.Min(780, Screen.width - 30), half = (w - JinaUI.WindowPad * 2 - gap) / 2;
+        float w = Mathf.Min(780, JinaUI.W - 30), half = (w - JinaUI.WindowPad * 2 - gap) / 2;
         int rows = 1 + (JinaItems.All.Length + 1) / 2, discount = ShopRules.Discount(Progress);
         float say = JinaUI.SayHeight("보부상:  " + message, w - JinaUI.WindowPad * 2);
         float h = JinaUI.TitleHeight + 12 + say + gap + rows * (JinaUI.GoodHeight + gap) + 28 + JinaUI.WindowPad;
-        var box = new Rect((Screen.width - w) / 2, Screen.height - h - 14, w, h);
+        var box = new Rect((JinaUI.W - w) / 2, JinaUI.H - h - 14, w, h);
         var inside = JinaUI.Window(box, "보부상 등짐", "엽전 " + Wallet.Coins + "문   ·   화살 " + combat.Arrows + "/" + ShopRules.MaxArrows + (discount > 0 ? "   ·   " + discount + "% 할인" : "") + "   ·   E / Esc 나가기");
         JinaUI.Say(new Rect(inside.x, inside.y, inside.width, say), "보부상", message);
         float top = inside.y + say + gap;

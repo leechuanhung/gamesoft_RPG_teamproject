@@ -2,95 +2,144 @@ using UnityEngine;
 using Who = PrototypeKongVillage.Who;
 
 // The night at Patjwi's house, played as a cutscene the first time he finishes talking to Kongjwi (no control; E moves
-// the evening's lines on, Space skips the room scenes).
-//   Evening: Kongjwi asks him to stay. Patjwi, who knows what she is and dares not say it, tries a polite excuse to get
-//   him away; Kongjwi only looks at her, and she shrinks back and gives in.
-//   Night: the guest room, a small map of its own. Noises outside, and a shape thrown on the paper door.
-//   Morning: he wakes and goes out; now the crocks can be searched and a paper lies beside them (PrototypeKongVillage).
+// the evening's lines on, Space skips the night and the morning). It is painted, not played: full-screen illustrations
+// (18_Night, Tools/ArtGen/make_night.py) at a far finer grain than the game's sprites, layered and moved here.
+//   Evening: the house at sunset, three figures on the road. Kongjwi asks him to stay. Patjwi, who knows what she is and
+//   dares not say it, tries to drive him off in the only voice she is allowed, shouting; the picture cuts to Kongjwi's eyes,
+//   and Patjwi shrinks back and gives in.
+//   Night: the house under the moon, the lit door going dark. The guest room: noises outside, a shape thrown on the paper,
+//   him sitting up. The close shot of the door: the shape looms, a wet hole opens in the paper, an eye looks in, and it goes.
+//   Morning: dawn from the road, a rooster on the wall. The room in sunlight; the hole is still there, with a beam through it.
+//   Parting: Kongjwi at the door begs him to stay longer. He chooses how to refuse: politely, or to her face. Either way a
+//   silence, and then she asks him up to the back hill.
 public class PrototypeKongStay : MonoBehaviour
 {
     public PrototypeCombat combat;
-    public enum Phase { None, Evening, Night, Morning }
+    public enum Phase { None, Evening, Night, Morning, Parting }
     public Phase Now { get; private set; }
     public bool Playing => Now != Phase.None;
-    // Where the room is built, out of sight of the world; the camera moves in so its 10 x 5.5 units fill the screen.
-    public const float RoomX = 400, RoomY = -.75f, RoomSize = 2.75f;
-    public const float FadeLength = .8f, NightLength = 20f, MorningLength = 8f, DoorX = RoomX + 3.19f, DoorBaseY = RoomY + 1.62f;
+    // Where the pictures are hung, out of sight of the world. A picture is 640 x 360 dots, 64 to the unit, so its height
+    // is 5.625 units; the camera moves in until one fits the screen exactly, and the camera always looks at y = 2.
+    public const float RoomX = 400, RoomY = 2, PictureWidth = 10, RoomSize = 2.8125f;
+    public const float FadeLength = .8f, NightLength = 37f, MorningLength = 9.8f;
     // Night's beats, in seconds.
-    public const float ShadowIn = 8f, ShadowStop = 11f, SitAt = 11.5f, ShadowOut = 16f, ShadowGone = 17f, LieAt = 17.5f;
+    public const float RoomAt = 6f, LampOutAt = 3.4f, ShadowIn = 13f, ShadowStop = 16f, SitAt = 18.5f;
+    public const float CloseAt = 23f, HoleAt = 25f, EyeAt = 26.6f, EyeGone = 29.2f, CloseEnd = 30.4f, LieAt = 31.5f;
+    // Morning's: the road at dawn, then the room.
+    public const float MorningRoomAt = 4.6f;
 
     public static readonly (Who who, string portrait, string line, float seconds)[] Evening =
     {
         (Who.Kongjwi, "kongjwi", "어머, 벌써 해가 저물었네요. 밤 산길은 위험해요. 오늘은 저희 집에서 묵고 가세요.", 4.2f),
-        (Who.Patjwi, "patjwi", "…언니, 어머니도 안 계신 집에 외간 남자를 들이는 건 좀 그래요. 마을 사람들 보는 눈도 있고요.", 4.4f),
-        (Who.Patjwi, "patjwi", "선비님도 갈 길이 바쁘실 텐데요. 고개 너머 주막까지 그리 멀지도 않고… 그렇죠?", 4.2f),
+        (Who.Patjwi, "patjwi_angry", "무슨 소리야! 어머니도 안 계신 집에 외간 남자를 들이려고 하다니! 넌 부끄럽지도 않아?!", 4.4f),
+        (Who.Patjwi, "patjwi_angry", "당신도 당장 가요! 고개 너머 주막까지 금방이니까, 해 지기 전에 어서요!", 4.2f),
         (Who.Kongjwi, "kongjwi_stare", "……", 3.6f),
         (Who.Patjwi, "patjwi_down", "……", 2.2f),
-        (Who.Patjwi, "patjwi_down", "…알았어요. 생각해 보니… 아니에요. …그냥, 자고 가시지요.", 4f),
+        (Who.Patjwi, "patjwi_down", "…마, 마음대로 해. 내가 무슨 상관이야. …자고 가든지.", 4f),
         (Who.Kongjwi, "kongjwi", "동생이 손님을 어려워해서 그래요. 자, 이쪽이에요. 푹 쉬세요.", 3.8f),
     };
+    // The morning's talk, line by line. No portrait means he is the one speaking; "stare" cuts to the picture of her eyes.
+    public static readonly (string portrait, string line)[] PartingAsk =
+    {
+        ("kongjwi", "일어나셨어요? 간밤엔 쥐 소리에 시끄러우셨죠. 안색이 안 좋으세요."),
+        ("kongjwi", "먼 길 가시는데 그리 서두르실 것 없어요. 며칠 더 푹 쉬다 가세요. 보름 잔치도 보시고요."),
+    };
+    public static readonly (string portrait, string line)[] PartingPolite =
+    {
+        (null, "말씀은 고맙소만, 과거 날이 촉박하여 오늘은 길을 나서야 하오."),
+        ("kongjwi", "그러세요… 아쉬워라."),
+        ("kongjwi_stare", "……"),
+        ("kongjwi", "그럼 부탁 하나만 드려도 될까요? 떠나시기 전에, 이따가 뒷산에 잠시만 와 주세요."),
+        ("kongjwi", "돌아가신 어머니 일로 선비님께만 여쭐 것이 있어서요. 네? 꼭이요."),
+        (null, "뒷산이라… 떠나기 전에 집 둘레나 한번 돌아봐야겠군."),
+    };
+    public static readonly (string portrait, string line)[] PartingBlunt =
+    {
+        (null, "어젯밤 창호지에 구멍을 뚫고 들여다본 이가 누구요? 이 집은 아무래도 수상하오."),
+        ("stare", ""),
+        ("kongjwi", "…어머. 쥐가 갉았나 봐요. 이 집엔 쥐가 많거든요."),
+        ("kongjwi_stare", "……"),
+        ("kongjwi", "그런 오해를 사고는 못 보내 드리지요. 이따가 뒷산으로 잠시 와 주세요. 거기서 다 말씀드릴게요."),
+        ("kongjwi", "혼자 오세요, 네? 사람들이 들으면 안 되는 이야기니까요."),
+        (null, "…곱게 보내 줄 것 같지는 않군. 가기 전에 집 둘레부터 살펴봐야겠어."),
+    };
+    public const string PoliteChoice = "1   정중히 거절한다", BluntChoice = "2   대놓고 의심한다";
+    const float StareCut = 3f;
+    const int StareLine = 3;
 
     private float startedAt, wokeAt = -10, savedSize;
     private int line;
     private bool inRoom;
     private GameObject room;
-    private SpriteRenderer roomBack, roomDoor, doorShadow, bedUnder, body, quilt;
-    // The bedding's left end and the mattress's top, from which he and the quilt are laid.
-    const float BedLeft = RoomX - 2.08f, MattressTop = RoomY + .875f;
+    private SpriteRenderer[] layers;
+    private int used;
+    private SpriteRenderer[] motes;
 
     public int Line => line;
     public float Elapsed => Time.time - startedAt;
     // From Kongjwi's stare on, Patjwi has shrunk back a step.
-    public float Flinch => Now != Phase.Evening ? 0 : line > 3 ? 1 : line == 3 ? Mathf.Clamp01((Elapsed - 1.4f) / .5f) : 0;
+    public float Flinch => Now != Phase.Evening ? 0 : line > StareLine ? 1 : line == StareLine ? Mathf.Clamp01((Elapsed - 1.4f) / .5f) : 0;
     public bool InRoom => inRoom;
-    public string BedSprite => body == null ? null : body.sprite.name;
-    public SpriteRenderer BedBody => body;
-    public SpriteRenderer BedQuilt => quilt;
-    public Vector3 ShadowPosition => doorShadow.transform.position;
+    // What each named part of the picture is showing now (for checks).
+    public string BedSprite { get; private set; }
+    public float ShadowX { get; private set; }
+    public bool HoleShown { get; private set; }
+    public bool EyeShown { get; private set; }
+    public bool ShadowShown { get; private set; }
+    // The screen's world position of a dot on a picture (x right, y down from its top left).
+    static Vector3 Dot(float x, float y) => new Vector3(RoomX + (x - 320) / 64f, RoomY + (180 - y) / 64f, 0);
 
     void Start()
     {
-        room = new GameObject("손님방");
-        var black = Part("어둠", JinaArt.Dot(), -30, 0);
-        black.color = Color.black;
-        black.transform.position = new Vector3(RoomX, 2, 0);
+        room = new GameObject("하룻밤 그림");
+        var black = new GameObject("어둠").AddComponent<SpriteRenderer>();
+        black.transform.SetParent(room.transform);
+        black.sprite = JinaArt.Dot(); black.color = Color.black; black.sortingOrder = 100;
+        black.transform.position = new Vector3(RoomX, RoomY, 0);
         black.transform.localScale = Vector3.one * 200 / JinaArt.DotSize;
-        roomDoor = Part("창호지", JinaArt.Prop("room_door"), -3, 0);
-        doorShadow = Part("창호지 그림자", JinaArt.Prop("door_shadow"), -2, 0);
-        roomBack = Part("방", JinaArt.Prop("room_bg"), -1, 0);
-        bedUnder = Part("요와 베개", JinaArt.Prop("bed_under"), 0, -.67f);
-        bedUnder.transform.position = new Vector3(RoomX - .67f, RoomY + .58f, 0);
-        body = Part("잠자리 선비", JinaArt.Load("01_Player/player_sleep"), 1, 0);
-        quilt = Part("이불", JinaArt.Prop("quilt_sleep"), 2, 0);
+        layers = new SpriteRenderer[16];
+        for (int i = 0; i < layers.Length; i++)
+        {
+            layers[i] = new GameObject("그림 " + i).AddComponent<SpriteRenderer>();
+            layers[i].transform.SetParent(room.transform);
+            layers[i].sortingOrder = 101 + i;
+        }
+        motes = new SpriteRenderer[24];
+        for (int i = 0; i < motes.Length; i++)
+        {
+            motes[i] = new GameObject("먼지 " + i).AddComponent<SpriteRenderer>();
+            motes[i].transform.SetParent(room.transform);
+            motes[i].sprite = JinaArt.Dot(); motes[i].sortingOrder = 120;
+            motes[i].transform.localScale = Vector3.one * (1 / 64f) / JinaArt.DotSize * (i % 3 == 0 ? 2 : 1);
+        }
         room.SetActive(false);
-    }
-    SpriteRenderer Part(string label, Sprite sprite, int order, float dx)
-    {
-        var art = new GameObject(label).AddComponent<SpriteRenderer>();
-        art.transform.SetParent(room.transform);
-        art.transform.position = new Vector3(RoomX + dx, RoomY, 0);
-        art.sprite = sprite; art.sortingOrder = order;
-        return art;
     }
 
     public void ResetStay()
     {
-        Now = Phase.None; line = 0; wokeAt = -10;
+        Now = Phase.None; line = 0; wokeAt = -10; Blunt = false;
         ShowRoom(false);
     }
     public void Begin()
     {
         Now = Phase.Evening; line = 0; startedAt = Time.time;
         combat.player.CanMove = false;
+        ShowRoom(true);
+        Pose();
     }
     // Jumps straight to a moment of the cutscene (for checks and screenshots).
     public void Show(Phase phase, float t)
     {
+        if (phase == Phase.Parting) BeginParting();
         Now = phase; startedAt = Time.time - t;
         combat.player.CanMove = false;
-        ShowRoom(phase == Phase.Night || phase == Phase.Morning);
+        ShowRoom(phase != Phase.None);
+        var cam = Camera.main;
+        if (cam != null && phase != Phase.None) cam.orthographicSize = FitSize(cam);
         Pose();
     }
+    // The size that shows one whole picture whatever the window's shape; the black behind fills any spare margin.
+    static float FitSize(Camera cam) => Mathf.Max(RoomSize, PictureWidth / 2 / Mathf.Max(.1f, cam.aspect));
     void ShowRoom(bool show)
     {
         if (show == inRoom) return;
@@ -99,18 +148,24 @@ public class PrototypeKongStay : MonoBehaviour
         var cam = Camera.main;
         PrototypeView.FixedX = show ? RoomX : (float?)null;
         if (cam == null) return;
-        if (show) { savedSize = cam.orthographicSize; cam.orthographicSize = RoomSize; }
+        if (show) { savedSize = cam.orthographicSize; cam.orthographicSize = FitSize(cam); }
         else cam.orthographicSize = savedSize > 0 ? savedSize : cam.orthographicSize;
     }
 
     void Update()
     {
         if (!Playing) return;
+        var cam = Camera.main;
+        if (cam != null) cam.orthographicSize = FitSize(cam);
+        if (Now == Phase.Parting) { UpdateParting(); return; }
         if (Now == Phase.Evening)
         {
             bool next = Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Space);
+            // A press while the words are still appearing shows them whole; the next moves on.
+            if (next && line < Evening.Length && !typedAll && JinaUI.Visible(Evening[line].line, Elapsed) < Evening[line].line.Length) { typedAll = true; next = false; }
             if (line < Evening.Length && (next || Elapsed >= Evening[line].seconds)) NextLine();
-            else if (line >= Evening.Length && Elapsed >= FadeLength) { Now = Phase.Night; startedAt = Time.time; ShowRoom(true); }
+            else if (line >= Evening.Length && Elapsed >= FadeLength) { Now = Phase.Night; startedAt = Time.time; }
+            Pose();
             return;
         }
         // Space jumps to where the scene fades out.
@@ -118,10 +173,53 @@ public class PrototypeKongStay : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space) && Elapsed < length - FadeLength) startedAt = Time.time - (length - FadeLength);
         Pose();
         if (Elapsed < length) return;
-        if (Now == Phase.Night) { Now = Phase.Morning; startedAt = Time.time; Pose(); }
-        else Wake();
+        if (Now == Phase.Night) Now = Phase.Morning;
+        else BeginParting();
+        startedAt = Time.time; Pose();
     }
-    public void NextLine() { line++; startedAt = Time.time; }
+
+    // The morning's talk: her plea, his answer (the only choice in the cutscene), the silence, the hill.
+    public bool Blunt { get; private set; }
+    public (string portrait, string line)[] PartingLines { get; private set; }
+    public int PartingPage { get; private set; }
+    // She has asked; he has not yet answered.
+    public bool Choosing => Now == Phase.Parting && PartingLines == PartingAsk && PartingPage >= PartingAsk.Length - 1 && !leaving;
+    private bool leaving;
+    private float leftAt;
+    (string portrait, string line) CurrentPart => PartingLines[PartingPage];
+    void BeginParting()
+    {
+        Now = Phase.Parting; PartingLines = PartingAsk; PartingPage = 0; leaving = false; typedAll = false; startedAt = Time.time;
+    }
+    public void Choose(bool blunt)
+    {
+        if (!Choosing) return;
+        Blunt = blunt; PartingLines = blunt ? PartingBlunt : PartingPolite; PartingPage = 0; typedAll = false; startedAt = Time.time;
+    }
+    public void NextPart()
+    {
+        if (Choosing || leaving) return;
+        if (PartingPage + 1 < PartingLines.Length) { PartingPage++; typedAll = false; startedAt = Time.time; }
+        else { leaving = true; leftAt = Time.time; }
+    }
+    void UpdateParting()
+    {
+        Pose();
+        if (leaving) { if (Time.time - leftAt >= FadeLength) Wake(); return; }
+        if (Choosing)
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha1)) Choose(false);
+            else if (Input.GetKeyDown(KeyCode.Alpha2)) Choose(true);
+            return;
+        }
+        // The cut to her eyes holds by itself for a moment, and cannot be hurried past.
+        if (CurrentPart.portrait == "stare") { if (Elapsed >= StareCut) NextPart(); return; }
+        if (!Input.GetKeyDown(KeyCode.E) && !Input.GetKeyDown(KeyCode.Space)) return;
+        if (!typedAll && JinaUI.Visible(CurrentPart.line, Elapsed) < CurrentPart.line.Length) typedAll = true;
+        else NextPart();
+    }
+    private bool typedAll;
+    public void NextLine() { line++; startedAt = Time.time; typedAll = false; }
 
     // Out of the room at the house's door, in control again; the morning's discoveries open up.
     public void Wake()
@@ -133,67 +231,174 @@ public class PrototypeKongStay : MonoBehaviour
         player.GetComponent<Rigidbody2D>().velocity = Vector2.zero;
         player.CanMove = true;
         if (combat.Maps != null) combat.Maps.Sync();
-        combat.Kong.WakeUp();
+        combat.Kong.WakeUp(Blunt);
     }
 
-    // The room at this moment: moonlit and blue at night, warm by morning; he lies down or sits up; the shape slides.
+    // Lays the next picture on the stack; dx and dy move it, in dots.
+    SpriteRenderer Put(string name, float alpha = 1, float dx = 0, float dy = 0)
+    {
+        var r = layers[used++];
+        r.enabled = true; r.sprite = JinaArt.Night(name);
+        r.color = new Color(1, 1, 1, alpha);
+        r.transform.position = new Vector3(RoomX + dx / 64f, RoomY - dy / 64f, 0);
+        return r;
+    }
+
+    // The picture at this moment, rebuilt from its layers.
     void Pose()
     {
-        if (roomBack == null) return;
+        if (layers == null) return;
+        foreach (var r in layers) r.enabled = false;
+        foreach (var m in motes) m.enabled = false;
+        used = 0; ShadowShown = HoleShown = EyeShown = false;
         float t = Elapsed;
-        bool night = Now == Phase.Night;
-        var tint = night ? new Color(.42f, .46f, .66f) : Color.white;
-        roomBack.color = tint; bedUnder.color = tint; body.color = tint; quilt.color = tint;
-        roomDoor.color = night ? new Color(.62f, .68f, .9f) : new Color(1f, .95f, .8f);
-        bool sitting = !night || (t >= SitAt && t < LieAt);
-        body.sprite = JinaArt.Load(sitting ? "01_Player/player_sit" : "01_Player/player_sleep");
-        quilt.sprite = JinaArt.Prop(sitting ? "quilt_sit" : "quilt_sleep");
-        // Sleeping: his back on the mattress, head on the pillow, the quilt from below the collar to the mattress's end.
-        // Sitting: his in-game feet line is set so the quilt hides the cut at his lap.
-        if (sitting)
+        if (Now == Phase.Evening) PoseEvening(t);
+        else if (Now == Phase.Night) { if (t < RoomAt) PoseMoonlitHouse(t); else if (t >= CloseAt && t < CloseEnd) PoseDoor(t); else PoseRoomAtNight(t); }
+        else if (Now == Phase.Morning) { if (t < MorningRoomAt) PoseDawn(t); else PoseRoomAtMorning(t); }
+        else if (Now == Phase.Parting) { if (!leaving && CurrentPart.portrait == "stare") Put("stare"); else PoseRoomAtMorning(Time.time); }
+    }
+
+    void PoseEvening(float t)
+    {
+        if (line == StareLine) { Put("stare"); return; }
+        Put("ext_evening");
+        Put("fig_seonbi");
+        Put("fig_kongjwi");
+        // A step back, away from her sister.
+        Put("fig_patjwi", 1, Flinch * 12);
+    }
+
+    void PoseMoonlitHouse(float t)
+    {
+        Put("ext_night");
+        if (t < LampOutAt) Put("ext_window", (Mathf.Sin(t * 9) + Mathf.Sin(t * 13.7f)) * .03f + .94f);
+        // Thin cloud crossing the moon, slowly; the picture of it is twice the screen wide.
+        Put("ext_clouds", 1, 320 - t * 9, -80);
+        // Fireflies over the crocks and the grass.
+        for (int i = 0; i < 8; i++)
         {
-            float top = MattressTop + 11f / 24;
-            body.transform.position = new Vector3(BedLeft + 1.05f, top - (535f - 305f) / body.sprite.pixelsPerUnit, 0);
-            quilt.transform.position = new Vector3(BedLeft + 1.6f, MattressTop - 2f / 24, 0);
+            float x = 60 + i * 72 + Mathf.Sin(t * .7f + i * 1.9f) * 18, y = 300 - i % 3 * 14 + Mathf.Sin(t * 1.1f + i) * 10;
+            float glow = Mathf.Clamp01(Mathf.Sin(t * 1.7f + i * 2.4f) * 1.4f);
+            Mote(i, x, y, new Color(.86f, 1, .5f, glow));
         }
-        else
+    }
+
+    void PoseRoomAtNight(float t)
+    {
+        bool sitting = t >= SitAt + .3f && t < LieAt;
+        bool rising = t >= SitAt && t < SitAt + .3f, lowering = t >= LieAt && t < LieAt + .4f;
+        string pose = sitting ? "sit" : rising || lowering ? "prop" : "lie";
+        BedSprite = pose;
+        Put("door_night");
+        // The shape: in from the right, stopping square on the door; a hand to its mouth while it chews.
+        bool gone = t >= CloseEnd;
+        if (t >= ShadowIn && !gone)
         {
-            var at = new Vector3(BedLeft + .2f - (body.sprite.bounds.min.x), MattressTop - 3f / 24 - body.sprite.bounds.min.y, 0);   // his head reaches the pillow; the robe's sleeves lie on the mattress
-            body.transform.position = at;
-            quilt.transform.position = new Vector3(BedLeft + .2f + (205f - 40f) / body.sprite.pixelsPerUnit + 25f / 24, MattressTop - 2f / 24, 0);
+            ShadowShown = true;
+            float x = t < ShadowStop ? Mathf.Lerp(250, 0, (t - ShadowIn) / (ShadowStop - ShadowIn)) : 0;
+            ShadowX = x;
+            int frame = t < ShadowStop ? 0 : (int)((t - ShadowStop) / .34f) % 4;
+            var s = Put("shadow_" + (t >= SitAt ? 0 : frame == 1 ? 1 : frame == 2 ? 2 : frame == 3 ? 1 : 0), 1, x);
+            s.color = new Color(.1f, .12f, .28f);
+            s.transform.position = Dot(518 + x, 136);
+            // A slow heave as it breathes.
+            if (t >= ShadowStop) s.transform.position += Vector3.up * Mathf.Sin(t * 2.4f) * 2 / 64f;
         }
-        doorShadow.enabled = night && t >= ShadowIn && t < ShadowGone;
-        if (doorShadow.enabled)
+        Put("room_night");
+        // The moonlight on the floor goes when the shape stands in its way.
+        float blocked = t < ShadowIn ? 0 : t < ShadowStop ? (t - ShadowIn) / (ShadowStop - ShadowIn) : gone ? 0 : 1;
+        Put("room_moon", 1 - blocked * .72f);
+        // He breathes in his sleep; awake he holds his breath.
+        float breath = pose == "lie" ? Mathf.Round(Mathf.Sin(t * 1.5f) * .6f + .5f) : 0;
+        Put("bed_" + pose + "_night");
+        Put("quilt_" + pose + "_night", 1, 0, -breath);
+        // Dust turning in the moonbeam.
+        for (int i = 0; i < 10; i++)
         {
-            // In from the right, stopping square on the door; then gone to the left, quickly.
-            float x = t < ShadowStop ? Mathf.Lerp(DoorX + 3.6f, DoorX, (t - ShadowIn) / (ShadowStop - ShadowIn))
-                : t < ShadowOut ? DoorX : Mathf.Lerp(DoorX, DoorX - 3.6f, (t - ShadowOut) / (ShadowGone - ShadowOut));
-            doorShadow.transform.position = new Vector3(x, DoorBaseY, 0);
-            doorShadow.color = new Color(.12f, .13f, .24f);
+            float life = (t * .06f + i * .137f) % 1;
+            float x = 330 + (i * 37) % 180 + Mathf.Sin(t * .5f + i) * 8 - life * 40, y = 120 + life * 170;
+            Mote(i, x, y, new Color(.74f, .82f, 1, .5f * Mathf.Sin(life * Mathf.PI)));
         }
+    }
+
+    void PoseDoor(float t)
+    {
+        Put("close_paper");
+        // It looms, its head filling the panes, trembling a little.
+        ShadowShown = true;
+        float lean = Mathf.Clamp01((t - CloseAt) / 1.6f);
+        var s = Put("close_shadow", 1, Mathf.Sin(t * 1.3f) * 2, (1 - lean) * 120 + Mathf.Sin(t * 2.4f) * 1.5f);
+        if (t >= EyeGone) s.transform.position += Vector3.left * (t - EyeGone) * (t - EyeGone) * 9;   // gone, quickly, to the left of the frame
+        Put("close_door");
+        if (t >= HoleAt)
+        {
+            HoleShown = true;
+            Put("close_hole_" + (t < HoleAt + .5f ? 0 : t < HoleAt + 1f ? 1 : 2));
+            if (t >= EyeAt && t < EyeGone)
+            {
+                EyeShown = true;
+                float e = t - EyeAt;
+                // It opens, looks, blinks once, slowly, and stays until it has seen enough.
+                int frame = e < .12f ? 2 : e < .24f ? 1 : e > 1.45f && e < 1.55f ? 1 : e >= 1.55f && e < 1.7f ? 2 : e >= 1.7f && e < 1.8f ? 1 : 0;
+                Put("close_eye_" + frame);
+            }
+        }
+    }
+
+    void PoseDawn(float t)
+    {
+        Put("ext_morning");
+        Put("ext_mist", .8f, -t * 7 + 320);
+        Put(t >= .9f && t < 3.2f ? "ext_rooster_1" : "ext_rooster_0");
+    }
+
+    void PoseRoomAtMorning(float t)
+    {
+        BedSprite = "sit";
+        Put("door_morning");
+        Put("room_morning");
+        Put("hole_mark");
+        Put("bed_sit_morning");
+        Put("quilt_sit_morning");
+        // Dust lit gold, drifting down through the sun on the floor.
+        for (int i = 0; i < motes.Length; i++)
+        {
+            float life = (t * .05f + i * .071f) % 1;
+            float x = 300 + (i * 53) % 280 + Mathf.Sin(t * .4f + i) * 10 - life * 50, y = 80 + life * 230;
+            Mote(i, x, y, new Color(1, .94f, .7f, .7f * Mathf.Sin(life * Mathf.PI)));
+        }
+    }
+
+    void Mote(int i, float x, float y, Color colour)
+    {
+        var m = motes[i];
+        m.enabled = true; m.color = colour;
+        m.transform.position = Dot(Mathf.Round(x), Mathf.Round(y));
     }
 
     void Black(float a)
     {
-        if (a > 0) JinaUI.Fill(new Rect(0, 0, Screen.width, Screen.height), new Color(0, 0, 0, Mathf.Clamp01(a)));
+        if (a > 0) JinaUI.Fill(new Rect(0, 0, JinaUI.W, JinaUI.H), new Color(0, 0, 0, Mathf.Clamp01(a)));
     }
-    static void Caption(string s)
+    // Narration under the picture: a line of plain words on black, typed out.
+    static void Caption(string s, float since)
     {
-        float w = Mathf.Min(760, Screen.width - 40), h = JinaUI.Height(s, 18, w - 32) + 22;
-        var r = new Rect((Screen.width - w) / 2, Screen.height - h - 20, w, h);
-        JinaUI.Fill(r, new Color(0, 0, 0, .72f));
-        JinaUI.Text(new Rect(r.x + 16, r.y + 11, w - 32, h - 22), s, 18, JinaUI.Bright, TextAnchor.UpperCenter);
+        float w = Mathf.Min(760, JinaUI.W - 40), h = JinaUI.Height(s, 19, w - 36) + 24;
+        var r = new Rect((JinaUI.W - w) / 2, JinaUI.H - h - 26, w, h);
+        JinaUI.Fill(r, new Color(.02f, .02f, .05f, .76f));
+        JinaUI.Text(new Rect(r.x + 18, r.y + 12, w - 36, h - 24), s, 19, JinaUI.Bright, TextAnchor.UpperCenter, false, JinaUI.Visible(s, since));
     }
     // A noise from beyond the door, written large and shivering, as if heard rather than seen.
-    static void Noise(string s, float t, float from, float to)
+    static void Noise(string s, float t, float from, float to, float x = .3f, float y = .1f)
     {
         if (t < from || t >= to) return;
         float a = Mathf.Clamp01((t - from) / .3f) * Mathf.Clamp01((to - t) / .4f);
-        int size = Mathf.Clamp(Screen.height / 20, 20, 44);
-        float jitter = Mathf.Sin(t * 37) * 1.5f;
-        var at = Camera.main.WorldToScreenPoint(new Vector3(DoorX - 2.1f, RoomY + 4.4f, 0));
-        JinaUI.Text(new Rect(at.x - 250 + jitter, Screen.height - at.y - size, 500, size * 2), s, size, new Color(.92f, .9f, .98f, a), TextAnchor.MiddleCenter, true);
+        int size = 34;
+        float jitter = Mathf.Sin(t * 37) * 1.5f, jitterY = Mathf.Sin(t * 29) * 1f;
+        JinaUI.Text(new Rect(JinaUI.W * x - 300 + jitter, JinaUI.H * y - size + jitterY, 600, size * 2), s, size, new Color(.92f, .9f, .98f, a), TextAnchor.MiddleCenter, true);
     }
+    // Over his head in the picture, wherever the window's shape has put it.
+    static Vector3 HeadAbove => Dot(178, 128);
 
     void OnGUI()
     {
@@ -208,34 +413,58 @@ public class PrototypeKongStay : MonoBehaviour
         float t = Elapsed;
         if (Now == Phase.Evening)
         {
-            JinaUI.Fill(new Rect(0, 0, Screen.width, Screen.height), new Color(.75f, .32f, .12f, .22f));
             if (line < Evening.Length)
             {
                 var (who, portrait, words, _) = Evening[line];
-                PrototypeKongVillage.TalkWindow(who, portrait, words, "E 다음", false);
+                // Her stare has no window: the eyes alone, and the silence.
+                if (line != StareLine) PrototypeKongVillage.TalkWindow(who, portrait, words, "E 다음", false, typedAll ? 1000 : t, true);
+                if (line == 0) Black(1 - t / FadeLength);
             }
             else Black(t / FadeLength);
             return;
         }
-        var head = new Vector3(BedLeft + 1.1f, MattressTop + 1.95f, 0);
+        if (Now == Phase.Parting) { DrawParting(t); return; }
         if (Now == Phase.Night)
         {
-            if (t >= .6f && t < 4.4f) Caption("그날 밤, 콩쥐네 손님방.");
-            Noise("쓱… 쓱…", t, 5f, 7.6f);
-            Noise("달그락…", t, 7.8f, 10f);
-            Noise("콰직… 우물우물…", t, 10f, 12.4f);
-            if (t >= 12.6f && t < 15.2f) SpeechBubble.Draw(head, "선비", "…밖에 누구요?");
-            if (t >= LieAt && t < NightLength - FadeLength) Caption("대답은 없었다. 선비는 애써 눈을 감았다.");
-            Black(Mathf.Max(1 - t / FadeLength, (t - (NightLength - FadeLength)) / FadeLength));
+            if (t >= .9f && t < RoomAt - .8f) Caption("그날 밤, 콩쥐네 손님방.", t - .9f);
+            Noise("쓱… 쓱…", t, 8f, 10.6f);
+            Noise("달그락…", t, 10.8f, 13f);
+            Noise("콰직… 우물우물…", t, 15.4f, 18.2f);
+            if (t >= SitAt + .6f && t < CloseAt - .2f) SpeechBubble.Draw(HeadAbove, "선비", "…밖에 누구요?", null, t - SitAt - .6f);
+            if (t >= LieAt + .6f && t < NightLength - FadeLength) Caption("대답은 없었다. 선비는 애써 눈을 감았다.", t - LieAt - .6f);
+            Black(Mathf.Max(Mathf.Max(1 - t / FadeLength, (t - (NightLength - FadeLength)) / FadeLength), Dip(t, RoomAt, CloseAt, CloseEnd)));
         }
         else
         {
-            Noise("꼬끼오—", t, .8f, 3.2f);
-            if (t >= 1.2f && t < 3.4f) Caption("아침이 밝았다.");
-            if (t >= 3.5f && t < 6.9f) SpeechBubble.Draw(head, "선비", "밤새 들리던 그 소리는 무엇이었을까… 집 둘레나 한번 돌아봐야겠군.");
-            Black(Mathf.Max(1 - t / FadeLength, (t - (MorningLength - FadeLength)) / FadeLength));
+            Noise("꼬끼오—", t, .9f, 3.2f, .5f, .14f);
+            if (t >= 1.4f && t < MorningRoomAt - .5f) Caption("아침이 밝았다.", t - 1.4f);
+            if (t >= MorningRoomAt + 1 && t < MorningLength - .1f) SpeechBubble.Draw(HeadAbove, "선비", "…창호지에 구멍이? 어젯밤엔 분명 없었는데.", null, t - MorningRoomAt - 1);
+            Black(Mathf.Max(1 - t / FadeLength, Dip(t, MorningRoomAt)));
         }
-        JinaUI.Text(new Rect(0, 8, Screen.width - 14, 18), "스페이스: 건너뛰기", 12, JinaUI.Faint, TextAnchor.UpperRight);
+        JinaUI.Text(new Rect(0, 8, JinaUI.W - 14, 18), "스페이스: 건너뛰기", 12, JinaUI.Faint, TextAnchor.UpperRight);
+    }
+    void DrawParting(float t)
+    {
+        if (leaving) { Black((Time.time - leftAt) / FadeLength); return; }
+        var (portrait, words) = CurrentPart;
+        float since = typedAll ? 1000 : t;
+        if (portrait == "stare") return;   // her eyes, and nothing said
+        if (portrait == null) { SpeechBubble.Draw(HeadAbove, "선비", words, null, since); JinaUI.Prompt("E: 다음"); return; }
+        var box = PrototypeKongVillage.TalkWindow(Who.Kongjwi, portrait, words, Choosing ? "" : "E 다음", false, since);
+        if (!Choosing || since < 1000 && JinaUI.Visible(words, since) < words.Length) return;
+        // His answer, once she has finished asking: two buttons over the window, to the right of her portrait.
+        float bx = box.x + 280, bw = box.xMax - bx - 14, bh = 44;
+        JinaUI.Fill(new Rect(bx - 10, box.y - bh * 2 - 54, bw + 20, bh * 2 + 46), new Color(.04f, .03f, .06f, .72f));
+        JinaUI.Text(new Rect(bx, box.y - bh * 2 - 48, bw, 26), "어떻게 답할까?", 17, JinaUI.Bright, TextAnchor.MiddleLeft, true);
+        if (JinaUI.Button(new Rect(bx, box.y - bh * 2 - 16, bw, bh), PoliteChoice)) Choose(false);
+        if (JinaUI.Button(new Rect(bx, box.y - bh - 8, bw, bh), BluntChoice)) Choose(true);
+    }
+    // A breath of black at each cut between pictures.
+    static float Dip(float t, params float[] cuts)
+    {
+        float dark = 0;
+        foreach (float c in cuts) dark = Mathf.Max(dark, 1 - Mathf.Abs(t - c) / .35f);
+        return dark;
     }
 
     void OnDestroy() { if (room != null) Destroy(room); }

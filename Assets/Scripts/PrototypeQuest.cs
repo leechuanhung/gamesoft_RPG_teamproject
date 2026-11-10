@@ -10,6 +10,9 @@ public class PrototypeQuest : MonoBehaviour
     public float ElderStruckAt { get; private set; } = -1;
     private bool shrineDialog;
     private string message = "";
+    // The elder's talk, a page at a time (E: next); `message` is the page showing.
+    private string[] pages;
+    private int pageAt;
     private SpriteRenderer villager;
     private float charmReveal = -1;
     const float CharmRevealLength = 3.4f;
@@ -74,6 +77,8 @@ public class PrototypeQuest : MonoBehaviour
         }
         if (IsDialogOpen)
         {
+            if (Input.GetKeyDown(KeyCode.E) && !shrineDialog && !progress.ElderDead && JinaUI.FinishTyping(message)) return;
+            if (Input.GetKeyDown(KeyCode.E) && pages != null && pageAt + 1 < pages.Length) { message = pages[++pageAt]; return; }
             if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.E)) { Close(); return; }
             if (shrineDialog && progress.HeardClue && !progress.HasCharm && progress.Outcome == EncounterOutcome.Unresolved)
             {
@@ -93,20 +98,13 @@ public class PrototypeQuest : MonoBehaviour
         {
             shrineDialog = false;
             progress.HearClue();
-            message = progress.ElderDead
-                ? "노인은 마지막 힘을 다해 도깨비에게 맞섰으나 끝내 쓰러졌다.\n품에 남은 쪽지에는 ‘달, 강, 산’이라 적혀 있다. 비석으로 가려면 서쪽의 몬스터를 모두 물리쳐야 한다."
-                : progress.Outcome == EncounterOutcome.Purified
-                ? "그 도깨비를 살려 주셨구려. 마을의 근심도 덜었으니 참으로 고맙소. 부디 남은 길도 평안히 가시오."
-                : progress.Outcome == EncounterOutcome.Slain
-                ? "도깨비를 물리치셨구려. 이제 마을 사람들도 한숨 놓겠소. 다만 어찌 그리 사나워졌는지, 그 사연은 끝내 알 길이 없구려."
-                : progress.HasCharm
-                ? "부적을 손에 넣으셨구려. 이제 저 도깨비의 저주를 풀어 줄 수도 있겠소.\n허나 칼을 들어 물리칠지, 부적으로 살려 줄지는 선비께서 정할 일이오. 부디 깊이 헤아려 뜻을 정하시오."
-                : "서쪽 길의 요괴들을 모두 물리치면 비석 터의 봉인이 풀릴 것이오. 비석에서 달, 강, 산의 차례로 문양을 짚어 보시오.\n부적이면 동쪽 도깨비의 저주를 풀 수 있소. 허나 도깨비를 마을로 끌어들이지는 마시오. 주민들이 다칠까 두렵소.";
+            pages = ElderPages(progress); pageAt = 0; message = pages[0];
         }
         else if (Near(PrototypeWorld.Stone))
         {
             if (combat.Camp != null && combat.Camp.Remaining > 0) return;
             shrineDialog = true;
+            pages = null;
             message = progress.Outcome != EncounterOutcome.Unresolved ? "이곳의 일은 이미 끝났다.\n다른 선택을 해 보려면 R을 눌러 처음부터 시작하세요."
                 : progress.HasCharm ? "정화 부적을 지니고 있다.\n창을 닫고 도깨비 가까이에서 F를 누르세요."
                 : !progress.HeardClue ? "비석에 낯선 문양이 새겨져 있다.\n먼저 파란 옷을 입은 마을 노인에게 이야기를 들어 보세요."
@@ -116,6 +114,26 @@ public class PrototypeQuest : MonoBehaviour
         IsDialogOpen = true;
         Player.CanMove = false;
     }
+    // What the elder has to say, as the story stands. Each entry is one speech bubble.
+    public static string[] ElderPages(QuestProgress q)
+    {
+        if (q.ElderDead) return new[] { "노인은 마지막 힘을 다해 도깨비에게 맞섰으나 끝내 쓰러졌다.\n품에 남은 쪽지에는 ‘달, 강, 산’이라 적혀 있다. 비석으로 가려면 서쪽의 몬스터를 모두 물리쳐야 한다." };
+        if (q.Outcome == EncounterOutcome.Purified) return new[] {
+            "그 도깨비를 살려 주셨구려. 어젯밤엔 숲에서 울음소리 대신 솔바람 소리가 내려오더이다.",
+            "내 젊어서 저 아이와 씨름도 하고 술도 나눠 마셨다오. …이 늙은이 소원을 선비께서 들어주셨소. 부디 남은 길도 평안히 가시오." };
+        if (q.Outcome == EncounterOutcome.Slain) return new[] {
+            "도깨비를 물리치셨구려. 이제 마을 사람들도 한숨 놓겠소.",
+            "다만… 어찌 그리 사나워졌는지, 그 사연은 끝내 알 길이 없구려. 내 젊은 날의 벗이었는데. 아니오, 선비 탓을 하는 게 아니오." };
+        if (q.HasCharm) return new[] {
+            "부적을 손에 넣으셨구려. 이제 저 도깨비의 저주를 풀어 줄 수도 있겠소.",
+            "허나 칼을 들어 물리칠지, 부적으로 살려 줄지는 선비께서 정할 일이오. 살려 주면 더 위험하고, 베면 더 쉽지. 부디 깊이 헤아려 뜻을 정하시오." };
+        return new[] {
+            "한양 가는 길이시오? 그 길은 지금 막혔소. 동쪽 숲 끝에 가시덤불이 자라 나루터로 가는 길을 틀어막았다오.",
+            "숲의 도깨비 짓이오. 본디 산을 지키던 착한 놈이었는데, 망한 나라의 원한이 씌어 저리 되었소.",
+            "저 아이를 꼭 베어야만 한다면 어쩔 수 없겠지. 허나 풀어 줄 길도 있소. 서쪽 비석 터의 옛 비석에 달, 강, 산의 차례로 손을 얹으면 부적이 나온다 하오.",
+            "비석 터로 가려면 들판의 망령들을 물리쳐야 하오. 그리고 부디, 도깨비를 마을로 끌어들이지는 마시오. 주민들이 다칠까 두렵소." };
+    }
+
     void OnGUI()
     {
         if (combat == null || Player == null) return;
@@ -129,15 +147,15 @@ public class PrototypeQuest : MonoBehaviour
         if (!shrineDialog && !progress.ElderDead)
         {
             // People speak in bubbles; the stone and the elder's note stay as narration boxes.
-            SpeechBubble.Draw(new Vector3(PrototypeWorld.Elder.x, 1.45f, 0), "마을 노인", message, "E / Esc: 닫기 · 대화 중에는 전투가 멈춥니다.");
+            SpeechBubble.Draw(new Vector3(PrototypeWorld.Elder.x, 1.45f, 0), "마을 노인", message, pages != null && pageAt + 1 < pages.Length ? "E: 다음 (" + (pageAt + 1) + "/" + pages.Length + ")" : "E / Esc: 닫기");
             return;
         }
         // The stone and the note: a paper window as tall as its words.
-        float width = Mathf.Min(760, Screen.width - 30), inner = width - JinaUI.WindowPad * 2;
+        float width = Mathf.Min(760, JinaUI.W - 30), inner = width - JinaUI.WindowPad * 2;
         float textHeight = JinaUI.Height(message, 17, inner);
         bool puzzle = shrineDialog && progress.HeardClue;
         float height = JinaUI.TitleHeight + 12 + textHeight + (puzzle ? 34 : 0) + 30 + JinaUI.WindowPad;
-        var box = new Rect((Screen.width - width) / 2, Screen.height - height - 14, width, height);
+        var box = new Rect((JinaUI.W - width) / 2, JinaUI.H - height - 14, width, height);
         var inside = JinaUI.Window(box, shrineDialog ? "오래된 비석" : "노인이 남긴 흔적", "E / Esc 닫기");
         JinaUI.Text(new Rect(inside.x, inside.y, inner, textHeight), message, 17, JinaUI.TextDark);
         if (puzzle)
@@ -149,20 +167,20 @@ public class PrototypeQuest : MonoBehaviour
     // Veil, turning rays, the charm rising into place, rising sparks, then the caption.
     void DrawCharmReveal(float t)
     {
-        var screen = new Rect(0, 0, Screen.width, Screen.height);
+        var screen = new Rect(0, 0, JinaUI.W, JinaUI.H);
         float fadeOut = 1 - Mathf.Clamp01((t - (CharmRevealLength - .6f)) / .6f);
         GUI.color = new Color(0, 0, 0, .7f * Mathf.Clamp01(t / .3f) * fadeOut);
         GUI.DrawTexture(screen, Texture2D.whiteTexture);
         GUI.color = new Color(1, .97f, .85f, Mathf.Clamp01(1 - t / .35f) * .8f);
         GUI.DrawTexture(screen, Texture2D.whiteTexture);
 
-        float unit = Mathf.Max(4, Mathf.Round(Screen.height / 135f));
-        var center = new Vector2(Screen.width / 2f, Screen.height * .42f);
+        const float unit = 5;
+        var center = new Vector2(JinaUI.W / 2f, JinaUI.H * .42f);
         var gold = new Color(1, .84f, .4f, 1);
         var matrix = GUI.matrix;
         for (int i = 0; i < 8; i++)
         {
-            GUIUtility.RotateAroundPivot(t * 18 + i * 45, center);
+            GUIUtility.RotateAroundPivot(t * 18 + i * 45, center * JinaUI.Scale);
             GUI.color = new Color(gold.r, gold.g, gold.b, .22f * Mathf.Clamp01(t / .5f) * fadeOut);
             GUI.DrawTexture(new Rect(center.x - unit, center.y - unit * 60, unit * 2, unit * 60), Texture2D.whiteTexture);
             GUI.matrix = matrix;
@@ -192,14 +210,10 @@ public class PrototypeQuest : MonoBehaviour
         }
 
         float caption = Mathf.Clamp01((t - 1f) / .5f) * fadeOut;
-        var title = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = Mathf.RoundToInt(unit * 7) };
-        title.normal.textColor = new Color(1, .88f, .55f, caption);
-        var sub = new GUIStyle(title) { fontSize = Mathf.RoundToInt(unit * 4) };
-        sub.normal.textColor = new Color(.95f, .92f, .85f, caption);
         GUI.color = Color.white;
         float captionY = center.y + charm.height * unit / 2 + unit * 6;
-        GUI.Label(new Rect(0, captionY, Screen.width, unit * 10), "정화 부적을 얻었다", title);
-        GUI.Label(new Rect(0, captionY + unit * 10, Screen.width, unit * 7), "도깨비 가까이에서 F를 누르면 저주를 풀 수 있다.", sub);
+        JinaUI.Text(new Rect(0, captionY, JinaUI.W, unit * 10), "정화 부적을 얻었다", 35, new Color(1, .88f, .55f, caption), TextAnchor.MiddleCenter, true);
+        JinaUI.Text(new Rect(0, captionY + unit * 10, JinaUI.W, unit * 7), "도깨비 가까이에서 F를 누르면 저주를 풀 수 있다.", 20, new Color(.95f, .92f, .85f, caption), TextAnchor.MiddleCenter);
     }
     void OnDestroy()
     {

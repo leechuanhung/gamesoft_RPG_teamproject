@@ -229,35 +229,63 @@ public static partial class JinaPlayChecks
         foreach(var part in PrototypeKongStay.Evening) Check(JinaArt.Portrait(part.portrait)!=null,"Evening portrait "+part.portrait);
         var evening=PrototypeKongStay.Evening;
         Check(evening[0].who==W && evening[0].line.Contains("묵고") && evening[1].who==PrototypeKongVillage.Who.Patjwi && evening[1].line.Contains("외간")
-            && evening[3].portrait=="kongjwi_stare" && evening[3].line=="……" && evening[5].line.Contains("자고 가시지요"),"She asks, Patjwi makes excuses, Kongjwi stares, Patjwi gives in");
-        foreach(var part in evening) Check(!part.line.Contains("!"),"Nobody raises her voice in the evening");
+            && evening[3].portrait=="kongjwi_stare" && evening[3].line=="……" && evening[5].line.Contains("자고 가든지"),"She asks, Patjwi shouts, Kongjwi stares, Patjwi gives in");
+        Check(evening[1].portrait=="patjwi_angry" && evening[1].line.Contains("무슨 소리야") && evening[5].portrait=="patjwi_down","Patjwi has the face for each");
         stay.NextLine(); stay.NextLine(); stay.NextLine(); stay.NextLine(); Call(kong,"LateUpdate");
         Check(GameObject.Find("팥쥐").transform.position.x>PrototypeWorld.Patjwi.x+.2f,"Patjwi shrinks back from the stare");
-        Capture("stay-evening",new Vector3(PrototypeWorld.Kongjwi.x,1,-10),3);
+        Capture("stay-evening-stare",new Vector3(PrototypeKongStay.RoomX,2,-10),PrototypeKongStay.RoomSize);
 
-        // The night, in the small room of its own, runs by itself; then the morning.
+        // The night runs by itself, picture after picture; then the morning.
         var view=Camera.main.GetComponent<PrototypeView>();
         stay.Show(PrototypeKongStay.Phase.Night,1); Call(view,"LateUpdate");
-        Check(stay.InRoom && Mathf.Abs(Camera.main.transform.position.x-PrototypeKongStay.RoomX)<.01f && Mathf.Abs(Camera.main.orthographicSize-PrototypeKongStay.RoomSize)<.01f,"The camera moves into the guest room");
-        Check(stay.BedSprite.EndsWith("player_sleep"),"He sleeps");
-        Check(Mathf.Abs(stay.BedBody.sprite.pixelsPerUnit-JinaArt.Load(JinaArt.Player).pixelsPerUnit)<.01f,"In bed he keeps his in-game size");
-        Check(stay.BedQuilt.sortingOrder>stay.BedBody.sortingOrder && stay.BedQuilt.bounds.min.x>stay.BedBody.bounds.min.x+.4f && stay.BedQuilt.bounds.min.x<stay.BedBody.bounds.max.x,"The quilt covers him from the chest, his collar showing above it");
+        float fit=Mathf.Max(PrototypeKongStay.RoomSize,PrototypeKongStay.PictureWidth/2/Camera.main.aspect);
+        Check(stay.InRoom && Mathf.Abs(Camera.main.transform.position.x-PrototypeKongStay.RoomX)<.01f && Mathf.Abs(Camera.main.orthographicSize-fit)<.01f,"The camera moves onto the pictures, one filling the screen: "+Camera.main.transform.position.x+" "+Camera.main.orthographicSize+" "+fit+" "+stay.InRoom);
+        Capture("stay-night-house",new Vector3(PrototypeKongStay.RoomX,2,-10),PrototypeKongStay.RoomSize);
+        stay.Show(PrototypeKongStay.Phase.Night,PrototypeKongStay.RoomAt+1);
+        Check(stay.BedSprite=="lie" && !stay.ShadowShown,"He sleeps; nothing at the door yet");
         Capture("stay-night-sleep",new Vector3(PrototypeKongStay.RoomX,2,-10),PrototypeKongStay.RoomSize);
         stay.Show(PrototypeKongStay.Phase.Night,PrototypeKongStay.ShadowStop+.6f);
-        Check(stay.BedSprite.EndsWith("player_sit") && Mathf.Abs(stay.ShadowPosition.x-PrototypeKongStay.DoorX)<.01f,"A shape stands at the door and he sits up");
-        Check(stay.BedQuilt.bounds.min.x<stay.BedBody.transform.position.x-.36f && stay.BedQuilt.bounds.max.y>stay.BedBody.transform.position.y+.75f,"Sitting, the quilt hides where he is cut at the lap");
+        Check(stay.ShadowShown && Mathf.Abs(stay.ShadowX)<.01f && stay.BedSprite=="lie","A shape stands square on the door");
         Capture("stay-night-shadow",new Vector3(PrototypeKongStay.RoomX,2,-10),PrototypeKongStay.RoomSize);
-        stay.Show(PrototypeKongStay.Phase.Morning,2);
-        Check(stay.BedSprite.EndsWith("player_sit") && combat.Paused,"Morning comes");
+        stay.Show(PrototypeKongStay.Phase.Night,PrototypeKongStay.SitAt+1);
+        Check(stay.BedSprite=="sit","He sits up");
+        Capture("stay-night-sit",new Vector3(PrototypeKongStay.RoomX,2,-10),PrototypeKongStay.RoomSize);
+        stay.Show(PrototypeKongStay.Phase.Night,PrototypeKongStay.EyeAt+.5f);
+        Check(stay.HoleShown && stay.EyeShown,"The close shot: a hole in the paper, an eye at it");
+        Capture("stay-night-eye",new Vector3(PrototypeKongStay.RoomX,2,-10),PrototypeKongStay.RoomSize);
+        stay.Show(PrototypeKongStay.Phase.Night,PrototypeKongStay.LieAt+1);
+        Check(stay.BedSprite=="lie" && !stay.ShadowShown && !stay.EyeShown,"It has gone; he lies down again");
+        stay.Show(PrototypeKongStay.Phase.Morning,1);
+        Check(combat.Paused,"Morning comes");
+        Capture("stay-morning-road",new Vector3(PrototypeKongStay.RoomX,2,-10),PrototypeKongStay.RoomSize);
+        stay.Show(PrototypeKongStay.Phase.Morning,PrototypeKongStay.MorningRoomAt+1);
+        Check(stay.BedSprite=="sit" && combat.Paused,"He is up, in the sun, the hole still in the door");
         Capture("stay-morning",new Vector3(PrototypeKongStay.RoomX,2,-10),PrototypeKongStay.RoomSize);
+        // Her plea, his answer, the silence, the hill: he cannot leave without choosing.
+        stay.Show(PrototypeKongStay.Phase.Parting,0);
+        Check(combat.Paused && !stay.Choosing && stay.PartingLines==PrototypeKongStay.PartingAsk,"She asks him to stay on");
+        stay.NextPart();
+        Check(stay.Choosing,"He has to answer");
+        stay.NextPart();
+        Check(stay.Choosing && stay.PartingPage==PrototypeKongStay.PartingAsk.Length-1,"There is no going on without an answer");
+        foreach(var way in new[]{PrototypeKongStay.PartingPolite,PrototypeKongStay.PartingBlunt})
+        {
+            Check(System.Array.Exists(way,l=>l.line=="……"),"She falls silent");
+            Check(System.Array.Exists(way,l=>l.line.Contains("뒷산")),"She asks him up to the hill");
+            Check(way[0].portrait==null && way[way.Length-1].portrait==null,"He answers first and has the last thought");
+            foreach(var l in way) if(l.portrait!=null && l.portrait!="stare") Check(JinaArt.Portrait(l.portrait)!=null,"Parting portrait "+l.portrait);
+        }
+        stay.Choose(true);
+        Check(stay.Blunt && !stay.Choosing && stay.PartingLines==PrototypeKongStay.PartingBlunt,"He says it to her face");
         stay.Wake(); Call(view,"LateUpdate");
+        Check(kong.Blunt,"She remembers how he answered");
         Check(!stay.Playing && !stay.InRoom && kong.Stayed && combat.player.CanMove && Mathf.Abs(player.position.x-PrototypeWorld.KongHouseX)<.01f && !combat.Paused,"He comes out of the house in control");
         Check(Mathf.Abs(Camera.main.transform.position.x-view.ViewX(player.position.x))<.01f && Mathf.Abs(Camera.main.orthographicSize-5.5f)<.01f,"The camera is back on the village");
         Check(GameObject.Find("잔치 명단")!=null,"Now a paper lies by the crocks");
         Capture("kong-morning",new Vector3(PrototypeWorld.JangdokX-3,2,-10),5.5f);
 
         // Morning talk does not repeat the night; the three clues, then her mask drops because she is caught.
-        kong.Open(W); Check(Field<string[]>(kong,"lines")[0].Contains("주무셨"),"Kongjwi asks how he slept");
+        kong.Open(W); Check(Field<string[]>(kong,"lines")[0].Contains("뒷산"),"Kongjwi speaks of the hill");
         for(int i=0,n=Field<string[]>(kong,"lines").Length;i<n;i++) kong.Next();
         Check(!stay.Playing && !kong.Revealed,"No second night");
         kong.Open(PrototypeKongVillage.Who.Patjwi); Check(kong.Portrait=="patjwi" && JinaArt.Portrait("patjwi")!=null,"Patjwi speaks with her portrait");
@@ -275,4 +303,44 @@ public static partial class JinaPlayChecks
         Check(!kong.Revealed && !kong.Stayed && kong.Clues==0 && !kong.IsOpen && !stay.Playing && GameObject.Find("잔치 명단")==null,"Restart forgets the clues and the night");
     }
     static string Next(PrototypeKongVillage kong) { kong.Next(); return kong.Portrait; }
+
+    // Words and small things added around the story; the sword's three steps; what the world stands on.
+    static void Polish()
+    {
+        combat.Restart();
+        var fresh=new QuestProgress();
+        Check(PrototypeQuest.ElderPages(fresh).Length>=3 && string.Join("",PrototypeQuest.ElderPages(fresh)).Contains("달, 강, 산"),"The elder explains the way a page at a time, and gives the order of the signs");
+        Check(PrototypeEnding.Coda(true,true,true)[0].Contains("은비녀") && PrototypeEnding.Coda(false,false,false)[0].Contains("잔치"),"The ending's last words follow what he saw in Kongbat");
+        var W=PrototypeKongVillage.Who.Patjwi;
+        Check(string.Join("",PrototypeKongVillage.Lines(W,true,true,true,true,false,true)).Contains("비녀"),"Once her sister is unmasked Patjwi points him to the hairpin");
+        var kongjwiAfter=PrototypeKongVillage.Lines(PrototypeKongVillage.Who.Kongjwi,true,true,true,true,false,true);
+        Check(kongjwiAfter.Length==2 && kongjwiAfter[1].Contains("뒷산"),"Unmasked, she only reminds him of the hill");
+        Check(string.Join("",PrototypeKongVillage.Lines(PrototypeKongVillage.Who.Kongjwi,false,false,false,false,false,true,true))!=string.Join("",PrototypeKongVillage.Lines(PrototypeKongVillage.Who.Kongjwi,false,false,false,false,false,true,false)),"She speaks differently once he has said it to her face");
+        Check(string.Join("",PrototypeKongVillage.Lines(W,false,false,false,true,false,true)).Contains("배를 못 타"),"Patjwi tells him she cannot follow by boat");
+        foreach(var who in new[]{PrototypeKongVillage.Who.Anak,PrototypeKongVillage.Who.Namu})
+        {
+            string before=string.Join("",PrototypeKongVillage.Lines(who,false,false,false,false,false,false)), after=string.Join("",PrototypeKongVillage.Lines(who,false,false,false,false,false,true)), last=string.Join("",PrototypeKongVillage.Lines(who,true,true,true,true,false,true));
+            Check(before!=after && after!=last,"The villagers' talk moves with the story");
+        }
+        foreach(var spot in PrototypeLore.Spots) Check(spot.x>-70 && spot.x<PrototypeWorld.PassEnd && !string.IsNullOrEmpty(spot.said) && !string.IsNullOrEmpty(spot.prompt),"Lore spot "+spot.prompt);
+        var lore=combat.Lore; var p=combat.player.transform;
+        p.position=new Vector3(PrototypeLore.Spots[0].x,p.position.y,0);
+        Check(lore.Near()==0,"He can read what he stands by");
+        p.position=new Vector3(PrototypeWorld.Spawn.x,p.position.y,0);
+        Check(SeonbiVisual.SwordLength(0)==SeonbiVisual.SwordDuration && SeonbiVisual.SwordHit(0)==SeonbiVisual.HitDelay,"The first cut is as it always was");
+        Check(SeonbiVisual.SwordLength(1)<SeonbiVisual.SwordLength(0) && SeonbiVisual.SwordLength(2)>SeonbiVisual.SwordLength(0),"The second is quicker, the third heavier");
+        for(int i=0;i<3;i++) Check(SeonbiVisual.SwordHit(i)<SeonbiVisual.SwordLength(i),"Each blow lands within its swing");
+        foreach(var art in new[]{"stele","camp","village","forest","ferry","kong","pass"})
+        {
+            Check(GameObject.Find("지면 "+art)!=null && GameObject.Find("하늘 "+art)!=null,"Ground and sky for "+art);
+            Check(JinaArt.Strip("ground_"+art)!=null,"Ground art for "+art);
+        }
+        foreach(var part in new[]{"arc_0","arc_2","spark_3","dust_3","ring_0","glint","seal"}) Check(JinaArt.Fx(part)!=null,"Effect "+part);
+        foreach(var part in new[]{"grain_paper","grain_wood","grain_night","corner","vignette","icon_sword","icon_coin"}) Check(JinaUI.Art(part)!=null,"UI art "+part);
+        foreach(var part in new[]{"ext_evening","ext_night","ext_morning","room_night","room_morning","stare","close_door","close_eye_2","bed_lie_night","quilt_sit_morning","shadow_2"}) Check(JinaArt.Night(part)!=null,"Picture "+part);
+        // Sparks and numbers leave no trace after a restart, and the clock is never left held.
+        JinaFx.Hit(Vector3.zero,1,Color.white); JinaFx.Number(Vector3.zero,10,Color.white); JinaFx.Shock(Vector3.zero);
+        combat.Restart();
+        Check(Time.timeScale==1,"The clock runs at full speed after a restart");
+    }
 }

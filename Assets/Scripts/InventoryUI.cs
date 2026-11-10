@@ -106,7 +106,7 @@ public class InventoryUI : MonoBehaviour
             return;
 
         previousCanMove = combat.player.CanMove;
-        previousTimeScale = Time.timeScale;
+        previousTimeScale = Time.timeScale < .5f ? 1f : Time.timeScale;
 
         isOpen = true;
         message = "";
@@ -169,7 +169,7 @@ public class InventoryUI : MonoBehaviour
         int rows = Mathf.CeilToInt(inventory.MaxSlots / (float)Columns);
         float gridWidth = Columns * cell + (Columns - 1) * gap, gridHeight = rows * cell + (rows - 1) * gap;
         float width = gridWidth + WindowPad * 2, height = TitleHeight + 12 + gridHeight + 12 + 28 + WindowPad;
-        var window = new Rect(Screen.width - width - 12, 12, width, height);
+        var window = new Rect(JinaUI.W - width - 12, 12, width, height);
         var inside = Window(window, "보따리", "I / Esc 닫기");
 
         // 아이템 칸: 아이콘과 개수. 누르면 고르고, 고른 칸을 다시 누르면 쓴다. 마우스를 올리면 그 칸의 설명이 뜬다.

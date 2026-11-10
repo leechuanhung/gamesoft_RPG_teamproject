@@ -49,6 +49,12 @@ public partial class PrototypeCombat : MonoBehaviour
     private float windupUntil = -1;
     private Vector2 lockedStrike;
     private int attackFacing = 1;
+    // The sword's three steps: the first cut, a rising return, then a heavy finishing blow; each must follow in time.
+    private int comboStep = -1, pendingStep;
+    private float comboUntil;
+    public const float ComboWindow = .3f;
+    public int ComboStep => comboStep;
+    private float lastPlayerHit = -1;
     private SeonbiVisual playerVisual;
     public PrototypeQuest Quest { get; private set; }
     public bool UsingBow { get; private set; }
@@ -88,8 +94,19 @@ public partial class PrototypeCombat : MonoBehaviour
     public PrototypePass Pass { get; private set; }
     public PrototypeKongVillage Kong { get; private set; }
     public PrototypeKongStay Stay { get; private set; }
+    public PrototypeAmbience Ambience { get; private set; }
+    public PrototypeLore Lore { get; private set; }
     public bool Paused => (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || InventoryPauseActive;
-    public void RestoreHealth(int amount) { if (PlayerHealth > 0) PlayerHealth = Mathf.Clamp(PlayerHealth + amount, 1, MaxPlayerHealth); }
+    public void RestoreHealth(int amount)
+    {
+        if (PlayerHealth <= 0) return;
+        int before = PlayerHealth;
+        PlayerHealth = Mathf.Clamp(PlayerHealth + amount, 1, MaxPlayerHealth);
+        if (PlayerHealth <= before) return;
+        var chest = player.transform.position + Vector3.up * .3f;
+        JinaFx.Rise(chest, 12, new Color(.62f, 1, .66f), .5f, 1.5f, .8f);
+        JinaFx.Number(chest + Vector3.up * .7f, PlayerHealth - before, new Color(.62f, 1, .66f));
+    }
 
     void Start()
     {
@@ -133,6 +150,10 @@ public partial class PrototypeCombat : MonoBehaviour
         Kong.combat = this;
         Stay = gameObject.AddComponent<PrototypeKongStay>();
         Stay.combat = this;
+        Ambience = gameObject.AddComponent<PrototypeAmbience>();
+        Ambience.combat = this;
+        Lore = gameObject.AddComponent<PrototypeLore>();
+        Lore.combat = this;
         Restart();
         Intro = gameObject.AddComponent<PrototypeIntro>();
         Intro.combat = this;
@@ -169,6 +190,9 @@ public partial class PrototypeCombat : MonoBehaviour
         Move = BossMove.None; nextMoveAt = Time.time + MoveCooldown; moveCount = 0;
         BossDownAt = PurifiedAt = PlayerDownAt = PlayerHurtAt = WardBrokeAt = CoinsFoundAt = -1;
         Warded = false;
+        comboStep = -1; comboUntil = 0; lastPlayerHit = -1;
+        JinaFx.Clear();
+        PrototypeView.Shake(0, .01f);
         playerArt.color = playerColor;
         player.Respawn();
         UsingBow = false;
@@ -194,6 +218,7 @@ public partial class PrototypeCombat : MonoBehaviour
         if (Pass != null) Pass.ResetPass();
         if (Kong != null) Kong.ResetVillage();
         if (Stay != null) Stay.ResetStay();
+        if (Lore != null) Lore.ResetLore();
         Restarted?.Invoke();
     }
 
@@ -226,13 +251,19 @@ public partial class PrototypeCombat : MonoBehaviour
             noArrowsUntil = Time.time + 1.5f;
         else if ((Input.GetKeyDown(KeyCode.J) || Input.GetMouseButtonDown(0)) && Time.time >= nextAttack && !player.Dodging)
         {
-            nextAttack = Time.time + (UsingBow ? .65f : .4f);
+            // Another swing soon enough after the last goes on to the next step; otherwise it starts over.
+            pendingStep = UsingBow ? 0 : Time.time <= comboUntil ? (comboStep + 1) % 3 : 0;
+            comboStep = UsingBow ? -1 : pendingStep;
+            float swing = SeonbiVisual.SwordLength(pendingStep);
+            nextAttack = Time.time + (UsingBow ? .65f : swing);
+            comboUntil = UsingBow ? 0 : nextAttack + ComboWindow;
+            player.SlowUntil = Time.time + (UsingBow ? .3f : swing);
             attackFacing = player.Facing;
             pendingBow = UsingBow;
             pendingAim = !UsingBow ? 0 : Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow) ? 1
                 : Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow) ? -1 : 0;
-            playerImpactAt = Time.time + (pendingBow ? SeonbiVisual.BowReleaseDelay : SeonbiVisual.HitDelay);
-            if (playerVisual != null) playerVisual.Attack(UsingBow, attackFacing, pendingAim);
+            playerImpactAt = Time.time + (pendingBow ? SeonbiVisual.BowReleaseDelay : SeonbiVisual.SwordHit(pendingStep));
+            if (playerVisual != null) playerVisual.Attack(UsingBow, attackFacing, pendingAim, pendingStep);
         }
         if (playerImpactAt >= 0 && Time.time >= playerImpactAt)
         {
@@ -241,10 +272,13 @@ public partial class PrototypeCombat : MonoBehaviour
             else
             {
                 slashUntil = Time.time + .13f;
-                Vector2 center = (Vector2)player.transform.position + Vector2.right * attackFacing * .95f;
-                var attackBounds = new Bounds(center, new Vector3(1.35f, .9f, 1));
-                if (!EnemyDefeated && attackBounds.Intersects(enemy.bounds)) DamageEnemy(SwordDamage);
-                foreach (var camp in Camps) if (camp != null) camp.Slash(attackBounds);
+                bool heavy = pendingStep == 2;
+                Vector2 center = (Vector2)player.transform.position + Vector2.right * attackFacing * (heavy ? 1.1f : .95f);
+                var attackBounds = new Bounds(center, heavy ? new Vector3(1.75f, 1.15f, 1) : new Vector3(1.35f, .9f, 1));
+                bool landed = false;
+                if (!EnemyDefeated && attackBounds.Intersects(enemy.bounds)) { DamageEnemy(SwordDamage); landed = true; }
+                foreach (var camp in Camps) if (camp != null && camp.Slash(attackBounds)) landed = true;
+                SwordFeel(pendingStep, landed);
             }
         }
         AdvanceArrows(Time.deltaTime);
@@ -258,12 +292,42 @@ public partial class PrototypeCombat : MonoBehaviour
         UpdateBoss();
     }
 
+    // What each step of the sword looks like when it lands: where its crescent falls, how hard the world holds still.
+    void SwordFeel(int step, bool landed)
+    {
+        var feet = player.transform.position; feet.y = playerArt.bounds.min.y;
+        if (step == 1) JinaFx.Arc(feet + new Vector3(attackFacing * .78f, .92f, 0), attackFacing, 58, .9f, new Color(.92f, .96f, 1));
+        if (step == 2)
+        {
+            JinaFx.Arc(feet + new Vector3(attackFacing * 1.25f, .9f, 0), attackFacing, 0, 1.3f, new Color(1, .93f, .68f), .22f);
+            JinaFx.Dust(feet + Vector3.right * -attackFacing * .4f, -attackFacing * 1.4f, 1.2f);
+            JinaFx.Dust(feet, -attackFacing * .6f, .9f);
+        }
+        if (player.IsGrounded) player.Lunge(attackFacing, step == 2 ? 5f : 1.6f, step == 2 ? .14f : .1f);
+        if (!landed) return;
+        JinaFx.Stop(step == 2 ? .09f : .045f);
+        PrototypeView.Shake(step == 2 ? .11f : .045f, step == 2 ? .2f : .1f);
+    }
+
     public void HurtPlayer(int attack = MonsterAttack)
     {
         if (PlayerHealth <= 0 || Time.time < invulnerableUntil || player.Dodging) return;
-        if (Warded) { Warded = false; WardBrokeAt = Time.time; invulnerableUntil = Time.time + 1; return; }
+        var chest = player.transform.position + Vector3.up * .25f;
+        if (Warded)
+        {
+            Warded = false; WardBrokeAt = Time.time; invulnerableUntil = Time.time + 1;
+            JinaFx.Glint(chest, new Color(1, .86f, .4f));
+            JinaFx.Dots(chest, 12, new Color(1, .8f, .36f), 3, .5f);
+            return;
+        }
+        int before = PlayerHealth;
         PlayerHealth = Mathf.Max(0, PlayerHealth - CalcDamage(attack, PlayerDefense));
         invulnerableUntil = Time.time + 1;
+        lastPlayerHit = Time.time;
+        JinaFx.Hit(chest, -player.Facing, new Color(1, .42f, .34f), 1.1f);
+        JinaFx.Number(chest + Vector3.up * .5f, before - PlayerHealth, new Color(1, .46f, .38f), 22);
+        PrototypeView.Shake(.09f, .2f);
+        JinaFx.Stop(.06f);
         if (PlayerHealth > 0) { PlayerHurtAt = Time.time; return; }
         PlayerDownAt = Time.time;
         player.CanMove = false;

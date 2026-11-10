@@ -68,6 +68,7 @@ public static partial class JinaPlayChecks
                 Ferry();
                 Pass();
                 KongVillage();
+                Polish();
                 PlayerFall();
                 Endings();
                 Check(!combat.BossPurified && !combat.EnemyDefeated && combat.EnemyHealth==PrototypeCombat.EnemyMaxHealth,"Restart restores hostile boss");

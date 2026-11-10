@@ -54,7 +54,7 @@ public static class JinaArt
         {
             var idle=Load(idlePath);
             var feet=new Vector2(idle.rect.x+idle.pivot.x+pad,idle.rect.y+idle.pivot.y);
-            if(path.EndsWith("_corpse") || path.EndsWith("_sleep")) anchor=new Vector2(t.width-feet.y,feet.x);
+            if(path.EndsWith("_corpse")) anchor=new Vector2(t.width-feet.y,feet.x);
             // Face down is the other quarter turn: his feet go to the left edge, the pivot under his front.
             else if(path.EndsWith("_facedown")) anchor=new Vector2(feet.y,t.height-feet.x);
             else { rect=canvas; anchor=feet; }
@@ -86,7 +86,6 @@ public static class JinaArt
     {
         idle=null; pad=0;
         if(path.StartsWith("01_Player/player_hit_") || path=="01_Player/player_corpse" || path=="01_Player/player_dodge") { idle=Player; pad=48; }
-        else if(path=="01_Player/player_sit" || path=="01_Player/player_sleep") idle=Player;
         else if(path.StartsWith("01_Player/player_ko_") || path=="01_Player/player_facedown") { idle=Player; pad=240; }
         else if(path.StartsWith("07_Ghost/ghost_death_") || path.StartsWith("07_Ghost/ghost_attack_")) idle=Ghost;
         else if(path.StartsWith("08_Village_Elder/elder_")) idle=Elder;
@@ -110,6 +109,26 @@ public static class JinaArt
     {
         var t=Texture("13_Props/"+name);
         return Sprite.Create(t,new Rect(0,0,t.width,t.height),new Vector2(.5f,0),PropPixelsPerUnit,0,SpriteMeshType.FullRect);
+    });
+
+    // An effect (20_Fx), hung by its centre, at the props' dot size.
+    public static Sprite Fx(string name) => Cached("20_Fx/"+name,()=>
+    {
+        var t=Texture("20_Fx/"+name);
+        return Sprite.Create(t,new Rect(0,0,t.width,t.height),new Vector2(.5f,.5f),PropPixelsPerUnit,0,SpriteMeshType.FullRect);
+    });
+    // A strip of ground (13_Props/ground_*), hung from its top edge so it can be tiled to any width.
+    public static Sprite Strip(string name) => Cached("13_Props/"+name+":strip",()=>
+    {
+        var t=Texture("13_Props/"+name);
+        return Sprite.Create(t,new Rect(0,0,t.width,t.height),new Vector2(.5f,1),PropPixelsPerUnit,0,SpriteMeshType.FullRect);
+    });
+
+    // A cutscene picture (18_Night): 64 dots to the unit, hung by its centre.
+    public static Sprite Night(string name) => Cached("18_Night/"+name,()=>
+    {
+        var t=Texture("18_Night/"+name);
+        return Sprite.Create(t,new Rect(0,0,t.width,t.height),new Vector2(.5f,.5f),64,0,SpriteMeshType.FullRect);
     });
 
     // A prop that turns about its middle (the rolling boulder).

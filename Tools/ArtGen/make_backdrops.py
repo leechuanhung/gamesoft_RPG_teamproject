@@ -12,8 +12,8 @@ OUT = sys.argv[1]
 preview = sys.argv[sys.argv.index('--preview') + 1] if '--preview' in sys.argv else None
 PPU = 546 / 1.9 / 12            # art pixels per unit, as JinaArt.PropPixelsPerUnit
 # Area spans in units (PrototypeWorld): the layers are 4 units wider and fade out at their ends.
-AREAS = {'stele': 30, 'camp': 28, 'village': 40, 'forest': 36, 'ferry': 46, 'pass': 48}
-SKY = {'stele': (43, 46, 71), 'camp': (77, 51, 51), 'village': (61, 77, 87), 'forest': (26, 59, 51), 'ferry': (58, 76, 94), 'pass': (70, 66, 86)}
+AREAS = {'stele': 30, 'camp': 28, 'village': 40, 'forest': 36, 'ferry': 46, 'kong': 40, 'pass': 48}
+SKY = {'stele': (43, 46, 71), 'camp': (118, 58, 46), 'village': (112, 146, 164), 'forest': (30, 66, 54), 'ferry': (114, 136, 150), 'kong': (176, 150, 110), 'pass': (116, 74, 100)}
 
 def mix(a, b, t): return tuple(int(round(x + (y - x) * t)) for x, y in zip(a, b))
 def lighter(c, t): return mix(c, (236, 232, 220), t)
@@ -54,6 +54,19 @@ def save(c, name):
     return f"{OUT}/{name}.png"
 
 def width(area): return int(round((AREAS[area] + 4) * PPU))
+
+def leaf(near, x, r, rng, colour, shade, light):
+    """A tree showing over the wall: a short trunk and a lumpy crown of overlapping clumps, lit from the upper left."""
+    near.paint(near.rect(x - 2, 38, x + 2, 50), (72, 66, 62), inside=False)
+    clumps = [(x + int(rng.integers(-r, r)), 44 - int(rng.integers(0, 2 * r)), int(rng.integers(r // 2, r))) for _ in range(9)]
+    crown = near.ellipse(x - r, 46 - 2 * r, x + r, 46)
+    for cx, cy, cr in clumps: crown |= near.ellipse(cx - cr, cy - cr, cx + cr, cy + cr)
+    crown &= near.rect(0, 0, near.w - 1, 49)
+    near.paint(crown, colour, inside=False)
+    for cx, cy, cr in clumps:
+        near.paint(near.ellipse(cx - cr + cr // 2, cy, cx + cr, cy + cr) & crown, shade, inside=False)
+    for cx, cy, cr in clumps:
+        near.paint(near.ellipse(cx - cr + 1, cy - cr + 1, cx, cy - cr // 2) & crown, light, inside=False)
 
 def stele():
     sky, w = SKY['stele'], width('stele')
@@ -112,21 +125,16 @@ def camp():
 def village():
     sky, w = SKY['village'], width('village')
     far = Canvas(w, 150)
-    mountains(far, ridge(w, 80, [(24, 330), (12, 120)], 11), lighter(sky, .16), lighter(sky, .09))
-    mountains(far, ridge(w, 50, [(12, 220), (6, 80)], 12), lighter(sky, .07), lighter(sky, .02))
+    mountains(far, ridge(w, 80, [(24, 330), (12, 120)], 11), (142, 170, 180), (124, 154, 168))
+    mountains(far, ridge(w, 50, [(12, 220), (6, 80)], 12), (112, 146, 138), (96, 130, 126))
     near = Canvas(w, 70)
     # trees showing over the wall, then a low dry-stone wall (doldam) with tiles along its top and a few gaps
     rng = np.random.default_rng(15)
     for x in range(40, w - 40, 110):
         x += int(rng.integers(-20, 20)); r = int(rng.integers(14, 20))
-        crown = near.ellipse(x - r, 46 - 2 * r, x + r, 46) | near.ellipse(x - r - 8, 40 - r, x + 4, 50)
-        near.paint(near.rect(x - 2, 40, x + 2, 50), darker(sky, .3), inside=False)
-        near.paint(crown, darker(sky, .18), inside=False)
-        near.paint(crown & near.rect(x + 4, 0, w, 70), darker(sky, .28), inside=False)
-    stone, stone2, top = mix(sky, (150, 148, 160), .55), mix(sky, (112, 110, 124), .55), mix(sky, (70, 66, 78), .5)
-    gaps = [(int(w * f), int(w * f) + 26) for f in (.22, .61)]
+        leaf(near, x, r, rng, (86, 120, 92), (68, 100, 84), (108, 142, 100))
+    stone, stone2, top = (148, 150, 150), (116, 120, 124), (78, 80, 92)
     keep = near.rect(0, 0, w - 1, 69)
-    for g0, g1 in gaps: keep &= ~near.rect(g0, 0, g1, 69)
     wall = near.rect(0, 50, w - 1, 69) & keep
     near.paint(wall, stone, inside=False)
     for row, y in enumerate(range(50, 70, 5)):
@@ -135,6 +143,27 @@ def village():
     near.paint(near.rect(0, 46, w - 1, 49) & keep, top, inside=False)
     for x in range(0, w, 6): near.paint(near.rect(x, 45, x + 3, 45) & keep, top, inside=False)
     return save(far, 'bg_village_far'), save(near, 'bg_village_near')
+
+def kong():
+    """Low golden hills, a stone wall with trees over it, the same wall as the first village but a warmer hour."""
+    sky, w = SKY['kong'], width('kong')
+    far = Canvas(w, 150)
+    mountains(far, ridge(w, 70, [(20, 300), (10, 110)], 41), (176, 164, 138), (160, 148, 128))
+    mountains(far, ridge(w, 44, [(10, 210), (5, 74)], 42), (148, 146, 104), (130, 130, 96))
+    near = Canvas(w, 70)
+    rng = np.random.default_rng(43)
+    for x in range(30, w - 30, 96):
+        x += int(rng.integers(-18, 18)); r = int(rng.integers(13, 19))
+        leaf(near, x, r, rng, (112, 130, 72), (90, 110, 66), (144, 160, 84))
+    stone, stone2, top = (160, 146, 122), (130, 116, 98), (92, 78, 70)
+    keep = near.rect(0, 0, w - 1, 69)
+    near.paint(near.rect(0, 50, w - 1, 69), stone, inside=False)
+    for row, y in enumerate(range(50, 70, 5)):
+        near.paint(near.rect(0, y, w - 1, y), stone2, inside=False)
+        for x in range((row % 2) * 7, w, 14): near.paint(near.rect(x, y, x, y + 4), stone2, inside=False)
+    near.paint(near.rect(0, 46, w - 1, 49), top, inside=False)
+    for x in range(0, w, 6): near.paint(near.rect(x, 45, x + 3, 45), top, inside=False)
+    return save(far, 'bg_kong_far'), save(near, 'bg_kong_near')
 
 def forest():
     sky, w = SKY['forest'], width('forest')
@@ -159,15 +188,20 @@ def ferry():
     for x in range(30, w - 30, 150):
         x += int(rng.integers(-24, 24)); h = int(rng.integers(70, 96))
         trunk = near.poly([(x - 3, 109), (x + 3, 109), (x + 1, 109 - h), (x - 1, 109 - h)])
-        near.paint(trunk, darker(sky, .32), inside=False)
+        near.paint(trunk, (72, 76, 74), inside=False)
         top = 109 - h
+        leaf_a, leaf_b, leaf_c = (92, 128, 106), (76, 110, 96), (116, 150, 116)
         crown = near.ellipse(x - 30, top - 10, x + 30, top + 14)
-        near.paint(crown, darker(sky, .2), inside=False)
-        near.paint(crown & near.rect(x + 8, 0, w, 200), darker(sky, .3), inside=False)
+        for k in range(7):
+            cx = x + int(rng.integers(-26, 26)); cy = top + int(rng.integers(-8, 8)); r = int(rng.integers(6, 12))
+            crown |= near.ellipse(cx - r, cy - r, cx + r, cy + r)
+        near.paint(crown, leaf_a, inside=False)
+        near.paint(crown & near.rect(x + 8, 0, w, 200), leaf_b, inside=False)
+        near.paint(near.ellipse(x - 26, top - 8, x + 2, top + 2) & crown, leaf_c, inside=False)
         for dx in range(-28, 29, 3):   # long strands hanging from the crown (none past the left edge: rect() would wrap)
             if x + dx < 0: continue
             length = 34 + (28 - abs(dx)) + (dx * 7) % 11
-            near.paint(near.rect(x + dx, top + 4, x + dx + 1, top + length), darker(sky, .2 if dx < 8 else .3), inside=False)
+            near.paint(near.rect(x + dx, top + 4, x + dx + 1, top + length), leaf_a if dx < 8 else leaf_b, inside=False)
     return save(far, 'bg_ferry_far'), save(near, 'bg_ferry_near')
 
 def pass_():
@@ -183,7 +217,7 @@ def pass_():
         pine(near, x + int(rng.integers(-8, 8)), 109, int(rng.integers(50, 84)), darker(sky, .22), darker(sky, .34))
     return save(far, 'bg_pass_far'), save(near, 'bg_pass_near')
 
-names = [p for fn in (stele, camp, village, forest, ferry, pass_) for p in fn()]
+names = [p for fn in (stele, camp, village, kong, forest, ferry, pass_) for p in fn()]
 if preview:
     ims = [Image.open(p).convert("RGBA") for p in names]
     for area in AREAS:

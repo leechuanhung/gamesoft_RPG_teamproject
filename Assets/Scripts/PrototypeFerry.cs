@@ -25,6 +25,7 @@ public class PrototypeFerry : MonoBehaviour
     public PrototypeBoat Boat { get; private set; }
     private SpriteRenderer marker;
     private string[] lines;
+    private bool talked;
 
     public bool PlayerHere => combat != null && combat.player.transform.position.x >= PrototypeWorld.FerryStart && combat.player.transform.position.x < PrototypeWorld.FerryEnd;
     bool AtThorns => ThornsShut && combat.player.transform.position.x > PrototypeWorld.FerryStart - 3;
@@ -61,16 +62,20 @@ public class PrototypeFerry : MonoBehaviour
 
     public void ResetFerry()
     {
-        IsOpen = false; Page = 0; SplashAt = ClearedAt = -1;
+        IsOpen = false; Page = 0; SplashAt = ClearedAt = -1; talked = false;
         if (Boat != null) Boat.Moor(new Vector2(BoatLeft, Deck - DeckHeight));
         if (thornWall != null) { thornWall.enabled = true; thorns.enabled = true; thorns.color = Color.white; }
     }
 
     // What he says when the seonbi arrives, always with the forest already quiet: the elder's death first if it
     // happened, then what he makes of the forest, then the way across and the rumour about the river.
-    public static string[] Lines(QuestProgress q)
+    public static string[] Lines(QuestProgress q, bool again = false, bool keepsake = false, bool crossed = false)
     {
         var said = new System.Collections.Generic.List<string>();
+        // Coming back: he does not tell it all again.
+        if (keepsake) { said.Add("그 비녀… 어디서 났소? 물귀신을 그리 베어 내더니, 강이 내어 준 것이로구려."); said.Add("부잣집 안주인이 꼭 그런 걸 꽂고 다녔소. 임자에게 돌려줄 날이 있을 게요."); return said.ToArray(); }
+        if (again && crossed) { said.Add("강 건너는 어떻습디까? …말 안 해도 낯빛을 보니 알겠구려."); said.Add("콩밭 마을 사람들은 좋은 사람들이오. 그래서 더 걱정이오."); return said.ToArray(); }
+        if (again) { said.Add("배는 쉬지 않고 오가니 편히 타시오. 강물 소리나 듣다 가시구려."); said.Add("밤마다 우는 그 소리, 물귀신을 열쯤 베어 내면 잦아든다는 말이 있소. 뱃사람들 말이니 믿거나 말거나."); return said.ToArray(); }
         if (q.ElderDead) said.Add("마을 노인장 소식은 바람결에 들었소… 그분은 젊어서 이 나루를 지키던 분이오.");
         if (q.Outcome == EncounterOutcome.Purified)
         {
@@ -104,7 +109,7 @@ public class PrototypeFerry : MonoBehaviour
         if (IsOpen)
         {
             if (Input.GetKeyDown(KeyCode.Escape)) Close();
-            else if (Input.GetKeyDown(KeyCode.E)) Next();
+            else if (Input.GetKeyDown(KeyCode.E) && !JinaUI.FinishTyping(lines[Page])) { Next(); }
         }
         else if (Near && Input.GetKeyDown(KeyCode.E) && !combat.Paused) Open();
         Splash();
@@ -112,7 +117,9 @@ public class PrototypeFerry : MonoBehaviour
 
     public void Open()
     {
-        lines = Lines(combat.Quest.progress); Page = 0; IsOpen = true;
+        lines = Lines(combat.Quest.progress, talked, JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0, combat.Kong != null && (combat.Kong.Invited || combat.Kong.Stayed));
+        talked = true;
+        Page = 0; IsOpen = true;
         combat.player.CanMove = false;
     }
     public void Next() { if (++Page >= lines.Length) Close(); }
@@ -124,6 +131,7 @@ public class PrototypeFerry : MonoBehaviour
         var p = combat.player.transform.position;
         if (p.x <= PrototypeWorld.RiverLeft || p.x >= PrototypeWorld.RiverRight || p.y > SinkY) return;
         SplashAt = Time.time;
+        JinaFx.Dots(new Vector3(p.x, PrototypeWorld.WaterBottom + 1, 0), 22, new Color(.8f, .92f, 1), 6, .6f, 0, 16);
         combat.HurtPlayer();
         bool nearLeft = p.x - PrototypeWorld.RiverLeft < PrototypeWorld.RiverRight - p.x;
         var body = combat.player.GetComponent<Rigidbody2D>();

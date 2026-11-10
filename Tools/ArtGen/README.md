@@ -37,6 +37,16 @@ python Tools/ArtGen/sheet.py <scratchpad>/out.png 01_Player/player_idle 13_Props
 - 팔레트는 `make_props.py`(나무, 짚, 돌, 이끼, 소나무 등)와 `make_peddler.py`(살색, 무명, 남색 등) 위쪽에 있다. 새 그림도 이 값을 쓴다.
 - 기물의 피벗은 아래 가운데이고 땅 높이는 y=−0.5다. 배율은 `JinaArt.PropPixelsPerUnit`(=546/1.9/12, 1유닛에 약 24도트).
 
+## 연출 그림 (hqlib.py, make_night.py)
+
+플레이하지 않는 연출과 대화 초상화는 캐릭터 도트와 맞출 필요가 없어(사용자 요청) 훨씬 촘촘하게 그린다.
+
+- 재질은 어두운 색에서 밝은 색으로 가는 색 단계(`WOOD`, `SKIN` 등, 그늘은 보라, 빛은 노랑 쪽). `Art.paint(mask, ramp, 밝기)`가 밝기와 장면의 빛(`light`)을 곱해 색 단계를 고르고 Bayer 디더링으로 경계를 섞는다.
+- `Theme("night"/"morning"/"evening")`가 같은 재질을 시간대의 빛으로 바꾼다. 그래서 외경과 방은 한 함수로 세 시간대를 만든다.
+- 마지막에 장면 하나를 적응 팔레트(96~112색)로 줄여 도트 그림처럼 보이게 한다.
+- 640×360이 화면 하나이고 64도트가 1유닛이다(1080p에서 정확히 3배). 레이어는 대부분 전체 캔버스라 위치를 맞출 필요가 없다. 게임의 `JinaArt.Night`로 읽는다.
+- 선비는 슬림하게, 상투·망건·턱수염을 유지한다. 예전에 뚱뚱하게 새로 그린 그림은 거절당했다.
+
 ## 스크립트 목록
 
 | 스크립트 | 만드는 그림 | 방식 |
@@ -48,8 +58,12 @@ python Tools/ArtGen/sheet.py <scratchpad>/out.png 01_Player/player_idle 13_Props
 | `make_player_down.py` | `01_Player/player_hit_00~01`, `player_corpse` | bend, rot90 (캔버스 좌우 48px 넓힘) |
 | `make_player_ko.py` | `01_Player/player_ko_00~02`, `player_facedown` (게임 오버) | bend, 상체를 엉덩이 중심으로 회전, rot90 시계 방향 (캔버스 좌우 240px 넓힘) |
 | `make_items.py` | `14_Items/item_*` 인벤토리 아이콘 (24도트 격자) | pixlib |
-| `make_portraits.py` | `17_Portraits/patjwi·patjwi_down·kongjwi·kongjwi_stare·kongjwi_true` 대화창 초상화 (56×60, 게임에서 3배) | pixlib |
-| `make_room.py` | `13_Props/room_bg·room_door·door_shadow·bed_under·quilt_sleep·quilt_sit` 손님방 (인물과 같은 축척, 문 칸은 구멍이라 뒤의 창호지와 그림자가 보임), `01_Player/player_sit·player_sleep` (대기 그림의 갓을 벗겨 상투를 올리고 허리에서 자름, rot90) | pixlib, 대기 그림 변형 |
+| `make_portraits.py` | `17_Portraits` 대화 초상화 6장. 사용자가 직접 만든 시트(`source/kongpat_portraits.webp`)의 칸을 잘라 112×121로 줄임(대화창에서 2배) | 사용자 그림 |
+| `make_young.py` | 선비 V6 프레임 17장의 얼굴과 깃을 고쳐 수염을 없앰. 고정 칸을 덮어 쓰므로 다시 돌려도 같다. `make_run`·`make_player_down`·`make_player_ko`·`make_bow_aim`이 그 뒤에 돌아야 한다 | 선비 원본 위에 덧칠 |
+| `make_night.py` | `18_Night`: 외경 3시간대, 손님방 2시간대, 창호지, 그림자, 잠자리, 문 클로즈업, 콩쥐 눈 (640×360) | hqlib |
+| `make_ground.py` | `13_Props/ground_<맵>` (옆으로 이어지는 땅, 320×150, 걷는 면은 위에서 6도트), `sky_<맵>`, `river_deep`, `cloud_0~2` | numpy |
+| `make_fx.py` | `20_Fx`: 칼빛 `arc`, 타격 `spark`, 먼지 `dust`, 충격파 `ring`, `glint`, 봉인 `seal`. 흰색으로 그리고 게임에서 색을 입힌다 | numpy |
+| `make_ui.py` | `19_UI`: 이어지는 결(`grain_paper·wood·night`), 놋쇠 모서리 `corner`, HUD 아이콘, `vignette` | numpy, pixlib |
 | `make_kong.py` | `16_Kong/kongjwi·patjwi·anak·namu` (보부상 12px 블록, 격자 전체 폭 유지라 발 x=138), `13_Props/jangdok·well·laundry·feast_list` | 블록 격자, pixlib |
 | `make_pass.py` | `13_Props/jangseung·seonang_tree·cairn·boulder` | pixlib |
 | `make_ferry.py` | `15_Ferryman/ferryman_idle` (보부상과 같은 12px 블록, 발 x=126), `13_Props/ferry_boat·ferry_hut·reeds·water·thorn_wall` | 블록 격자, pixlib |

@@ -10,7 +10,6 @@ public abstract class PrototypeNarration : MonoBehaviour
     protected string[][] pages;
     protected int page;
     protected float pageTime, skipTime;
-    private GUIStyle lineStyle, hintStyle;
 
     // How dark the screen is behind the lines (0 to 1).
     protected abstract float Cover { get; }
@@ -53,40 +52,28 @@ public abstract class PrototypeNarration : MonoBehaviour
     {
         GUI.depth = -100;
         PrototypeKoreanUI.Apply();
-        GUI.color = new Color(0, 0, 0, Cover);
-        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
-        GUI.color = Color.white;
+        JinaUI.Fill(new Rect(0, 0, JinaUI.W, JinaUI.H), new Color(0, 0, 0, Cover));
     }
     protected void DrawPage()
     {
-        if (lineStyle == null)
-        {
-            lineStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, wordWrap = true };
-            hintStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.LowerRight, fontSize = 15 };
-        }
-        float size = Mathf.Clamp(Screen.height / 24f, 18, 40), lineHeight = size * 2.1f;
+        const int size = 30;
+        float lineHeight = size * 2.1f;
         var lines = pages[page];
-        float top = Screen.height / 2f - lines.Length * lineHeight / 2f;
+        float top = JinaUI.H / 2f - lines.Length * lineHeight / 2f;
         float pageFade = 1 - Mathf.Clamp01((pageTime - PageLength(page)) / FadeOut);
         for (int i = 0; i < lines.Length; i++)
         {
             float alpha = Mathf.Clamp01((pageTime - i * LineGap) / FadeIn) * pageFade;
             if (alpha <= 0) continue;
             bool emphasis = Emphasis(page, i);
-            lineStyle.fontSize = Mathf.RoundToInt(emphasis ? size * 1.35f : size);
-            lineStyle.normal.textColor = emphasis ? new Color(.95f, .85f, .6f, alpha) : new Color(.92f, .9f, .85f, alpha);
-            GUI.color = Color.white;
-            GUI.Label(new Rect(40, top + i * lineHeight, Screen.width - 80, lineHeight), lines[i], lineStyle);
+            // Each line drifts up a little as it fades in.
+            float rise = (1 - Mathf.Clamp01((pageTime - i * LineGap) / FadeIn)) * 8;
+            var colour = emphasis ? new Color(.95f, .85f, .6f, alpha) : new Color(.92f, .9f, .85f, alpha);
+            JinaUI.Text(new Rect(40, top + i * lineHeight + rise, JinaUI.W - 80, lineHeight), lines[i], emphasis ? 41 : size, colour, TextAnchor.MiddleCenter, emphasis);
         }
-        GUI.color = Color.white;
-        hintStyle.normal.textColor = new Color(.6f, .6f, .6f, .8f);
-        var hint = new Rect(Screen.width - 340, Screen.height - 50, 310, 24);
-        GUI.Label(hint, "스페이스바를 길게 눌러 건너뛰기", hintStyle);
+        var hint = new Rect(JinaUI.W - 340, JinaUI.H - 50, 310, 24);
+        JinaUI.Text(hint, "스페이스바를 길게 눌러 건너뛰기", 15, new Color(.6f, .6f, .6f, .8f), TextAnchor.LowerRight);
         if (skipTime > 0)
-        {
-            GUI.color = new Color(.95f, .85f, .6f, .9f);
-            GUI.DrawTexture(new Rect(hint.xMax - 200 * skipTime / SkipHold, hint.yMax + 6, 200 * skipTime / SkipHold, 3), Texture2D.whiteTexture);
-            GUI.color = Color.white;
-        }
+            JinaUI.Fill(new Rect(hint.xMax - 200 * skipTime / SkipHold, hint.yMax + 6, 200 * skipTime / SkipHold, 3), new Color(.95f, .85f, .6f, .9f));
     }
 }

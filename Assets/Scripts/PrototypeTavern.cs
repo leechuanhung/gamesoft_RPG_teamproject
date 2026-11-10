@@ -67,10 +67,10 @@ public class PrototypeTavern : MonoBehaviour
         bool special = ShopRules.MenuOpen(ShopRules.SpecialMenu, Progress);
         int rows = special ? 3 : 2, discount = ShopRules.Discount(Progress);
         const float gap = 8;
-        float w = Mathf.Min(620, Screen.width - 30);
+        float w = Mathf.Min(620, JinaUI.W - 30);
         float say = JinaUI.SayHeight("주모:  " + message, w - JinaUI.WindowPad * 2);
         float h = JinaUI.TitleHeight + 12 + say + gap + rows * (JinaUI.GoodHeight + gap) + 28 + JinaUI.WindowPad;
-        var box = new Rect((Screen.width - w) / 2, Screen.height - h - 14, w, h);
+        var box = new Rect((JinaUI.W - w) / 2, JinaUI.H - h - 14, w, h);
         var inside = JinaUI.Window(box, "길손 주막", "엽전 " + wallet.Coins + "문" + (discount > 0 ? "   ·   선행 덕에 " + discount + "% 할인" : "") + "   ·   E / Esc 나가기");
         JinaUI.Say(new Rect(inside.x, inside.y, inside.width, say), "주모", message);
         for (int menu = 0; menu < rows; menu++)

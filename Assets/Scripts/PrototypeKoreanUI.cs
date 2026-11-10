@@ -15,6 +15,7 @@ public static class PrototypeKoreanUI
     }
     public static void Apply()
     {
+        JinaUI.Begin();
         GUI.skin.font = Font;
         GUI.skin.label.fontSize = 15;
         GUI.skin.label.wordWrap = true;

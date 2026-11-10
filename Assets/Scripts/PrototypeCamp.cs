@@ -44,7 +44,17 @@ public class PrototypeCamp : MonoBehaviour
         var image = gate.AddComponent<SpriteRenderer>();
         image.sprite = sprite;
         image.color = new Color(.6f,.3f,.8f,.8f);
+        image.enabled = false;
         gate.AddComponent<BoxCollider2D>();
+        // What is seen: a veil of light with charms on a rope, as tall as the wall it makes.
+        var veil = new GameObject("봉인 장막").AddComponent<SpriteRenderer>();
+        veil.transform.SetParent(gate.transform, false);
+        veil.transform.localScale = new Vector3(1 / gate.transform.localScale.x, 1 / gate.transform.localScale.y, 1);
+        veil.sprite = JinaArt.Fx("seal");
+        veil.drawMode = SpriteDrawMode.Tiled;
+        veil.size = new Vector2(1.67f, 20);
+        veil.color = new Color(1, 1, 1, .9f);
+        veil.sortingOrder = 3;
         ResetCamp();
     }
     public void InitializeRiver(PrototypeCombat owner, Sprite sprite)
@@ -96,18 +106,37 @@ public class PrototypeCamp : MonoBehaviour
     public void Hit(Mob m, int damage = PrototypeCombat.ArrowDamage)
     {
         if (m == null || m.hp <= 0) return;
+        int before = m.hp;
         m.hp = Mathf.Max(0, m.hp - PrototypeCombat.CalcDamage(damage, PrototypeCombat.MonsterDefense));
+        var at = m.art.transform.position;
+        int away = combat != null && combat.player.transform.position.x < at.x ? 1 : -1;
+        JinaFx.Hit(at + Vector3.up * .1f, away, river ? new Color(.74f, .92f, 1) : new Color(1, .92f, .72f));
+        JinaFx.Number(at + new Vector3(Random.Range(-.2f, .2f), .7f, 0), before - m.hp, Color.white);
+        if (m.hp > 0)
+        {
+            // It flinches back and loses a beat.
+            m.visual.Hurt();
+            m.art.transform.position = at + Vector3.right * away * .24f;
+            m.windup = -1; m.visual.Winding = false; m.ready = Mathf.Max(m.ready, Time.time + .35f);
+        }
         if (m.hp == 0)
         {
             m.visual.Down(); m.windup = -1; m.visual.Winding = false;
             m.vanishAt = Time.time + 1.5f;
+            // The soul rises out of it; any coins it held catch the light.
+            JinaFx.Rise(at, 12, river ? new Color(.7f, .9f, 1) : new Color(.86f, .72f, 1), .4f, 2.2f, 1.1f);
+            JinaFx.Dots(at, 7, new Color(1, .84f, .4f), 2.6f, .55f, 0, 6);
+            JinaFx.Stop(.08f);
             if (combat != null) { combat.FindCoins(coins); if (river) combat.FellWaterGhost(); }
         }
         if (Remaining == 0 && gate != null) gate.SetActive(false);
     }
-    public void Slash(Bounds bounds)
+    // Whether the blow landed on anything.
+    public bool Slash(Bounds bounds)
     {
-        foreach (var m in mobs) if (m.hp > 0 && bounds.Intersects(m.art.bounds)) Hit(m, PrototypeCombat.SwordDamage);
+        bool landed = false;
+        foreach (var m in mobs) if (m.hp > 0 && bounds.Intersects(m.art.bounds)) { Hit(m, PrototypeCombat.SwordDamage); landed = true; }
+        return landed;
     }
     void Update()
     {

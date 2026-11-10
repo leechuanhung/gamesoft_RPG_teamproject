@@ -18,6 +18,18 @@ public partial class PrototypeCombat
     // and slams the ground. Each move telegraphs with an orange windup.
     public enum BossMove { None, ChargeWindup, Charging, LeapWindup, Leaping, Landed }
     public BossMove Move { get; private set; }
+    // When a blow last landed on it (its visual flashes from here).
+    public float BossHitAt { get; private set; } = -1;
+    private float nextTrail;
+    Vector3 BossFeet => new Vector3(enemy.transform.position.x, enemy.bounds.min.y, 0);
+    void Trail(Color colour)
+    {
+        if (Time.time < nextTrail) return;
+        nextTrail = Time.time + .05f;
+        var visual = enemy.GetComponent<JinaActorVisual>();
+        if (visual != null) JinaFx.AfterImage(visual.Picture, colour);
+        JinaFx.Dust(BossFeet, -moveDir * 1.2f, 1.1f);
+    }
     public const float ChaseSpeed = 2.6f, ChargeSpeed = 9f, ChargeWindup = .5f, ChargeLength = .7f;
     public const float LeapWindup = .45f, LeapLength = .75f, LeapHeight = 3f, LandedLength = .6f, SlamRadius = 2.6f;
     public const float BossGround = .7f, MoveCooldown = 2.4f;
@@ -68,6 +80,10 @@ public partial class PrototypeCombat
                     }
                 }
                 else if (!strikeElder && strikeBounds.Intersects(playerArt.bounds)) HurtPlayer(BossAttack);
+                // The club comes down: its sweep, a jolt of dust where it lands.
+                JinaFx.Arc((Vector3)lockedStrike + Vector3.up * .5f, BossFacing, -14, 1.45f, new Color(1, .74f, .6f), .18f);
+                JinaFx.Dust(new Vector3(lockedStrike.x, BossFeet.y, 0), BossFacing * .8f, 1.3f);
+                PrototypeView.Shake(.05f, .12f);
                 windupUntil = -1;
                 bossRecoveryUntil = Time.time + (killedElder ? .7f : .24f);
                 enemyReadyAt = Time.time + .9f;
@@ -78,6 +94,7 @@ public partial class PrototypeCombat
             lockedStrike = (Vector2)enemy.transform.position + Vector2.right * (delta.x >= 0 ? .8f : -.8f);
             strikeElder = targetElder;
             windupUntil = Time.time + .6f;
+            JinaFx.Glint(enemy.transform.position + new Vector3(BossFacing * .7f, 1.4f, 0), new Color(1, .7f, .3f));
         }
         else if (alerted && Mathf.Abs(delta.x) > 1.25f && Time.time >= bossRecoveryUntil)
         {
@@ -105,6 +122,7 @@ public partial class PrototypeCombat
         moveDir = delta.x >= 0 ? 1 : -1;
         BossFacing = moveDir;
         moveHit = false;
+        JinaFx.Glint(enemy.transform.position + new Vector3(moveDir * .7f, 1.4f, 0), new Color(1, .7f, .3f));
         if (above || moveCount++ % 2 == 1)
         {
             Move = BossMove.LeapWindup; moveUntil = Time.time + LeapWindup;
@@ -121,16 +139,17 @@ public partial class PrototypeCombat
         switch (Move)
         {
             case BossMove.ChargeWindup:
-                if (Time.time >= moveUntil) { Move = BossMove.Charging; moveUntil = Time.time + ChargeLength; }
+                if (Time.time >= moveUntil) { Move = BossMove.Charging; moveUntil = Time.time + ChargeLength; JinaFx.Dust(BossFeet, -moveDir * 2, 1.5f); }
                 break;
             case BossMove.Charging:
+                Trail(new Color(1, .45f, .35f, .55f));
                 position.x = Mathf.Clamp(position.x + moveDir * ChargeSpeed * Time.deltaTime, PrototypeWorld.EnemyMin, PrototypeWorld.EnemyMax);
                 enemy.transform.position = position;
                 if (!moveHit && enemy.bounds.Intersects(playerArt.bounds)) { moveHit = true; HurtPlayer(BossAttack); }
                 if (Time.time >= moveUntil || position.x <= PrototypeWorld.EnemyMin || position.x >= PrototypeWorld.EnemyMax) EndMove(.5f);
                 break;
             case BossMove.LeapWindup:
-                if (Time.time >= moveUntil) { Move = BossMove.Leaping; moveUntil = Time.time + LeapLength; }
+                if (Time.time >= moveUntil) { Move = BossMove.Leaping; moveUntil = Time.time + LeapLength; JinaFx.Dust(BossFeet, -1, 1.5f); JinaFx.Dust(BossFeet, 1, 1.5f); }
                 break;
             case BossMove.Leaping:
                 float k = 1 - Mathf.Clamp01((moveUntil - Time.time) / LeapLength);
@@ -152,7 +171,8 @@ public partial class PrototypeCombat
     {
         var position = enemy.transform.position; position.y = BossGround; enemy.transform.position = position;
         Move = BossMove.Landed; moveUntil = Time.time + LandedLength;
-        PrototypeView.Shake(.14f, .4f);
+        PrototypeView.Shake(.17f, .4f);
+        JinaFx.Shock(BossFeet, 1.2f);
         bool onGround = player.IsGrounded && playerArt.bounds.min.y < -.3f;
         if (!moveHit && (enemy.bounds.Intersects(playerArt.bounds) || onGround && Mathf.Abs(player.transform.position.x - position.x) < SlamRadius)) { moveHit = true; HurtPlayer(BossAttack); }
     }
@@ -187,10 +207,18 @@ public partial class PrototypeCombat
     void DamageEnemy(int amount = ArrowDamage)
     {
         if (EnemyDefeated) return;
+        int before = EnemyHealth;
         EnemyHealth = Mathf.Max(0, EnemyHealth - CalcDamage(amount, BossDefense));
         alerted = true;
         hitFlashUntil = Time.time + .12f;
+        BossHitAt = Time.time;
+        var at = enemy.transform.position + new Vector3(-BossFacing * .1f, .35f, 0);
+        int away = player.transform.position.x < enemy.transform.position.x ? 1 : -1;
+        JinaFx.Hit(at, away, new Color(1, .94f, .78f), amount > 30 ? 1.8f : 1.2f);
+        JinaFx.Number(at + Vector3.up * .9f + Vector3.right * Random.Range(-.25f, .25f), before - EnemyHealth, amount > 30 ? new Color(1, .76f, .3f) : Color.white, amount > 30 ? 30 : 22);
         if (!EnemyDefeated) return;
+        JinaFx.Stop(.16f);
+        PrototypeView.Shake(.2f, .4f);
         // The renderer stays on while JinaActorVisual plays the death motion, then hides itself.
         BossDownAt = Time.time;
         windupUntil = -1;

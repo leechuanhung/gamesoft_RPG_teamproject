@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// The look of every window and notice in the game, "hanji and wood": cream paper in a wooden frame with the speech
-// bubbles' notched pixel corners, and dark night panels for the always-on HUD. Text is measured (Height) so a window
-// can grow to fit it instead of cutting it off. Toasts stack downward and only one Prompt shows, so notices from
-// different scripts never land on top of each other.
+// The look of every window and notice in the game, "hanji and wood": fibred cream paper in a grained wooden frame with
+// brass corners, dark lacquer panels for the always-on HUD, and text that is typed out as people speak.
+// The UI is laid out on a screen 720 units tall whatever the window's size (W x H): PrototypeKoreanUI.Apply sets the
+// matrix, and text is drawn at its real pixel size so it stays crisp. Text is measured (Height) so a window can grow to
+// fit it instead of cutting it off. Toasts stack downward and only one Prompt shows, so notices from different scripts
+// never land on top of each other.
 public static class JinaUI
 {
     public static readonly Color Ink = new Color(.04f, .035f, .04f), Wood = new Color(.33f, .21f, .12f), WoodLight = new Color(.5f, .34f, .2f);
@@ -15,6 +17,18 @@ public static class JinaUI
     // Text on wood or night.
     public static readonly Color Bright = new Color(.97f, .94f, .86f), Gold = new Color(1f, .86f, .52f), Faint = new Color(.74f, .69f, .6f);
 
+    // One layout unit in screen pixels, and the layout's size. Small windows stop shrinking before text is unreadable.
+    public static float Scale => Mathf.Max(.75f, Screen.height / 720f);
+    public static float W => Screen.width / Scale;
+    public static float H => Screen.height / Scale;
+    public static void Begin() { GUI.matrix = Matrix4x4.Scale(new Vector3(Scale, Scale, 1)); }
+    // Where a point in the world falls in layout units (top-left origin); z < 0 is behind the camera.
+    public static Vector3 FromWorld(Camera cam, Vector3 world)
+    {
+        var p = cam.WorldToScreenPoint(world);
+        return new Vector3(p.x / Scale, (Screen.height - p.y) / Scale, p.z);
+    }
+
     static GUIStyle text;
     static GUIStyle Style(int size, TextAnchor anchor, bool bold)
     {
@@ -23,8 +37,10 @@ public static class JinaUI
         text.fontStyle = bold ? FontStyle.Bold : FontStyle.Normal;
         return text;
     }
+    static int Px(int size) => Mathf.Max(8, Mathf.RoundToInt(size * Scale));
     // Line breaks are worked out here, not left to IMGUI: its own wrapping can break a line that just fits differently
     // from one draw to the next, which split text from its shadow. Words stay whole unless one is wider than the line.
+    // Sizes and widths here are real pixels, so a line that fits on one screen fits the same way on all of them.
     static readonly Dictionary<(string, int, bool, int), string> wrapped = new Dictionary<(string, int, bool, int), string>();
     static string Wrap(string s, int size, float width, bool bold)
     {
@@ -57,9 +73,9 @@ public static class JinaUI
     }
     // How tall this text is when wrapped to `width`.
     public static float Height(string s, int size, float width, bool bold = false) =>
-        string.IsNullOrEmpty(s) ? 0 : Mathf.Ceil(Style(size, TextAnchor.UpperLeft, bold).CalcHeight(new GUIContent(Wrap(s, size, Mathf.Round(width), bold)), 10000));
+        string.IsNullOrEmpty(s) ? 0 : Mathf.Ceil(Style(Px(size), TextAnchor.UpperLeft, bold).CalcHeight(new GUIContent(Wrap(s, Px(size), Mathf.Round(width * Scale), bold)), 10000) / Scale);
     public static float Width(string s, int size, bool bold = false) =>
-        string.IsNullOrEmpty(s) ? 0 : Mathf.Ceil(Style(size, TextAnchor.UpperLeft, bold).CalcSize(new GUIContent(s)).x);
+        string.IsNullOrEmpty(s) ? 0 : Mathf.Ceil(Style(Px(size), TextAnchor.UpperLeft, bold).CalcSize(new GUIContent(s)).x / Scale);
 
     public static void Fill(Rect r, Color c)
     {
@@ -67,42 +83,134 @@ public static class JinaUI
         GUI.DrawTexture(r, Texture2D.whiteTexture);
         GUI.color = saved;
     }
-    // Ink outline with notched corners, an edge band, then the fill.
+
+    // The tiling grains the windows are made of (19_UI, Tools/ArtGen/make_ui.py), multiplied by the fill colour.
+    static readonly Dictionary<string, Texture2D> grains = new Dictionary<string, Texture2D>();
+    public static Texture2D Art(string name)
+    {
+        if (grains.TryGetValue(name, out var t) && t != null) return t;
+        t = Resources.Load<Texture2D>("JinaV4/19_UI/" + name);
+        if (t != null) { t.wrapMode = TextureWrapMode.Repeat; t.filterMode = FilterMode.Point; }
+        return grains[name] = t;
+    }
+    static void Tile(Rect r, string grain, Color c)
+    {
+        var t = Art(grain);
+        if (t == null) { Fill(r, c); return; }
+        var saved = GUI.color; GUI.color = c;
+        // Two layout units to a texel: the dots of the grain match the art's.
+        GUI.DrawTextureWithTexCoords(r, t, new Rect(r.x / (t.width * 2), r.y / (t.height * 2), r.width / (t.width * 2), r.height / (t.height * 2)));
+        GUI.color = saved;
+    }
+    // An icon from 19_UI at its dots' size (each dot `dot` layout units).
+    public static void Icon(string name, float x, float y, float dot = 1.5f, float alpha = 1)
+    {
+        var t = Art(name);
+        if (t == null) return;
+        var saved = GUI.color; GUI.color = new Color(1, 1, 1, alpha);
+        GUI.DrawTexture(new Rect(x, y, t.width * dot, t.height * dot), t);
+        GUI.color = saved;
+    }
+
+    // Ink outline with notched corners, a wooden band, then the fill: paper for light colours, lacquer for dark ones.
     public static void Box(Rect r, Color fill, Color edge, float band = 2)
     {
         Fill(new Rect(r.x, r.y + 2, r.width, r.height - 4), Ink);
         Fill(new Rect(r.x + 2, r.y, r.width - 4, r.height), Ink);
-        Fill(new Rect(r.x + 2, r.y + 2, r.width - 4, r.height - 4), edge);
-        Fill(new Rect(r.x + 2 + band, r.y + 2 + band, r.width - 4 - band * 2, r.height - 4 - band * 2), fill);
+        if (band > 0) Tile(new Rect(r.x + 2, r.y + 2, r.width - 4, r.height - 4), "grain_wood", edge);
+        var inside = new Rect(r.x + 2 + band, r.y + 2 + band, r.width - 4 - band * 2, r.height - 4 - band * 2);
+        Tile(inside, fill.grayscale > .45f ? "grain_paper" : "grain_night", fill);
+        if (band >= 3)
+        {
+            // A soft shadow under the frame's top edge, as if the paper sat inside it, and brass on the corners.
+            Fill(new Rect(inside.x, inside.y, inside.width, 2), new Color(0, 0, 0, .14f));
+            Corners(r, 2);
+        }
     }
-    public static void HudPanel(Rect r) => Box(r, Night, WoodLight, 1);
+    static void Corners(Rect r, float dot)
+    {
+        var t = Art("corner");
+        if (t == null) return;
+        float s = t.width * dot;
+        GUI.DrawTextureWithTexCoords(new Rect(r.x, r.y, s, s), t, new Rect(0, 0, 1, 1));
+        GUI.DrawTextureWithTexCoords(new Rect(r.xMax - s, r.y, s, s), t, new Rect(1, 0, -1, 1));
+        GUI.DrawTextureWithTexCoords(new Rect(r.x, r.yMax - s, s, s), t, new Rect(0, 1, 1, -1));
+        GUI.DrawTextureWithTexCoords(new Rect(r.xMax - s, r.yMax - s, s, s), t, new Rect(1, 1, -1, -1));
+    }
+    public static void HudPanel(Rect r)
+    {
+        Box(r, Night, WoodLight, 1);
+        Corners(r, 1);
+    }
 
     public const float TitleHeight = 36, WindowPad = 16;
     // A paper window with a wooden title bar; returns the area under the bar, inset by WindowPad.
     public static Rect Window(Rect r, string title, string right = null)
     {
+        Fill(new Rect(r.x + 5, r.y + 6, r.width, r.height), new Color(0, 0, 0, .28f));
         Box(r, Paper, Wood, 3);
-        Fill(new Rect(r.x + 2, r.y + 2, r.width - 4, TitleHeight - 2), Wood);
+        Tile(new Rect(r.x + 2, r.y + 2, r.width - 4, TitleHeight - 2), "grain_wood", Wood);
+        Fill(new Rect(r.x + 2, r.y + TitleHeight - 2, r.width - 4, 2), new Color(0, 0, 0, .35f));
+        Fill(new Rect(r.x + 2, r.y + 2, r.width - 4, 1), new Color(1, .86f, .6f, .22f));
+        Corners(r, 2);
         Text(new Rect(r.x + WindowPad, r.y + 3, r.width - WindowPad * 2, TitleHeight - 6), title, 18, Gold, TextAnchor.MiddleLeft, true);
         if (right != null) Text(new Rect(r.x + WindowPad, r.y + 3, r.width - WindowPad * 2, TitleHeight - 6), right, 13, Bright, TextAnchor.MiddleRight);
         return new Rect(r.x + WindowPad, r.y + TitleHeight + 12, r.width - WindowPad * 2, r.height - TitleHeight - 12 - WindowPad);
     }
-    // Bright text gets a one-pixel shadow so it stays crisp over anything; dark text on paper needs none.
-    public static void Text(Rect r, string s, int size, Color colour, TextAnchor anchor = TextAnchor.UpperLeft, bool bold = false)
+    // Bright text gets a shadow so it stays crisp over anything; dark text on paper needs none. `visible` draws only
+    // that many characters, with the lines already broken as for the whole text, so words do not jump as they appear.
+    public static void Text(Rect r, string s, int size, Color colour, TextAnchor anchor = TextAnchor.UpperLeft, bool bold = false, int visible = -1)
     {
         if (string.IsNullOrEmpty(s)) return;
+        float k = Scale; int px = Px(size);
         // Whole pixels: fractional positions can wrap a line differently from its shadow or from the measured height.
-        r = new Rect(Mathf.Round(r.x), Mathf.Round(r.y), Mathf.Round(r.width), Mathf.Round(r.height));
-        s = Wrap(s, size, r.width, bold);
-        var style = Style(size, anchor, bold);
+        r = new Rect(Mathf.Round(r.x * k), Mathf.Round(r.y * k), Mathf.Round(r.width * k), Mathf.Round(r.height * k));
+        s = Wrap(s, px, Mathf.Round(r.width), bold);
+        if (visible >= 0 && visible < s.Length) s = Cut(s, visible);
+        var style = Style(px, anchor, bold);
+        var matrix = GUI.matrix; GUI.matrix = Matrix4x4.identity;
         if (colour.grayscale > .5f)
         {
+            float shadow = Mathf.Max(1, Mathf.Round(k));
             style.normal.textColor = new Color(0, 0, 0, .9f * colour.a);
-            GUI.Label(new Rect(r.x + 1, r.y + 1, r.width, r.height), s, style);
+            GUI.Label(new Rect(r.x + shadow, r.y + shadow, r.width, r.height), s, style);
         }
         style.normal.textColor = colour;
         GUI.Label(r, s, style);
+        GUI.matrix = matrix;
     }
+    // The first `count` characters of wrapped text, not counting its line breaks.
+    static string Cut(string s, int count)
+    {
+        int i = 0, seen = 0;
+        while (i < s.Length && seen < count) { if (s[i] != '\n') seen++; i++; }
+        return s.Substring(0, i);
+    }
+
+    // Spoken words appear a few at a time. Visible says how many characters of `s` show `since` seconds after it began.
+    public const float TypeSpeed = 34;
+    public static int Visible(string s, float since) => string.IsNullOrEmpty(s) || since < 0 ? 0 : Mathf.Min(s.Length, Mathf.CeilToInt(since * TypeSpeed));
+    // The same when nobody keeps the start time: a line starts over if it has not been drawn for a moment.
+    static readonly Dictionary<string, (float first, float last)> typing = new Dictionary<string, (float, float)>();
+    public static int VisibleAuto(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return 0;
+        float now = Time.unscaledTime;
+        if (!typing.TryGetValue(s, out var seen) || now - seen.last > .4f) seen = (now, now);
+        typing[s] = (seen.first, now);
+        if (typing.Count > 64) typing.Clear();
+        return Visible(s, now - seen.first);
+    }
+
+    // For E on a line still being typed: true if it was, and now it shows whole.
+    public static bool FinishTyping(string s)
+    {
+        if (string.IsNullOrEmpty(s) || !typing.TryGetValue(s, out var seen)) return false;
+        if (Visible(s, Time.unscaledTime - seen.first) >= s.Length) return false;
+        typing[s] = (seen.first - 1000, seen.last);
+        return true;
+    }
+
     public static bool Button(Rect r, string label, bool enabled = true)
     {
         bool over = enabled && r.Contains(Event.current.mousePosition);
@@ -136,19 +244,26 @@ public static class JinaUI
     public static void Say(Rect r, string speaker, string s)
     {
         Box(r, PaperLight, SlotEdge, 1);
-        Text(new Rect(r.x + 12, r.y + 6, r.width - 24, r.height - 12), speaker + ":  " + s, 16, TextDark);
+        string whole = speaker + ":  " + s;
+        Text(new Rect(r.x + 12, r.y + 6, r.width - 24, r.height - 12), whole, 16, TextDark, TextAnchor.UpperLeft, false, VisibleAuto(whole));
     }
-    public static void Bar(Rect r, float full, Color colour, string label)
+    // A gauge: dark trough, a pale stretch for what was just lost (`lag`, 0 for none), the colour with a lit top edge.
+    public static void Bar(Rect r, float full, Color colour, string label, float lag = 0)
     {
-        Box(r, new Color(.2f, .16f, .14f), Ink, 0);
+        Box(r, new Color(.13f, .1f, .1f), Ink, 0);
         var inner = new Rect(r.x + 2, r.y + 2, r.width - 4, r.height - 4);
-        Fill(new Rect(inner.x, inner.y, inner.width * Mathf.Clamp01(full), inner.height), colour);
+        full = Mathf.Clamp01(full);
+        if (lag > full) Fill(new Rect(inner.x, inner.y, inner.width * Mathf.Clamp01(lag), inner.height), new Color(.95f, .86f, .72f));
+        var filled = new Rect(inner.x, inner.y, inner.width * full, inner.height);
+        Fill(filled, colour);
+        Fill(new Rect(filled.x, filled.y, filled.width, Mathf.Max(1, inner.height * .25f)), Color.Lerp(colour, Color.white, .34f));
+        Fill(new Rect(filled.x, filled.yMax - Mathf.Max(1, inner.height * .2f), filled.width, Mathf.Max(1, inner.height * .2f)), Color.Lerp(colour, Color.black, .28f));
         Text(r, label, 13, Bright, TextAnchor.MiddleCenter, true);
     }
 
     // Where the toast column starts (the HUD moves it below the boss's bar), and how wide it may be between the panels.
     public static float ToastTop = 14;
-    public static float CenterWidth => Mathf.Clamp(Screen.width - 640, 240, 560);
+    public static float CenterWidth => Mathf.Clamp(W - 640, 240, 560);
     static int toastFrame = -1, promptFrame = -1;
     static float toastY;
     // A short notice in the column at the top centre; call it every OnGUI while it should show.
@@ -157,20 +272,35 @@ public static class JinaUI
         if (Event.current.type != EventType.Repaint) return;
         if (toastFrame != Time.frameCount) { toastFrame = Time.frameCount; toastY = ToastTop; }
         float w = CenterWidth, h = Height(s, 15, w - 28) + 18;
-        var r = new Rect((Screen.width - w) / 2, toastY, w, h);
+        var r = new Rect((W - w) / 2, toastY, w, h);
         HudPanel(r);
         Text(new Rect(r.x + 14, r.y + 9, w - 28, h - 18), s, 15, Bright, TextAnchor.UpperCenter);
         toastY += h + 6;
     }
     // What the player can do right here, bottom centre; if two scripts ask in one frame the first one wins.
+    // "E: 말 걸기" draws its key as a little keycap in front of the words.
     public const float PromptBottom = 44;
     public static void Prompt(string s)
     {
         if (Event.current.type != EventType.Repaint || promptFrame == Time.frameCount) return;
         promptFrame = Time.frameCount;
-        float w = Mathf.Min(Width(s, 15) + 36, Screen.width - 40), h = Height(s, 15, w - 28) + 16;
-        var r = new Rect((Screen.width - w) / 2, Screen.height - PromptBottom - h, w, h);
+        string key = null, words = s;
+        int colon = s.IndexOf(": ");
+        if (colon > 0 && colon <= 2) { key = s.Substring(0, colon); words = s.Substring(colon + 2); }
+        float keyWidth = key == null ? 0 : Mathf.Max(24, Width(key, 14, true) + 12) + 10;
+        float w = Mathf.Min(Width(words, 15) + keyWidth + 36, W - 40), h = Height(words, 15, w - 28 - keyWidth) + 16;
+        h = Mathf.Max(h, 36);
+        var r = new Rect((W - w) / 2, H - PromptBottom - h, w, h);
         Box(r, Wood, Gold, 1);
-        Text(new Rect(r.x + 14, r.y + 8, w - 28, h - 16), s, 15, Bright, TextAnchor.UpperCenter, true);
+        float x = r.x + 14;
+        if (key != null)
+        {
+            var cap = new Rect(x, r.y + (h - 24) / 2, keyWidth - 10, 24);
+            Box(cap, PaperLight, Ink, 0);
+            Fill(new Rect(cap.x + 2, cap.yMax - 5, cap.width - 4, 3), new Color(.62f, .55f, .44f));
+            Text(new Rect(cap.x, cap.y - 1, cap.width, cap.height), key, 14, TextDark, TextAnchor.MiddleCenter, true);
+            x += keyWidth;
+        }
+        Text(new Rect(x, r.y, r.xMax - x - 14, h), words, 15, Bright, TextAnchor.MiddleLeft, true);
     }
 }

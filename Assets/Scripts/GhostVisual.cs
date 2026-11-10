@@ -8,13 +8,22 @@ public class GhostVisual : JinaActorVisual
     // When it was felled (negative while it stands).
     public float DownAt { get; private set; }=-1;
     public void Down() => DownAt=Time.time;
-    public void Revive() { DownAt=-1; Winding=false; StruckAt=-1; }
+    public void Revive() { DownAt=-1; Winding=false; StruckAt=-1; HurtAt=-1; }
+    // Struck and still standing: it flashes for a moment.
+    public float HurtAt=-1;
+    public void Hurt() { HurtAt=Time.time; }
     // The attack, set by PrototypeCamp: winding up toward AimX, then the swipe from StruckAt.
     public const float SwipeLength=.14f, StrikeLength=.32f, Lunge=.3f;
     public bool Winding;
     public float AimX, StruckAt=-1;
     private Sprite[] attacks;
-    public void Strike() { Winding=false; StruckAt=Time.time; }
+    public void Strike()
+    {
+        Winding=false; StruckAt=Time.time;
+        // The claw's little crescent, in the ghost's own colour.
+        int dir=Toward(AimX);
+        JinaFx.Arc(transform.position+new Vector3(dir*.7f,.1f,0),dir,-30,.62f,Color.Lerp(new Color(.9f,.82f,1),tint,.5f),.14f);
+    }
     // Multiplied over the drawing (white for the camp's guards).
     public Color tint=Color.white;
 
@@ -24,6 +33,8 @@ public class GhostVisual : JinaActorVisual
         f.tint=tint;
         if(DownAt<0)
         {
+            float hurt=HurtAt<0 ? 1000 : Time.time-HurtAt;
+            if(hurt<.12f) f.flash=.85f*(1-hurt/.12f);
             float since=StruckAt<0 ? 1000 : Time.time-StruckAt;
             if(Winding) { facing=Toward(AimX); f.sprite=attacks[0]; }
             else if(since<StrikeLength)
