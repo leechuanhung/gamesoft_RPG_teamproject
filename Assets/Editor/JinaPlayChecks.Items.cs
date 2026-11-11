@@ -195,7 +195,12 @@ public static partial class JinaPlayChecks
         }
         Check(PrototypeKongVillage.Lines(W,false,false,false,false,false,false)[2].Contains("잔치")
             && System.Array.Exists(PrototypeKongVillage.Lines(PrototypeKongVillage.Who.Anak,false,false,false,false,false,false),l=>l.Contains("천벌"))
-            && PrototypeKongVillage.Lines(PrototypeKongVillage.Who.Patjwi,false,false,false,false,true,false)[0].Contains("비녀"),"Kongjwi invites, the wife curses Patjwi, Patjwi knows her mother's hairpin");
+            && PrototypeKongVillage.Lines(PrototypeKongVillage.Who.Patjwi,false,false,false,false,true,false,false,true)[0].Contains("비녀"),"Kongjwi invites, the wife curses Patjwi, Patjwi knows her mother's hairpin");
+        // The hairpin: never at their first meeting, and once said, not again the morning after.
+        var P=PrototypeKongVillage.Who.Patjwi;
+        Check(!string.Join("",PrototypeKongVillage.Lines(P,false,false,false,false,true,false)).Contains("비녀"),"A stranger first: no word of the hairpin at their first meeting");
+        Check(!string.Join("",PrototypeKongVillage.Lines(P,false,false,false,false,true,true,false,true,true)).Contains("비녀")
+            && string.Join("",PrototypeKongVillage.Lines(P,false,false,false,false,true,true,false,true,false)).Contains("비녀"),"In the morning she only speaks of it if she has not before");
 
         // The scene: Patjwi shoves Kongjwi while he is near.
         player.position=new Vector3(PrototypeWorld.Kongjwi.x-4,player.position.y,0);
@@ -221,9 +226,17 @@ public static partial class JinaPlayChecks
         kong.Open(PrototypeKongVillage.Who.Patjwi); for(int i=0,n=Field<string[]>(kong,"lines").Length;i<n;i++) kong.Next();
         Check(!kong.HeardPatjwi,"Before the night she lets nothing slip");
 
-        // Finishing Kongjwi's talk starts the evening: she offers a bed, Patjwi objects, one look ends it.
+        // Meeting Kongjwi is only meeting her; once he has met everyone and goes back to her, she offers a bed, Patjwi
+        // objects, one look ends it.
         kong.Open(W); Check(kong.IsOpen && combat.Paused && kong.Portrait=="kongjwi" && JinaArt.Portrait("kongjwi")!=null,"Talking to Kongjwi holds the game, with her portrait");
         for(int i=0;i<3;i++) kong.Next();
+        Check(!kong.Invited && !stay.Playing && !kong.ReadyForNight,"Their first talk is only a greeting");
+        kong.Open(W); for(int i=0,n=Field<string[]>(kong,"lines").Length;i<n;i++) kong.Next();
+        Check(!kong.Invited && !stay.Playing,"Until he has met the village she lets him look round");
+        foreach(var who in new[]{PrototypeKongVillage.Who.Anak,PrototypeKongVillage.Who.Namu}) { kong.Open(who); for(int i=0,n=Field<string[]>(kong,"lines").Length;i<n;i++) kong.Next(); }
+        Check(kong.ReadyForNight && !stay.Playing,"Everyone met; nothing starts until he goes back to her");
+        kong.Open(W); Check(Field<string[]>(kong,"lines")[1].Contains("하늘"),"She notices the sky going red");
+        for(int i=0,n=Field<string[]>(kong,"lines").Length;i<n;i++) kong.Next();
         Check(kong.Invited && stay.Now==PrototypeKongStay.Phase.Evening && combat.Paused && !combat.player.CanMove,"Her invitation leads into the evening scene");
         Check(combat.Hud.Hidden,"The HUD steps aside for it");
         foreach(var part in PrototypeKongStay.Evening) Check(JinaArt.Portrait(part.portrait)!=null,"Evening portrait "+part.portrait);
@@ -300,7 +313,7 @@ public static partial class JinaPlayChecks
         Set(kong,"nextScene",0f); Call(kong);
         Check(kong.SceneAt<0,"No more scenes once she is unmasked");
         combat.Restart();
-        Check(!kong.Revealed && !kong.Stayed && kong.Clues==0 && !kong.IsOpen && !stay.Playing && GameObject.Find("잔치 명단")==null,"Restart forgets the clues and the night");
+        Check(!kong.Revealed && !kong.Stayed && kong.Clues==0 && !kong.Met(W) && !kong.KeepsakeTold && !kong.IsOpen && !stay.Playing && GameObject.Find("잔치 명단")==null,"Restart forgets the clues and the night");
     }
     static string Next(PrototypeKongVillage kong) { kong.Next(); return kong.Portrait; }
 

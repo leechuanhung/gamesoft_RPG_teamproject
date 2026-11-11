@@ -27,7 +27,7 @@
 | `PrototypeTavern.cs`, `PrototypePeddler.cs`, `TavernWallet.cs` | 주막·보부상 상점, 가격 규칙(`ShopRules`) |
 | `PrototypeIntro.cs`, `PrototypeEnding.cs` ← `PrototypeNarration.cs` | 인트로·결말 낭독(검은 화면에 한 줄씩, 스페이스 길게 눌러 건너뛰기) |
 | `PrototypeMaps.cs` | 맵 일곱 개, 카메라 가두기(`ClampView`), 경계에서 어둠 전환과 맵 이름 |
-| `PrototypeKongVillage.cs`, `VillagerVisual.cs` | 콩밭 마을: 콩쥐·팥쥐·아낙·나무꾼, 괴롭힘 장면(`Scenes`, 아침 뒤 `MorningScenes`), 대화(`Lines`, 콩쥐·팥쥐는 창 안 왼쪽에 초상화가 들어가는 `TalkWindow`), 하룻밤 뒤(`Stayed`)에 열리는 단서 3개와 정체 드러남(`Revealed`). 팥쥐는 콩쥐의 강요로 남들 앞에서 반말과 막말을 한다. 뒷산 보스전은 아직 없다(기획서 1-1) |
+| `PrototypeKongVillage.cs`, `VillagerVisual.cs` | 콩밭 마을: 콩쥐·팥쥐·아낙·나무꾼, 괴롭힘 장면(`Scenes`, 아침 뒤 `MorningScenes`), 대화(`Lines`, 콩쥐·팥쥐는 창 안 왼쪽에 초상화가 들어가는 `TalkWindow`), 넷을 모두 만난 뒤(`Met`, `ReadyForNight`) 다시 말을 걸면 콩쥐가 하룻밤을 청함, 팥쥐의 은비녀 이야기는 두 번째 만남부터 한 번만(`KeepsakeTold`), 하룻밤 뒤(`Stayed`)에 열리는 단서 3개와 정체 드러남(`Revealed`). 팥쥐는 콩쥐의 강요로 남들 앞에서 반말과 막말을 한다. 뒷산 보스전은 아직 없다(기획서 1-1) |
 | `PrototypeKongStay.cs` | 저녁·밤·아침 자동 연출(`Now`, `Show`). 세계 밖 x=400에 1280×533(2.4:1, 위아래 검은 띠) 그림(`18_Night`, 128px=1칸)을 겹쳐 쌓아(`Put`, 그림자는 `Shade`) 움직이고, 컷마다 천천히 당겨 찍는다(`View`). 노을 외경 → 콩쥐 눈 클로즈업(`stare`, 사용자 그림 `source/kongjwi_stare_cut.webp`) → 달빛 외경 → 손님방 → 문 클로즈업(구멍과 눈) → 새벽 외경 → 아침 방 → 콩쥐의 만류와 선택지(`Parting`, `Choose`: 정중히 거절/대놓고 의심) → 뒷산 부탁. 카메라 `PrototypeView.FixedX`, `FitSize`. 끝나면 `Kong.WakeUp(Blunt)` |
 | `PrototypeLore.cs` | 길가의 조사 지점(`Spots`, E). 콩밭 마을의 것은 마을 사람들 말과 어긋나는 단서다. 전투 중에는 나오지 않는다 |
 | `JinaFx.cs` | 초승달 칼빛(`Arc`), 타격 별(`Hit`), 먼지(`Dust`), 충격파(`Shock`), 잔상(`AfterImage`), 숫자(`Number`), 히트스톱(`Stop`). 게임 상태와 무관한 풀링 스프라이트 |

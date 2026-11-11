@@ -57,7 +57,8 @@ public class PrototypeHud : MonoBehaviour
         if (x < PrototypeWorld.RiverRight) return "뱃사공과 이야기하고, 나룻배로 강을 건너세요.";
         if (x < PrototypeWorld.KongEnd && combat.Kong != null && !combat.Kong.Revealed)
         {
-            if (!combat.Kong.Stayed) return "콩밭 마을 사람들의 이야기를 들어 보세요. 콩쥐와 팥쥐에게도 말을 걸어 보세요.";
+            if (!combat.Kong.Stayed) return combat.Kong.ReadyForNight ? "마을 사람들과 모두 이야기했습니다. 콩쥐에게 다시 말을 걸어 보세요."
+                : "콩밭 마을 사람들의 이야기를 들어 보세요. 콩쥐, 팥쥐, 아낙, 나무꾼 모두에게 말을 걸어 보세요.";
             if (combat.Kong.Clues < 3) return Clue();
             return "모든 것을 알았습니다. 콩쥐와 마주하세요.";
         }

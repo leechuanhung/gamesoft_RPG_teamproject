@@ -3,9 +3,9 @@ using UnityEngine;
 // Kongbat village across the river (PrototypeWorld.KongStart..KongEnd): the story of Kongjwi and Patjwi turned
 // inside out (기획서.md, 1-1). Everyone pities sweet Kongjwi and curses Patjwi, who torments her; in truth Kongjwi is a
 // demon, and it is she who makes Patjwi play the wicked stepsister, out loud and without honorifics, so the village will
-// hate the only one who knows. Alone with him Patjwi can only hint. Talking to Kongjwi leads to a night in their guest
-// room (PrototypeKongStay), and in the morning she asks him up to the back hill; only then can the crocks be opened and
-// the paper beside them found. Three clues:
+// hate the only one who knows. Alone with him Patjwi can only hint. Once he has met all four and goes back to Kongjwi,
+// she keeps him for a night in their guest room (PrototypeKongStay), and in the morning she asks him up to the back
+// hill; only then can the crocks be opened and the paper beside them found. Three clues:
 //   Patjwi's words (her mother never came back from the river), the crocks (bones among the salted fish),
 //   and the feast's bill of fare (the villagers' names, and last of all "선비").
 // Caught with all three, Kongjwi drops her mask when he next speaks to her. The hill and the fight there come later.
@@ -26,6 +26,12 @@ public class PrototypeKongVillage : MonoBehaviour
     // That morning he told her to her face that the house is not right, rather than declining politely.
     public bool Blunt { get; private set; }
     public bool Revealed { get; private set; }
+    // Whom he has spoken to here (bit per Who), and whether Patjwi has spoken of the hairpin yet.
+    private int met;
+    public bool Met(Who who) => (met & 1 << (int)who) != 0;
+    public bool KeepsakeTold { get; private set; }
+    // He has met everyone in the village: the next time he speaks to Kongjwi, she asks him to stay the night.
+    public bool ReadyForNight => met == 15 && !Stayed;
     public int Clues => (HeardPatjwi ? 1 : 0) + (SawCrocks ? 1 : 0) + (ReadList ? 1 : 0);
 
     public bool IsOpen { get; private set; }
@@ -36,6 +42,8 @@ public class PrototypeKongVillage : MonoBehaviour
     private string[] lines;
     // This talk is Kongjwi dropping her mask: her portrait changes after its first line.
     private bool unmasking;
+    // This talk ends in her asking him to stay the night.
+    private bool inviting;
     private string note = "";
     private int scene;
     private float nextScene = 4;
@@ -95,7 +103,7 @@ public class PrototypeKongVillage : MonoBehaviour
 
     public void ResetVillage()
     {
-        HeardPatjwi = SawCrocks = ReadList = Invited = Revealed = Stayed = Blunt = false;
+        HeardPatjwi = SawCrocks = ReadList = Invited = Revealed = Stayed = Blunt = KeepsakeTold = false; met = 0;
         if (feastList != null) feastList.SetActive(false);
         IsOpen = false; Page = 0; SceneAt = NoteAt = -1; scene = 0; nextScene = Time.time + 4; note = "";
     }
@@ -129,7 +137,10 @@ public class PrototypeKongVillage : MonoBehaviour
         if (feastList != null) feastList.SetActive(true);
     }
 
-    public static string[] Lines(Who who, bool heard, bool saw, bool read, bool revealed, bool keepsake, bool stayed, bool blunt = false)
+    // `met`: he has spoken to this one before. `keepsakeTold`: Patjwi has already said what she could about the hairpin.
+    // `ready`: he has met everyone, so Kongjwi asks him to stay.
+    public static string[] Lines(Who who, bool heard, bool saw, bool read, bool revealed, bool keepsake, bool stayed, bool blunt = false,
+        bool met = false, bool keepsakeTold = false, bool ready = false)
     {
         switch (who)
         {
@@ -149,6 +160,13 @@ public class PrototypeKongVillage : MonoBehaviour
                 if (stayed) return new[] {
                     "이따 뒷산에서 봬요. 고개 너머라 조금 머니까 든든히 드시고요.",
                     "…장독대엔 가지 마세요. 젓갈이 아직 덜 익었거든요." };
+                // He has looked round the whole village: the light is going, and she will not let him leave.
+                if (met && ready) return new[] {
+                    "마을은 다 둘러보셨어요? 다들 좋은 분들이죠.",
+                    "…어머, 이야기하다 보니 하늘이 벌써 붉네요." };
+                if (met) return new[] {
+                    "마을 구경은 좀 하셨어요? 아주머니도, 나무꾼 아저씨도 다 좋은 분들이에요.",
+                    "천천히 둘러보세요. 저는 여기 있을게요." };
                 return new[] {
                     "선비님, 먼 길 오셨죠? 저는 콩쥐라고 해요.",
                     "동생이 좀 거칠어도 미워하지 마세요. 어머니를 잃고 그런 거니까요.",
@@ -171,9 +189,13 @@ public class PrototypeKongVillage : MonoBehaviour
                 if (heard) return new[] { "저리 가요! …저 애가 보고 있어요. 저한테 말 걸지 마세요." };
                 if (!stayed)
                 {
-                    if (keepsake) return new[] {
+                    // A stranger first: she only notices the hairpin the next time he comes up to her.
+                    if (met && keepsake && !keepsakeTold) return new[] {
                         "그, 그 비녀… 어디서 나셨어요?",
                         "…아니에요. 잘못 봤어요. 꼭 지니고 계세요. 저 애 눈에 띄지 않게요." };
+                    if (met) return new[] {
+                        "또 왜요? 볼일 없으면 가라니까요.",
+                        "…해 지기 전에 고개를 넘어요. 그게 다예요." };
                     return new[] {
                         "뭘 봐요? 당신도 콩쥐 구경 왔어요? 다들 그러던데.",
                         "볼일 없으면 가요. 이 마을엔 볼 것도 없으니까. 해 있을 때 고개를 넘으라고요.",
@@ -181,7 +203,7 @@ public class PrototypeKongVillage : MonoBehaviour
                 }
                 // The morning after: she cannot ask outright what he heard, so she feels her way round it.
                 var morning = new System.Collections.Generic.List<string>();
-                if (keepsake) morning.Add("그 비녀는… 아니에요. 지니고 계세요. 저 애 눈에 띄지 않게요.");
+                if (keepsake && !keepsakeTold) morning.Add("그 비녀는… 아니에요. 지니고 계세요. 저 애 눈에 띄지 않게요.");
                 morning.Add("…아직도 안 갔어요? 용케 살아서 일어났네요.");
                 morning.Add("밤에… 쥐 소리 같은 거 안 나던가요? 오래된 집이라서요. …아무것도 아니에요.");
                 morning.Add("우리 어머니도 밤잠이 얕으셨어요. 작년 이맘때 빨래하러 강에 가셔서는…");
@@ -205,7 +227,12 @@ public class PrototypeKongVillage : MonoBehaviour
     {
         Speaker = who; Page = 0; IsOpen = true;
         unmasking = who == Who.Kongjwi && (Revealed || Clues == 3);
-        lines = Lines(who, HeardPatjwi, SawCrocks, ReadList, Revealed, HasKeepsake, Stayed, Blunt);
+        lines = Lines(who, HeardPatjwi, SawCrocks, ReadList, Revealed, HasKeepsake, Stayed, Blunt, Met(who), KeepsakeTold, ReadyForNight);
+        // Whatever she has said of the hairpin before he knew everything, she will not say twice.
+        if (who == Who.Patjwi && !Revealed && System.Array.Exists(lines, l => l.Contains("비녀"))) KeepsakeTold = true;
+        // Asked to stay if he has met everyone, and has spoken to her before (she never asks a stranger at once).
+        inviting = who == Who.Kongjwi && !Revealed && Clues < 3 && !Stayed && Met(who) && ReadyForNight;
+        met |= 1 << (int)who;
         combat.player.CanMove = false;
         SceneAt = -1;
     }
@@ -215,14 +242,11 @@ public class PrototypeKongVillage : MonoBehaviour
         IsOpen = false; combat.player.CanMove = combat.PlayerHealth > 0;
         // She only lets anything slip the morning after, when she sees he came through the night.
         if (Speaker == Who.Patjwi && !Revealed && Stayed) HeardPatjwi = true;
-        if (Speaker == Who.Kongjwi && !Revealed)
+        if (Speaker == Who.Kongjwi && !Revealed && Clues == 3) Revealed = true;
+        else if (inviting)
         {
-            if (Clues == 3) Revealed = true;
-            else
-            {
-                Invited = true;
-                if (!Stayed && combat.Stay != null) combat.Stay.Begin();
-            }
+            Invited = true; inviting = false;
+            if (combat.Stay != null) combat.Stay.Begin();
         }
     }
     public void ExamineCrocks()
