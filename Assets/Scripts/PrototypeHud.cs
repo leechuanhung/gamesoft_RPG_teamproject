@@ -10,13 +10,11 @@ public class PrototypeHud : MonoBehaviour
     public const float PanelWidth = 276, Margin = 12, GuideFoldsAfter = 22f;
     public bool GuideOpen { get; private set; } = true;
     private bool guideTouched;
-    // Health shown as a pale stretch that catches up with the real value, for the blow just taken.
-    private float seenHealth = PrototypeCombat.MaxPlayerHealth, seenBoss = PrototypeCombat.EnemyMaxHealth;
 
     static readonly string[] Guide =
     {
         "이동 A·D / ←→     달리기 Shift",
-        "도약 스페이스     물러서기 K",
+        "도약 스페이스     대시 A·D 두 번     물러서기 K",
         "공격 J·클릭(연달아 3연격)     무기 Q",
         "대화·조사 E     정화 F     보따리 I",
         "다시 시작 R",
@@ -34,11 +32,6 @@ public class PrototypeHud : MonoBehaviour
         if (!combat.Paused && Input.GetKeyDown(KeyCode.H)) { GuideOpen = !GuideOpen; guideTouched = true; }
         // Once he has played a while the guide gets out of the way; H brings it back.
         if (!guideTouched && GuideOpen && Time.timeSinceLevelLoad > GuideFoldsAfter + 40 && !combat.Paused) { GuideOpen = false; guideTouched = true; }
-        float dt = Time.unscaledDeltaTime;
-        seenHealth = Mathf.MoveTowards(seenHealth, combat.PlayerHealth, 60 * dt * (seenHealth > combat.PlayerHealth + 30 ? 2 : 1));
-        seenBoss = Mathf.MoveTowards(seenBoss, combat.EnemyHealth, 90 * dt);
-        if (seenHealth < combat.PlayerHealth) seenHealth = combat.PlayerHealth;
-        if (seenBoss < combat.EnemyHealth) seenBoss = combat.EnemyHealth;
     }
 
     // What to do next, from where he is and how the story stands. Short: it sits on the screen all the time.
@@ -130,8 +123,7 @@ public class PrototypeHud : MonoBehaviour
         if (!combat.UsingBow && combat.ComboStep >= 0)
             for (int i = 0; i < 3; i++)
                 JinaUI.Fill(new Rect(left + width - 34 + i * 12, y + 12, 8, 8), i <= combat.ComboStep ? JinaUI.Gold : new Color(.3f, .26f, .22f));
-        JinaUI.Bar(new Rect(left, y + 26, width, 18), combat.PlayerHealth / (float)PrototypeCombat.MaxPlayerHealth, new Color(.76f, .2f, .17f),
-            combat.PlayerHealth + " / " + PrototypeCombat.MaxPlayerHealth, seenHealth / PrototypeCombat.MaxPlayerHealth);
+        // Health is drawn over his head now (PrototypeCombat.DrawPlayerHealthBar).
         JinaUI.Icon("icon_arrow", left - 2, y + 47, 1.25f);
         JinaUI.Text(new Rect(left + 20, y + 48, 70, 18), combat.Arrows + " / " + ShopRules.MaxArrows, 13, combat.Arrows == 0 ? new Color(1, .5f, .4f) : JinaUI.Bright, TextAnchor.MiddleLeft);
         string coins = (combat.Tavern != null ? combat.Tavern.wallet.Coins : 0) + "문";
@@ -211,12 +203,8 @@ public class PrototypeHud : MonoBehaviour
     void DrawBossBar()
     {
         JinaUI.ToastTop = Margin + 2;
+        // The bar itself is the teammate's, drawn by PrototypeCombat.DrawBossHealthBar; toasts go below it.
         if (!combat.BossAlerted || combat.EnemyDefeated || combat.Paused) return;
-        float w = JinaUI.CenterWidth, x = (JinaUI.W - w) / 2;
-        JinaUI.HudPanel(new Rect(x, Margin, w, 50));
-        JinaUI.Text(new Rect(x, Margin + 5, w, 18), PrototypeEncounter.Name, 14, new Color(1, .62f, .5f), TextAnchor.MiddleCenter, true);
-        JinaUI.Bar(new Rect(x + 12, Margin + 25, w - 24, 17), combat.EnemyHealth / (float)PrototypeCombat.EnemyMaxHealth, new Color(.62f, .14f, .18f),
-            combat.EnemyHealth + " / " + PrototypeCombat.EnemyMaxHealth, seenBoss / PrototypeCombat.EnemyMaxHealth);
         JinaUI.ToastTop = Margin + 56;
     }
 
