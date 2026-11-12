@@ -132,15 +132,16 @@ public class PrototypeCamp : MonoBehaviour
         if (Remaining == 0 && gate != null) gate.SetActive(false);
     }
     // Whether the blow landed on anything.
-    public bool Slash(Bounds bounds)
+    // damage를 넘기지 않으면 환도 데미지(10), 스킬은 Slash(area, 20)처럼 원하는 데미지를 넘김
+    public bool Slash(Bounds bounds, int damage = PrototypeCombat.SwordDamage)
     {
         bool landed = false;
-        foreach (var m in mobs) if (m.hp > 0 && bounds.Intersects(m.art.bounds)) { Hit(m, PrototypeCombat.SwordDamage); landed = true; }
+        foreach (var m in mobs) if (m.hp > 0 && bounds.Intersects(m.art.bounds)) { Hit(m, damage); landed = true; }
         return landed;
     }
 
-        // 몬스터 머리 위 체력바
-        void OnGUI()
+    // 몬스터 머리 위 체력바
+    void OnGUI()
     {
         if (combat == null || combat.PlayerHealth <= 0 || combat.Paused || Camera.main == null) return;
         var oldMatrix = GUI.matrix;
