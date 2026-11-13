@@ -213,7 +213,7 @@ public partial class PrototypeCombat
     {
         if (EnemyDefeated) return;
         int before = EnemyHealth;
-        EnemyHealth = Mathf.Max(0, EnemyHealth - CalcDamage(amount, BossDefense));
+        EnemyHealth -= CalcDamage(amount, BossDefense);
         alerted = true;
         hitFlashUntil = Time.time + .12f;
         BossHitAt = Time.time;
