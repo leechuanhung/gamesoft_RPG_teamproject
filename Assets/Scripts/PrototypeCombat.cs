@@ -12,6 +12,11 @@ public partial class PrototypeCombat : MonoBehaviour
     public int PlayerHealth { get; private set; } = MaxPlayerHealth;
     public const int PlayerAttack = 10;
     public int PlayerDefense = 0;
+    // 스킬: 스킬 무적(Q 물러서기)이 끝나는 시각과 스킬 관리자
+    private float skillInvulnerableUntil;
+    public bool SkillInvulnerable => Time.time < skillInvulnerableUntil;
+    public void GrantSkillInvulnerable(float seconds) { skillInvulnerableUntil = Mathf.Max(skillInvulnerableUntil, Time.time + seconds); }
+    public PrototypeSkills Skills { get; private set; }
     // A ward charm (JinaItems) takes the next blow in his place; the message shows for a moment after.
     public bool Warded { get; private set; }
     public float WardBrokeAt { get; private set; } = -1;
@@ -26,7 +31,7 @@ public partial class PrototypeCombat : MonoBehaviour
     // The elder's last blow takes a third of the boss's health.
     public const int ElderCounterDamage = 67;
     public int BossDefense = 0;
-    // ── 일반 몬스터 능력치 (PrototypeCamp.cs에서 사용할 예정) ──
+    // ── 일반 몬스터 능력치 (PrototypeCamp.cs에서 사용) ──
     public const int MonsterMaxHealth = 30;
     public const int MonsterAttack = 10;
     public const int MonsterDefense = 0;
@@ -138,6 +143,7 @@ public partial class PrototypeCombat : MonoBehaviour
         BossTalk = gameObject.AddComponent<PrototypeBossTalk>();
         BossTalk.combat = this;
         playerVisual = SeonbiVisual.Attach(player, this);
+        player.gameObject.AddComponent<DashSlashAttack>().Initialize(this);
         Maps = gameObject.AddComponent<PrototypeMaps>();
         Maps.combat = this;
         Hud = gameObject.AddComponent<PrototypeHud>();
@@ -161,6 +167,9 @@ public partial class PrototypeCombat : MonoBehaviour
         Ending.combat = this;
         GameOver = gameObject.AddComponent<PrototypeGameOver>();
         GameOver.combat = this;
+        // 스킬: Q·W·E 스킬과 왼쪽 아래 스킬창
+        Skills = gameObject.AddComponent<PrototypeSkills>();
+        Skills.combat = this;
     }
 
     SpriteRenderer MakeSprite(string label, Vector2 size, Color color)
@@ -190,6 +199,9 @@ public partial class PrototypeCombat : MonoBehaviour
         Move = BossMove.None; nextMoveAt = Time.time + MoveCooldown; moveCount = 0;
         BossDownAt = PurifiedAt = PlayerDownAt = PlayerHurtAt = WardBrokeAt = CoinsFoundAt = -1;
         Warded = false;
+        // 스킬: 스킬 무적과 쿨타임 초기화
+        skillInvulnerableUntil = 0;
+        if (Skills != null) Skills.ResetSkills();
         comboStep = -1; comboUntil = 0; lastPlayerHit = -1;
         JinaFx.Clear();
         PrototypeView.Shake(0, .01f);
@@ -239,7 +251,8 @@ public partial class PrototypeCombat : MonoBehaviour
             if (Move != BossMove.None) EndMove(0);
             return;
         }
-        if (Input.GetKeyDown(KeyCode.Q)) UsingBow = !UsingBow;
+        // 무기 스왑: Q → S (Q는 스킬로 사용)
+        if (Input.GetKeyDown(KeyCode.S)) UsingBow = !UsingBow;
         if (!EnemyDefeated && Input.GetKeyDown(KeyCode.F)
             && Vector2.Distance(player.transform.position, enemy.transform.position) < 2.2f
             && TryPurifyBoss())
@@ -258,10 +271,11 @@ public partial class PrototypeCombat : MonoBehaviour
             nextAttack = Time.time + (UsingBow ? .65f : swing);
             comboUntil = UsingBow ? 0 : nextAttack + ComboWindow;
             player.SlowUntil = Time.time + (UsingBow ? .3f : swing);
+            // 마우스 조준: 커서 쪽으로 몸을 돌리고, 활은 커서 높이에 따라 위·수평·아래 조준
+            player.Face(MouseSide());
             attackFacing = player.Facing;
             pendingBow = UsingBow;
-            pendingAim = !UsingBow ? 0 : Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow) ? 1
-                : Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow) ? -1 : 0;
+            pendingAim = UsingBow ? MouseAim() : 0;
             playerImpactAt = Time.time + (pendingBow ? SeonbiVisual.BowReleaseDelay : SeonbiVisual.SwordHit(pendingStep));
             if (playerVisual != null) playerVisual.Attack(UsingBow, attackFacing, pendingAim, pendingStep);
         }
@@ -309,9 +323,37 @@ public partial class PrototypeCombat : MonoBehaviour
         PrototypeView.Shake(step == 2 ? .11f : .045f, step == 2 ? .2f : .1f);
     }
 
+    // 마우스 조준 ──
+    // 마우스 커서의 월드 좌표
+    Vector2 MouseWorld()
+    {
+        var cam = Camera.main;
+        if (cam == null) return playerArt.bounds.center;
+        var p = Input.mousePosition;
+        p.z = -cam.transform.position.z;
+        return cam.ScreenToWorldPoint(p);
+    }
+    // 커서가 선비 오른쪽이면 1, 왼쪽이면 -1
+    int MouseSide() => MouseWorld().x >= playerArt.bounds.center.x ? 1 : -1;
+    // 커서가 선비 기준 15° 위면 위 조준(1), 15° 아래면 아래 조준(-1), 그 사이면 수평(0)
+    int MouseAim()
+    {
+        Vector2 d = MouseWorld() - (Vector2)playerArt.bounds.center;
+        float angle = Mathf.Atan2(d.y, Mathf.Abs(d.x)) * Mathf.Rad2Deg;
+        return angle > 15f ? 1 : angle < -15f ? -1 : 0;
+    }
+
+    // 스킬 공격: area 안의 보스와 일반 몬스터에게 damage만큼 피해
+    public void SkillHit(Bounds area, int damage)
+    {
+        if (!EnemyDefeated && area.Intersects(enemy.bounds)) DamageEnemy(damage);
+        foreach (var camp in Camps) if (camp != null) camp.Slash(area, damage);
+    }
+
     public void HurtPlayer(int attack = MonsterAttack)
     {
-        if (PlayerHealth <= 0 || Time.time < invulnerableUntil || player.Dodging) return;
+        // 스킬 무적 중에는 맞지 않음
+        if (PlayerHealth <= 0 || Time.time < invulnerableUntil || player.Dodging || SkillInvulnerable) return;
         var chest = player.transform.position + Vector3.up * .25f;
         if (Warded)
         {
@@ -371,7 +413,7 @@ public partial class PrototypeCombat : MonoBehaviour
         GUI.matrix = oldMatrix;
     }
 
-        // 화면 상단 중앙 보스 체력바 (보스와 마주친 뒤부터 표시, 쓰러뜨리거나 정화하면 숨김)
+    // 화면 상단 중앙 보스 체력바 (보스와 마주친 뒤부터 표시, 쓰러뜨리거나 정화하면 숨김)
     void DrawBossHealthBar()
     {
         if (!alerted || EnemyDefeated || PlayerHealth <= 0 || Paused) return;

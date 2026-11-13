@@ -8,17 +8,19 @@ public class PrototypePlayer : MonoBehaviour
     public float jumpSpeed = 11f;
     // Backstep (K): a short hop away from where he faces, untouchable while it lasts.
     public const float DodgeLength = .3f, DodgeSpeed = 9f, DodgeCooldown = .7f;
-    private float dodgeUntil, nextDodge;
+    private float dodgeUntil;
     public bool Dodging => Time.time < dodgeUntil;
+    public float DashRemaining => Mathf.Max(0f, dodgeUntil - Time.time);
     // A swing: he steps forward with the blow, and his feet are slowed while the sword is moving.
     private float lungeUntil, lungeSpeed;
     public float SlowUntil { get; set; }
     public const float SwingSlow = .4f;
     public void Lunge(int direction, float speed, float length) { lungeSpeed = direction * speed; lungeUntil = Time.time + length; }
-    // A·D 더블클릭 대시: 두 번 누르는 간격(초), 마지막으로 누른 시각, 대시 방향
-    public const float DoubleTapWindow = .25f;
-    private float lastLeftTap = -1, lastRightTap = -1;
     private int dodgeDir = 1;
+    private bool backstepDodge;
+    // Distinguishes double-tap forward dash from K backstep (both use Dodging).
+    public bool DashSlashing => Dodging && !backstepDodge;
+    private float dashSpeed = DodgeSpeed;   // 대시 속도 (스킬마다 다르게 쓰기 위해)
     // Light straw sandals (JinaItems) quicken his walk and run until then.
     public const float HasteBoost = 1.35f;
     public float HasteUntil { get; set; }
@@ -51,30 +53,6 @@ public class PrototypePlayer : MonoBehaviour
         if (!CanMove) { horizontal = 0; IsRunning = false; return; }
         if (Dodging) { IsRunning = false; return; }
         if (horizontal != 0) Facing = horizontal > 0 ? 1 : -1;
-        // A를 빠르게 두 번 → 왼쪽 대시, D를 빠르게 두 번 → 오른쪽 대시
-        int tapDir = 0;
-        if (Input.GetKeyDown(KeyCode.A))
-        {
-            if (Time.time - lastLeftTap <= DoubleTapWindow) tapDir = -1;
-            lastLeftTap = Time.time;
-        }
-        if (Input.GetKeyDown(KeyCode.D))
-        {
-            if (Time.time - lastRightTap <= DoubleTapWindow) tapDir = 1;
-            lastRightTap = Time.time;
-        }
-        // K는 예전처럼 바라보는 방향의 반대로 물러서기 (방향은 그대로)
-        bool stepBack = tapDir == 0 && Input.GetKeyDown(KeyCode.K);
-        if ((tapDir != 0 || stepBack) && IsGrounded && Time.time >= nextDodge)
-        {
-            dodgeDir = stepBack ? -Facing : tapDir;
-            if (!stepBack) Facing = tapDir;
-            dodgeUntil = Time.time + DodgeLength;
-            nextDodge = Time.time + DodgeCooldown;
-            lastLeftTap = lastRightTap = -1;
-            IsRunning = false;
-            return;
-        }
         IsRunning = horizontal != 0 && (Input.GetKey(runKey) || Input.GetKey(KeyCode.RightShift));
         if (Input.GetKeyDown(KeyCode.Space)) jumpRequestedUntil = Time.time + 0.12f;
         if (Input.GetKeyDown(KeyCode.R) || transform.position.y < -8f)
@@ -105,7 +83,7 @@ public class PrototypePlayer : MonoBehaviour
         IsGrounded = grounded && body.velocity.y <= 0.1f;
         float walk = horizontal * (IsRunning ? runSpeed : moveSpeed) * (Hasted ? HasteBoost : 1) * (grounded && Time.time < SlowUntil ? SwingSlow : 1);
         if (Time.time < lungeUntil && grounded) walk += lungeSpeed;
-        body.velocity = new Vector2(Dodging ? dodgeDir * DodgeSpeed : walk + carry, body.velocity.y);
+        body.velocity = new Vector2(Dodging ? dodgeDir * dashSpeed : walk + carry, body.velocity.y);
         if (jumpRequestedUntil > Time.time && grounded && body.velocity.y <= 0.1f)
         {
             body.velocity = new Vector2(body.velocity.x, jumpSpeed);
@@ -114,13 +92,27 @@ public class PrototypePlayer : MonoBehaviour
         }
     }
 
+    // 공격할 때 마우스 쪽으로 몸 돌리기
+    public void Face(int dir) { if (dir != 0) Facing = dir > 0 ? 1 : -1; }
+
+    // 스킬용 이동: dir 방향으로 length초 동안 speed 속도로 이동 (이동 중엔 Dodging = true)
+    public void StartDash(int dir, float length, float speed)
+    {
+        dodgeDir = dir > 0 ? 1 : -1;
+        dashSpeed = speed;
+        dodgeUntil = Time.time + length;
+        IsRunning = false;
+    }
+
     public void Respawn()
     {
         transform.position = spawn;
         body.velocity = Vector2.zero;
         jumpRequestedUntil = 0f;
         dodgeUntil = nextDodge = lungeUntil = 0f; SlowUntil = 0f;
+        backstepDodge = false;
         lastLeftTap = lastRightTap = -1;
+        dodgeUntil = lungeUntil = 0f; SlowUntil = 0f;
         HasteUntil = 0f;
         IsGrounded = true;
         IsRunning = false;
