@@ -1,15 +1,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// The Kongjwi demon (기획서.md 1-1): a toad wedged in a bottomless crock, wearing Kongjwi as its front legs.
-// She waits on the back hill beyond the pass (PrototypeWorld.KongLair). When the seonbi comes near, the game stops
-// for a talk in her portrait window; her last line, "젓갈로 담가 주마!", turns her into the demon (bars, the camera on
-// her, a black swelling shape, a flash, a roar and her name card). Then she fights from range, hops over the terrain
-// like he does (walls stop her, boulders do not hurt her), follows him down into Kongbat village, where she binds the
-// villagers and kills them from the right (PrototypeKongVillage), and cannot cross the river.
-// Slain: +10. With half her health gone, the drowned mother's hairpin (F, or used from the bag) burns the toad away
-// and leaves Kongjwi herself: +50 (PrototypeKongAftermath plays what follows).
-// The fight itself (moves, attacks, what she throws) is in PrototypeKongBoss.Fight.cs.
+// 콩쥐 요괴(기획서.md 1-1): 밑 빠진 독에 낀 두꺼비가 콩쥐를 앞다리처럼 걸치고 있다.
+// 고개 너머 뒷산에서 기다린다(PrototypeWorld.KongLair). 선비가 가까이 오면 게임이 멈추고
+// 초상화 창으로 대화한다. 마지막 대사 "젓갈로 담가 주마!"에 요괴로 변한다(띠, 요괴를 보는
+// 카메라, 부풀어 오르는 검은 형체, 번쩍임, 포효, 이름 카드). 그다음 멀리서 싸우고, 선비처럼 지형을 뛰어넘고
+// (벽에 막히고 바위에 다치지 않음), 선비를 따라 콩밭 마을까지 내려가 마을 사람들을 묶고
+// 오른쪽부터 죽인다(PrototypeKongVillage). 강은 건너지 못한다.
+// 토벌: +10. 체력이 절반 아래면 어머니의 은비녀(F, 또는 보따리에서 사용)가 두꺼비를 태워 없애고
+// 콩쥐만 남긴다: +50(그 뒤 장면은 PrototypeKongAftermath).
+// 싸움 자체(이동, 공격, 던지는 것)는 PrototypeKongBoss.Fight.cs에 있다.
 public partial class PrototypeKongBoss : MonoBehaviour
 {
     public PrototypeCombat combat;
@@ -17,31 +17,31 @@ public partial class PrototypeKongBoss : MonoBehaviour
     public Phase Now { get; private set; }
     public const int MaxHealth = 260;
     public int Health { get; private set; } = MaxHealth;
-    // Below half, the hairpin can reach Kongjwi inside.
+    // 절반 아래면 은비녀가 안의 콩쥐에게 닿는다.
     public bool Weakened => Health <= MaxHealth / 2;
     public bool Fighting => Now == Phase.Fighting;
     public bool Resolved => Now == Phase.Slain || Now == Phase.Purified;
     public bool Started => Now >= Phase.Fighting;
-    // The talk and the change hold the game (PrototypeCombat.Paused).
+    // 대화와 변신 동안 게임이 멈춘다(PrototypeCombat.Paused).
     public bool Cutscene => Now == Phase.Meeting || Now == Phase.Changing;
     public const string Name = "콩쥐 요괴", Epithet = "밑 빠진 독에 깃든 두꺼비", LastLine = "젓갈로 담가 주마!", Roar = "꾸르륵… 꾸에에엑!";
-    // How near he comes before she speaks; seconds of the change and of its parts.
+    // 말을 걸기 전에 선비가 얼마나 가까이 와야 하는지, 변신과 그 단계들의 초.
     public const float MeetRange = 11f, ChangeLength = 3.8f, SwellAt = .9f, FlashAt = 1.75f, CardAt = 2f, RoarUntil = 3f;
     public const float DeathLength = 1.8f, PurifyLength = 3.4f, PurifyRange = 3f;
-    // Her feet; facing +1 right, -1 left (the art is drawn facing left).
+    // 발 위치, 방향 +1 오른쪽 -1 왼쪽(그림은 왼쪽을 보고 그려짐).
     public Vector3 Feet => transform.position;
     public int Facing { get; private set; } = -1;
-    // Easy to hit: the box blows land in is wider and taller than the body that walks.
+    // 맞히기 쉽게: 타격 판정 상자는 걸어 다니는 몸보다 넓고 높다.
     public Bounds HurtBox => new Bounds(Feet + new Vector3(0, 1.35f, 0), new Vector3(2.3f, 2.6f, 1));
     public float MetAt { get; private set; } = -1;
     public float ChangedAt { get; private set; } = -1;
     public float DownAt { get; private set; } = -1;
     public float PurifiedAt { get; private set; } = -1;
     public float HitAt { get; private set; } = -1;
-    // Purified away from the village, she stays kneeling there until he has left her map; then she is home again
-    // and the village draws her (PrototypeKongVillage).
+    // 마을 밖에서 정화되면 선비가 그 맵을 떠날 때까지 무릎 꿇고 있다가 집으로 돌아가고
+    // 마을(PrototypeKongVillage)이 그린다.
     public bool HandedBack { get; private set; }
-    // Where she was when the toad burned away.
+    // 두꺼비가 타 없어질 때 있던 자리.
     public float PurifiedX { get; private set; }
     public float NoticeAt { get; private set; } = -1;
     private string notice = "";
@@ -53,7 +53,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
     private SpriteRenderer picture, glow, human, pin;
     private SpriteRenderer[] sparks;
 
-    // What she says when he finds her on the hill. Her last line is always the one that changes her.
+    // 뒷산에서 만났을 때의 대사. 마지막 줄은 늘 변신하는 대사다.
     public static string[] MeetingLines(bool stayed, bool revealed, bool keepsake)
     {
         var said = new List<string>();
@@ -77,11 +77,12 @@ public partial class PrototypeKongBoss : MonoBehaviour
         said.Add(LastLine);
         return said.ToArray();
     }
-    // When he comes back from the foot of the hill after she struck him down.
+    // 요괴에게 쓰러진 뒤 뒷산 입구에서 다시 올라왔을 때.
     public static string[] RetryLines() => new[] { "또 오셨네요, 선비님. 이번엔 도망치지 마세요.", LastLine };
-    // Her sweet face first (unless he already knows), the true one after.
+    // 먼저 상냥한 얼굴(이미 알면 빼고), 그다음 진짜 얼굴.
     public static string MeetingPortrait(int page, bool revealed) => page == 0 && !revealed ? "kongjwi" : "kongjwi_true";
 
+    // 요괴 렌더러를 만들고 뒷산에 세운다.
     void Start()
     {
         body = gameObject.AddComponent<Rigidbody2D>();
@@ -100,6 +101,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
         BuildFight();
         ResetBoss();
     }
+    // 요괴 그림의 자식 렌더러를 만든다.
     SpriteRenderer Child(string label, int order)
     {
         var art = new GameObject(label).AddComponent<SpriteRenderer>();
@@ -107,9 +109,10 @@ public partial class PrototypeKongBoss : MonoBehaviour
         return art;
     }
 
-    // How many times he has come back from the checkpoint since the last full restart.
+    // 마지막 완전 재시작 뒤 체크포인트에서 몇 번 다시 왔는지.
     public int Retries { get; private set; }
     public void Retry() { int was = Retries; ResetBoss(); Retries = was + 1; }
+    // 재시작: 요괴를 뒷산에서 기다리는 상태로.
     public void ResetBoss()
     {
         Retries = 0;
@@ -126,10 +129,11 @@ public partial class PrototypeKongBoss : MonoBehaviour
 
     float PlayerX => combat.player.transform.position.x;
     bool HasKeepsake => JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0;
-    // Kongjwi in the village (rather than out on the hill): before the fight while he cannot see the hill, and
-    // after it once she has gone home.
+    // 콩쥐가 (뒷산이 아니라) 마을에 있음: 싸우기 전 선비가 뒷산을 볼 수 없을 때,
+    // 그리고 싸운 뒤 집에 돌아갔을 때.
     public bool AtHome => (Now == Phase.Waiting && PlayerX < PrototypeWorld.PassStart) || (Now == Phase.Purified && HandedBack);
 
+    // 만남, 대화, 변신, 싸움 단계를 진행한다.
     void Update()
     {
         if (combat == null || combat.PlayerHealth <= 0) { if (body != null) body.simulated = false; return; }
@@ -145,13 +149,14 @@ public partial class PrototypeKongBoss : MonoBehaviour
         Fight(Time.deltaTime);
     }
 
-    // On the hill, in sight: the talk begins.
+    // 뒷산에서 보이는 곳에 오면 대화가 시작된다.
     void WaitForHim()
     {
         if (combat.Paused || combat.Maps == null || !combat.Maps.Shows(PrototypeWorld.HillStart)) return;
         if (Mathf.Abs(PlayerX - Feet.x) < MeetRange) Meet(true);
     }
 
+    // 뒷산 대화를 연다(`begin`: 바로 시작).
     public void Meet(bool begin = false)
     {
         if (begin)
@@ -168,6 +173,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Escape)) page = lines.Length - 1;
         else if (Input.GetKeyDown(KeyCode.E) && !JinaUI.FinishTyping(lines[page])) NextLine();
     }
+    // 대화를 다음 줄로 넘기고, 마지막 줄 뒤에 변신을 시작한다.
     public void NextLine()
     {
         if (Now != Phase.Meeting) return;
@@ -176,10 +182,10 @@ public partial class PrototypeKongBoss : MonoBehaviour
     }
     public string Line => Now == Phase.Meeting && lines != null ? lines[Mathf.Min(page, lines.Length - 1)] : null;
     public int Page => page;
-    // The camera turns halfway to her while they talk and through the change.
+    // 대화와 변신 동안 카메라가 요괴 쪽으로 절반 돈다.
     void Look(float weight) => PrototypeView.Focus((PlayerX + Feet.x) / 2, Mathf.SmoothStep(0, 1, weight));
 
-    // The change: she trembles in a dark haze, a black shape swells round her, a flash, the demon roars.
+    // 변신: 어두운 안개 속에서 떨고, 검은 형체가 부풀고, 번쩍, 요괴가 포효한다.
     void Change()
     {
         float t = Time.time - ChangedAt, was = t - Time.deltaTime;
@@ -198,7 +204,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
         StartFight();
     }
 
-    // Blows from the seonbi. `sword`: a sword cut, which also counts toward breaking off a kill in the village.
+    // 선비의 타격. `sword`: 칼질이면 마을에서 죽이기를 끊는 데에도 센다.
     public bool Damage(int amount, bool sword)
     {
         if (!Fighting) return false;
@@ -222,7 +228,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
     }
 
     public bool Near => Fighting && Mathf.Abs(PlayerX - Feet.x) < PurifyRange && Mathf.Abs(combat.player.transform.position.y - (Feet.y + 1)) < 2.6f;
-    // The hairpin, from F (`take`: it leaves the bag here) or from the bag (which takes it itself).
+    // 은비녀: F로(`take`: 여기서 보따리에서 뺀다) 또는 보따리에서 사용(보따리가 직접 뺀다).
     public bool TryPurify(bool take, out string why)
     {
         why = null;
@@ -240,8 +246,8 @@ public partial class PrototypeKongBoss : MonoBehaviour
         return true;
     }
 
-    // After the toad has burned away: in the village she is handed to it at once; out on the hill or the pass she
-    // kneels where she is until he has gone from her map, then she is home.
+    // 두꺼비가 타 없어진 뒤: 마을이면 바로 마을에 넘긴다. 뒷산이나 고개면 선비가 그 맵을 떠날 때까지
+    // 그 자리에 무릎 꿇고 있다가 집으로 간다.
     void GoHome()
     {
         if (HandedBack || Time.time - PurifiedAt < PurifyLength) return;
@@ -252,14 +258,15 @@ public partial class PrototypeKongBoss : MonoBehaviour
         HandedBack = true;
         var kong = combat.Kong;
         if (kong == null) return;
-        // Where she knelt in the village, or home by her own door.
+        // 마을에서 무릎 꿇은 자리, 아니면 자기 집 문 앞.
         kong.Place(PrototypeKongVillage.Who.Kongjwi, inVillage ? Feet.x : PrototypeWorld.Kongjwi.x);
         kong.SetLook(PrototypeKongVillage.Who.Kongjwi, inVillage ? VillagerVisual.Look.Kneel : VillagerVisual.Look.Sad);
         kong.Face(PrototypeKongVillage.Who.Kongjwi, inVillage ? Facing : 0);
     }
 
-    // ---- what she looks like ----
+    // ---- 모습 ----
     static string Pose(string pose) => "21_KongBoss/kong_boss_" + pose;
+    // 단계에 맞는 요괴 모습을 그린다(대기, 변신, 싸움, 토벌, 정화).
     void LateUpdate()
     {
         if (picture == null) return;
@@ -282,6 +289,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
             case Phase.Purified: if (!HandedBack) DrawPurify(Time.time - PurifiedAt, flip); break;
         }
     }
+    // 그림 하나를 발 위치에 세운다.
     static void Show(SpriteRenderer art, Sprite sprite, Vector3 feet, bool flip, float alpha = 1)
     {
         art.enabled = true; art.sprite = sprite; art.color = new Color(1, 1, 1, alpha);
@@ -290,6 +298,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
     }
     const float ArtPixel = 12f / (546f / 1.9f);
     static Vector3 Snap(Vector3 p) => new Vector3(Mathf.Round(p.x / ArtPixel) * ArtPixel, Mathf.Round(p.y / ArtPixel) * ArtPixel, p.z);
+    // 그림 위에 흰색 번쩍임을 덮는다.
     void Flash(SpriteRenderer over, float amount, Color colour)
     {
         if (amount <= 0) return;
@@ -299,6 +308,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
     }
     float Shudder(float t, float every = .05f) => ((int)(t / every) % 2 == 0 ? 1 : -1) * ArtPixel;
 
+    // 변신 연출을 그린다.
     void DrawChange(float t, bool flip)
     {
         if (t < SwellAt)
@@ -307,7 +317,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
             human.color = Color.Lerp(Color.white, new Color(.45f, .4f, .55f), t / SwellAt);
             return;
         }
-        // The swelling shape: the demon's outline in black, growing from her size with a wobble, then the flash.
+        // 부풀어 오르는 형체: 요괴 윤곽을 검게, 콩쥐 크기에서 출렁이며 커지다가 번쩍.
         var sprite = JinaArt.Load(Pose(t < RoarUntil && t >= FlashAt ? "open" : "idle_00"));
         Show(picture, sprite, Feet, flip);
         if (t < FlashAt)
@@ -322,7 +332,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
         if (t < RoarUntil) picture.transform.position += Vector3.right * Shudder(t, .04f);
     }
 
-    // The death: a white jolt, the toad slumps with its eyes shut, then the crock and all crumble away.
+    // 토벌: 흰 충격, 두꺼비가 눈을 감고 늘어지고, 독과 함께 부서져 사라진다.
     void DrawDeath(float t, bool flip)
     {
         if (t >= DeathLength) return;
@@ -331,8 +341,8 @@ public partial class PrototypeKongBoss : MonoBehaviour
         Flash(picture, t < .2f ? .9f * (1 - t / .2f) : 0, Color.white);
     }
 
-    // The purification: the hairpin rises and shines, light breaks through the crock, the toad burns away into black
-    // wisps and the crock into shards, and Kongjwi is left kneeling; gold sparks drift up.
+    // 정화: 은비녀가 떠올라 빛나고, 빛이 독을 뚫고, 두꺼비는 검은 기운으로 타 없어지고
+    // 독은 조각나고, 콩쥐가 무릎 꿇은 채 남는다. 금빛 불티가 떠오른다.
     void DrawPurify(float t, bool flip)
     {
         var kneel = JinaArt.Load("16_Kong/kongjwi_kneel");
@@ -364,6 +374,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
         }
     }
 
+    // 대화창, 띠, 이름 카드, 체력 막대를 그린다.
     void OnGUI()
     {
         if (combat == null || combat.PlayerHealth <= 0) return;
@@ -382,13 +393,14 @@ public partial class PrototypeKongBoss : MonoBehaviour
         if (Fighting && Near && HasKeepsake) JinaUI.Prompt(Weakened ? "F: 은비녀로 콩쥐 되찾기" : "F: 은비녀 (요괴의 체력을 절반 이하로 깎아야 합니다)");
         DrawFightGUI();
     }
+    // 위아래 검은 띠를 그린다.
     void DrawBars(float amount)
     {
         float bar = JinaUI.H * .11f * amount;
         JinaUI.Fill(new Rect(0, 0, JinaUI.W, bar), Color.black);
         JinaUI.Fill(new Rect(0, JinaUI.H - bar, JinaUI.W, bar), Color.black);
     }
-    // The bars stay through the change; her name card slides in under the roar.
+    // 변신 내내 띠가 남고, 포효 아래로 이름 카드가 밀려 들어온다.
     void DrawChangeCard(float t)
     {
         GUI.depth = -50;

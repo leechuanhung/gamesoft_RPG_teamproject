@@ -1,22 +1,22 @@
 using UnityEngine;
 
-// When the boss walks into the village the elder calls out and draws his sword, and the keeper and the peddler
-// run into the house. Once the boss is slain or purified they come back out and walk slowly to their places.
-// If the elder fell, they first stand by his body for a while and speak their grief.
-// This moves them; KeeperVisual, PeddlerVisual and ElderVisual pick their frames.
+// 도깨비가 마을에 들어오면 노인이 외치며 칼을 뽑고, 주모와 보부상은
+// 집으로 달아난다. 도깨비가 토벌되거나 정화되면 다시 나와 천천히 제자리로 걷는다.
+// 노인이 쓰러졌으면 먼저 시체 곁에 잠시 서서 슬픔을 말한다.
+// 여기서는 움직임만 맡고, 프레임은 KeeperVisual, PeddlerVisual, ElderVisual이 고른다.
 public class PrototypeVillage : MonoBehaviour
 {
     public PrototypeCombat combat;
     public const string AlarmLine = "기어코 저 도깨비가 마을에 왔군! 모두 대피하시오!";
     public const float AlarmBubbleLength = 3.5f, RunSpeed = 3.6f, WalkSpeed = 1.1f;
-    // The tiled house's door; villagers fade out over the last half unit before it.
+    // 기와집 문. 마을 사람은 문 앞 마지막 반 칸에서 사라진다.
     public const float Shelter = 4.5f, DoorFade = .5f;
-    // Seconds after the alarm (they hear the elder first) and after the boss falls (its motion plays first).
+    // 경보 뒤 초(노인 외침을 먼저 듣는다)와 도깨비가 쓰러진 뒤 초(쓰러짐이 먼저 재생).
     public const float FleeDelay = .6f, ReturnDelay = 2.5f;
-    // How long each stands by the fallen elder, and how long their words stay up after they arrive.
+    // 쓰러진 노인 곁에 각자 서 있는 시간과 도착 뒤 말이 떠 있는 시간.
     public const float MournLength = 8f, MournLineLength = 4f;
 
-    // The alarm and the all-clear happen once per run; the times drive the motions.
+    // 경보와 해제는 한 판에 한 번. 시각이 동작을 이끈다.
     public bool Alarmed { get; private set; }
     public bool Cleared { get; private set; }
     public float AlarmAt { get; private set; }
@@ -28,8 +28,8 @@ public class PrototypeVillage : MonoBehaviour
         public SpriteRenderer art;
         public string name, grief;
         public float home, stagger, bubble;
-        // Where they stand by the fallen elder, when they arrived there and when their words start
-        // (negative until then); they speak one after the other, each for MournLineLength.
+        // 쓰러진 노인 곁에서 서는 자리, 도착한 시각과 말을 시작하는 시각
+        // (그 전에는 음수). 한 사람씩 MournLineLength 동안 말한다.
         public float mourn, mournedAt = -1, speakAt = -1;
         public State state;
     }
@@ -38,10 +38,10 @@ public class PrototypeVillage : MonoBehaviour
     public bool KeeperHome => Keeper == null || Keeper.state == State.Home;
     public bool PeddlerHome => Peddler == null || Peddler.state == State.Home;
     private KeeperVisual keeperVisual;
-    // When the next mourner may start speaking (after the one before has finished).
+    // 다음 사람이 말을 시작할 수 있는 시각(앞사람이 끝난 뒤).
     private float lineFree;
 
-    // The keeper is built by PrototypeWorld and the peddler by PrototypePeddler.Start, so find them lazily.
+    // 주모는 PrototypeWorld가, 보부상은 PrototypePeddler.Start가 만드니 필요할 때 찾는다.
     void Bind()
     {
         if (Keeper == null)
@@ -67,6 +67,7 @@ public class PrototypeVillage : MonoBehaviour
             };
     }
 
+    // 재시작: 주모·보부상을 제자리로.
     public void ResetVillage()
     {
         Alarmed = Cleared = false;
@@ -82,6 +83,7 @@ public class PrototypeVillage : MonoBehaviour
         if (keeperVisual != null) keeperVisual.ResetPose();
     }
 
+    // 경보, 대피, 귀가, 애도를 진행한다.
     void Update()
     {
         if (combat == null) return;
@@ -94,13 +96,13 @@ public class PrototypeVillage : MonoBehaviour
     }
 
     bool ElderDead => combat.Quest != null && combat.Quest.progress.ElderDead;
-    // Walking back out, they go to the fallen elder first (once), then home.
+    // 다시 나오면 먼저 쓰러진 노인에게 (한 번) 갔다가 집으로.
     float Target(Villager v) => ElderDead && v.mournedAt < 0 ? v.mourn : v.home;
-    // Standing by the fallen elder; their visuals turn them toward him.
+    // 쓰러진 노인 곁에 섬. 그림이 노인 쪽으로 돌린다.
     public bool IsMourning(SpriteRenderer art) =>
         (Keeper != null && Keeper.art == art && Keeper.state == State.Mourning) || (Peddler != null && Peddler.art == art && Peddler.state == State.Mourning);
 
-    // Home → (alarm) run to the door → hidden → (all clear) walk back out → (elder fallen: mourn) → home.
+    // 집 → (경보) 문으로 뜀 → 숨음 → (해제) 걸어 나옴 → (노인 쓰러짐: 애도) → 집.
     void Step(Villager v)
     {
         float x = v.art.transform.position.x;
@@ -123,13 +125,14 @@ public class PrototypeVillage : MonoBehaviour
                 else if (x == target) Arrive(v);
                 break;
             case State.Mourning:
-                // They stay at least until their own words have been read.
+                // 적어도 자기 말을 다 읽을 때까지는 머문다.
                 if (Time.time >= Mathf.Max(v.mournedAt + MournLength, v.speakAt + MournLineLength + 1)) v.state = State.Returning;
                 break;
         }
         Move(v, x, Mathf.Clamp01((x - Shelter) / DoorFade));
     }
 
+    // 쓰러진 노인 곁에 도착: 애도를 시작하고 말할 차례를 잡는다.
     void Arrive(Villager v)
     {
         v.state = State.Mourning;
@@ -138,18 +141,20 @@ public class PrototypeVillage : MonoBehaviour
         lineFree = v.speakAt + MournLineLength;
     }
 
+    // 마을 사람을 `x`로 옮기고 투명도를 정한다.
     void Move(Villager v, float x, float alpha)
     {
         var p = v.art.transform.position; p.x = x; v.art.transform.position = p;
         var c = v.art.color; c.a = alpha; v.art.color = c;
     }
 
+    // 애도 말풍선을 그린다.
     void OnGUI()
     {
         if (combat == null || combat.Quest == null || combat.Paused) return;
         if (Alarmed && Time.time - AlarmAt < AlarmBubbleLength && !ElderDead)
             SpeechBubble.Draw(new Vector3(PrototypeWorld.Elder.x, 1.45f, 0), "마을 노인", AlarmLine);
-        // One mourner speaks at a time: the first to arrive, then the other once the first has finished.
+        // 한 번에 한 사람만 애도한다: 먼저 도착한 사람, 그 사람이 끝나면 다른 사람.
         foreach (var v in new[] { Keeper, Peddler })
             if (v != null && v.state == State.Mourning && Time.time >= v.speakAt && Time.time < v.speakAt + MournLineLength
                 && SpeechBubble.OnScreen(v.art.transform.position))

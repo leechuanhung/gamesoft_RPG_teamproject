@@ -1,9 +1,9 @@
 using UnityEngine;
 
-// The always-on display: the seonbi's state (top left), what to do next under it, a controls guide (H folds it, and it
-// folds itself once he has found his feet), the moral gauge and counts (top right), the boss's bar (top centre) and the
-// route between maps (bottom centre). Panels size themselves to their text. It steps aside for cinematics, and shrinks
-// while a window is open. A blow reddens the edges of the screen, and so does being close to death.
+// 상시 화면: 선비 상태(왼쪽 위), 그 아래 할 일, 조작 안내(H로 접고, 익숙해지면
+// 저절로 접힘), 선악 게이지와 수(오른쪽 위), 보스 막대(위 가운데),
+// 맵 사이 길 안내(아래 가운데). 판은 글자에 맞춰 크기가 정해진다. 연출 중에는 비켜 주고,
+// 창이 열리면 작아진다. 맞으면 화면 가장자리가 붉어지고, 죽을 때가 가까워도 붉어진다.
 public class PrototypeHud : MonoBehaviour
 {
     public PrototypeCombat combat;
@@ -21,21 +21,22 @@ public class PrototypeHud : MonoBehaviour
         "주황빛은 공격 예고입니다",
     };
 
-    // Nothing over the intro, the ending, the encounter or the game-over screen.
+    // 인트로, 결말, 조우, 게임 오버 화면 위에는 아무것도 없다.
     public bool Hidden => combat == null || combat.Quest == null || combat.PlayerHealth <= 0
         || (combat.Intro != null && combat.Intro.IsPlaying) || (combat.Ending != null && combat.Ending.Active)
         || (combat.Encounter != null && combat.Encounter.Playing) || (combat.Stay != null && combat.Stay.Playing)
         || (combat.KongBoss != null && combat.KongBoss.Cutscene);
 
+    // H로 조작 안내를 접고 펴며, 한동안 플레이하면 저절로 접는다.
     void Update()
     {
         if (combat == null) return;
         if (!combat.Paused && Input.GetKeyDown(KeyCode.H)) { GuideOpen = !GuideOpen; guideTouched = true; }
-        // Once he has played a while the guide gets out of the way; H brings it back.
+        // 한동안 플레이하면 안내가 비켜 준다. H로 다시 연다.
         if (!guideTouched && GuideOpen && Time.timeSinceLevelLoad > GuideFoldsAfter + 40 && !combat.Paused) { GuideOpen = false; guideTouched = true; }
     }
 
-    // What to do next, from where he is and how the story stands. Short: it sits on the screen all the time.
+    // 지금 어디 있는지와 이야기 진행에 따라 할 일. 늘 화면에 있으니 짧게.
     public string Goal()
     {
         var q = combat.Quest.progress;
@@ -62,7 +63,7 @@ public class PrototypeHud : MonoBehaviour
         if (combat.Kong != null && combat.Kong.Revealed) return x < PrototypeWorld.PassStart ? "콩쥐가 뒷산에서 기다립니다. 먼저 팥쥐의 말을 들어 보세요." : "콩쥐가 말한 뒷산은 고개 너머입니다.";
         return "고개를 넘어 뒷산을 지나면 한양으로 가는 금빛 표식이 있습니다.";
     }
-    // During the fight with the Kongjwi demon: where she is and what can be done about her.
+    // 콩쥐 요괴와 싸우는 동안: 요괴가 어디 있고 무엇을 할 수 있는지.
     string KongGoal(float x)
     {
         var boss = combat.KongBoss; var kong = combat.Kong;
@@ -74,6 +75,7 @@ public class PrototypeHud : MonoBehaviour
         if (hairpin) return boss.Weakened ? "지금입니다! 콩쥐 요괴 가까이에서 F로 은비녀를 쓰세요." : "콩쥐 요괴의 체력을 절반 아래로 깎은 뒤, 가까이에서 F로 은비녀를 쓰면 콩쥐를 되찾습니다.";
         return "콩쥐 요괴를 쓰러뜨리세요. 은비녀가 있으면 정화할 수 있습니다. 강을 건너면 쫓아오지 못합니다.";
     }
+    // 아직 못 찾은 콩밭 마을 단서를 알려 준다.
     string Clue()
     {
         var k = combat.Kong;
@@ -82,20 +84,22 @@ public class PrototypeHud : MonoBehaviour
         return "장독대 곁에 떨어진 종이를 읽어 보세요.";
     }
 
+    // HUD 전체를 그린다(연출 중에는 숨는다).
     void OnGUI()
     {
         if (combat == null) return;
         PrototypeKoreanUI.Apply();
-        // The edges of the screen: a flash at each blow, a slow pulse near death. Over the world, under every panel.
+        // 화면 가장자리: 맞을 때마다 번쩍, 죽을 때가 가까우면 느리게 맥박. 세상 위, 모든 판 아래.
         if (combat.PlayerHealth > 0 && !Hidden) DrawHurt();
         if (Hidden) { JinaUI.ToastTop = 14; return; }
-        GUI.depth = 10;   // every window draws over the HUD
+        GUI.depth = 10;   // 모든 창은 HUD 위에 그려진다
         DrawStatus();
         if (!combat.InventoryPauseActive) DrawMorals();
         DrawBossBar();
         DrawRoute();
     }
 
+    // 맞았거나 죽을 때가 가까우면 화면 가장자리를 붉게 그린다.
     void DrawHurt()
     {
         float flash = combat.PlayerHurtAt < 0 ? 0 : Mathf.Clamp01(1 - (Time.time - combat.PlayerHurtAt) / .32f);
@@ -104,7 +108,7 @@ public class PrototypeHud : MonoBehaviour
         if (a <= 0) return;
         var v = JinaUI.Art("vignette");
         if (v == null) return;
-        // The picture is black; a red copy comes from drawing it over a red wash with its alpha.
+        // 그림은 검은색이다. 붉은 바탕 위에 알파로 그려서 붉은 사본을 만든다.
         var saved = GUI.color;
         GUI.color = new Color(.78f, .06f, .05f, a);
         var mat = GUI.matrix;
@@ -112,6 +116,7 @@ public class PrototypeHud : MonoBehaviour
         GUI.color = saved;
     }
     static Texture2D redVignette;
+    // 검은 그림을 붉은 사본으로 만든다(캐시).
     static Texture2D Red(Texture2D source)
     {
         if (redVignette != null) return redVignette;
@@ -122,11 +127,12 @@ public class PrototypeHud : MonoBehaviour
         return redVignette;
     }
 
+    // 왼쪽 위 선비 상태 판과 할 일, 조작 안내를 그린다.
     void DrawStatus()
     {
         float x = Margin, w = PanelWidth, inner = w - 24, y = Margin;
         bool full = !combat.Paused;
-        // The panel proper: his weapon in a little frame, health, arrows and coins.
+        // 판 본체: 작은 틀 안의 무기, 체력, 화살, 엽전.
         const float height = 72;
         JinaUI.HudPanel(new Rect(x, y, w, height));
         var frame = new Rect(x + 8, y + 8, 40, 40);
@@ -135,25 +141,25 @@ public class PrototypeHud : MonoBehaviour
         JinaUI.Text(new Rect(x + 8, y + 49, 40, 16), "Q", 11, JinaUI.Faint, TextAnchor.MiddleCenter);
         float left = x + 56, width = w - 56 - 10;
         JinaUI.Text(new Rect(left, y + 7, width, 18), "선비", 15, JinaUI.Gold, TextAnchor.MiddleLeft, true);
-        // The combo's three small pips while the sword is in reach of another blow.
+        // 칼이 다음 타격으로 이어질 수 있는 동안 연격 점 세 개.
         if (!combat.UsingBow && combat.ComboStep >= 0)
             for (int i = 0; i < 3; i++)
                 JinaUI.Fill(new Rect(left + width - 34 + i * 12, y + 12, 8, 8), i <= combat.ComboStep ? JinaUI.Gold : new Color(.3f, .26f, .22f));
-        // Health is drawn over his head now (PrototypeCombat.DrawPlayerHealthBar).
+        // 체력은 이제 머리 위에 그린다(PrototypeCombat.DrawPlayerHealthBar).
         JinaUI.Icon("icon_arrow", left - 2, y + 47, 1.25f);
         JinaUI.Text(new Rect(left + 20, y + 48, 70, 18), combat.Arrows + " / " + ShopRules.MaxArrows, 13, combat.Arrows == 0 ? new Color(1, .5f, .4f) : JinaUI.Bright, TextAnchor.MiddleLeft);
         string coins = (combat.Tavern != null ? combat.Tavern.wallet.Coins : 0) + "문";
         JinaUI.Icon("icon_coin", left + width - JinaUI.Width(coins, 13) - 24, y + 47, 1.25f);
         JinaUI.Text(new Rect(left, y + 48, width, 18), coins, 13, JinaUI.Gold, TextAnchor.MiddleRight);
         y += height + 6;
-        // What he carries that matters right now: small tags under the panel.
+        // 지금 중요한 소지품: 판 아래 작은 꼬리표.
         float tagX = x;
         if (combat.Quest.progress.HasCharm) tagX = Tag(tagX, y, "icon_charm", "정화 부적");
         if (combat.Warded) tagX = Tag(tagX, y, "icon_ward", "액막이");
         if (combat.player.Hasted) tagX = Tag(tagX, y, "icon_sandal", "짚신 " + Mathf.CeilToInt(combat.player.HasteUntil - Time.time) + "초");
         if (tagX > x) y += 30;
         if (!full) return;
-        // What to do next.
+        // 할 일.
         string goal = Goal();
         float goalHeight = JinaUI.Height(goal, 13, inner - 18);
         JinaUI.HudPanel(new Rect(x, y, w, goalHeight + 16));
@@ -173,6 +179,7 @@ public class PrototypeHud : MonoBehaviour
         JinaUI.Text(new Rect(x + 12, y + 7, inner, 16), "H: 접기", 12, JinaUI.Faint, TextAnchor.UpperRight);
         for (int i = 0; i < Guide.Length; i++) JinaUI.Text(new Rect(x + 12, y + 26 + i * 19, inner, 18), Guide[i], 13, JinaUI.Bright);
     }
+    // 판 아래 소지품 꼬리표 하나를 그리고 다음 x를 돌려준다.
     static float Tag(float x, float y, string icon, string label)
     {
         float w = 30 + JinaUI.Width(label, 12) + 8;
@@ -183,6 +190,7 @@ public class PrototypeHud : MonoBehaviour
         return x + w + 4;
     }
 
+    // 오른쪽 위 선악 게이지와 수를 그린다.
     void DrawMorals()
     {
         var q = combat.Quest.progress;
@@ -202,7 +210,7 @@ public class PrototypeHud : MonoBehaviour
         JinaUI.Text(new Rect(x + 12, y, inner, 18), "선악", 13, JinaUI.Gold, TextAnchor.MiddleLeft, true);
         JinaUI.Text(new Rect(x + 12, y, inner, 18), state + " " + (q.Honor > 0 ? "+" : "") + q.Honor, 13, q.Honor > 0 ? new Color(.66f, .94f, .72f) : q.Honor < 0 ? new Color(1, .6f, .52f) : JinaUI.Bright, TextAnchor.MiddleRight);
         y += 21;
-        // The gauge: red for evil, green for good, a centre mark and a white marker at the current honour.
+        // 게이지: 악은 빨강, 선은 초록, 가운데 표시와 지금 명예 위치의 흰 표시.
         JinaUI.Fill(new Rect(x + 12, y, inner, 10), JinaUI.Ink);
         JinaUI.Fill(new Rect(x + 13, y + 1, inner / 2 - 1, 8), new Color(.62f, .22f, .2f));
         JinaUI.Fill(new Rect(x + 12 + inner / 2, y + 1, inner / 2 - 1, 8), new Color(.26f, .56f, .38f));
@@ -216,16 +224,17 @@ public class PrototypeHud : MonoBehaviour
             if (row != null) { JinaUI.Text(new Rect(x + 12, y, inner, 18), row, 12, JinaUI.Bright); y += 18; }
     }
 
+    // 보스 막대가 있으면 알림을 그 아래로 내린다.
     void DrawBossBar()
     {
         JinaUI.ToastTop = Margin + 2;
-        // The bar itself is the teammate's, drawn by PrototypeCombat.DrawBossHealthBar; toasts go below it.
+        // 막대 자체는 팀원 것(PrototypeCombat.DrawBossHealthBar). 알림은 그 아래로 간다.
         bool kong = combat.KongBoss != null && combat.KongBoss.Fighting;
         if ((!combat.BossAlerted || combat.EnemyDefeated) && !kong || combat.Paused) return;
         JinaUI.ToastTop = Margin + 56;
     }
 
-    // Only the neighbours of the current map, so it always fits on one line.
+    // 지금 맵의 이웃만 보여서 늘 한 줄에 들어간다.
     void DrawRoute()
     {
         if (combat.Paused || combat.Maps == null) return;

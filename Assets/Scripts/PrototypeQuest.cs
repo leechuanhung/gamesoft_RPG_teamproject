@@ -10,7 +10,7 @@ public class PrototypeQuest : MonoBehaviour
     public float ElderStruckAt { get; private set; } = -1;
     private bool shrineDialog;
     private string message = "";
-    // The elder's talk, a page at a time (E: next); `message` is the page showing.
+    // 노인의 대화, 한 장씩(E: 다음). `message`는 지금 보이는 장.
     private string[] pages;
     private int pageAt;
     private SpriteRenderer villager;
@@ -19,11 +19,13 @@ public class PrototypeQuest : MonoBehaviour
     public bool RevealingCharm => charmReveal >= 0;
     private PrototypePlayer Player => combat.player;
 
+    // 노인 표시를 만들고 그림을 붙인다.
     void Start()
     {
         villager = Marker("Village Elder", PrototypeWorld.Elder, new Vector2(.75f, 1.4f), new Color(.35f,.75f,1f));
         JinaActorVisual.Attach(villager, JinaArt.Elder, combat);
     }
+    // 색 사각형 표시를 하나 만든다.
     SpriteRenderer Marker(string label, Vector2 position, Vector2 scale, Color color)
     {
         var obj = new GameObject(label);
@@ -36,6 +38,7 @@ public class PrototypeQuest : MonoBehaviour
     }
     bool Near(Vector2 position) => Vector2.Distance(Player.transform.position, position) < 1.8f;
 
+    // 재시작: 퀘스트 진행과 창을 처음으로.
     public void ResetQuest()
     {
         progress.Reset();
@@ -51,6 +54,7 @@ public class PrototypeQuest : MonoBehaviour
             villager.color = new Color(.35f,.75f,1f);
         }
     }
+    // 노인이 맞아 쓰러진 것을 표시한다.
     public void ShowElderDeath()
     {
         if (villager == null) return;
@@ -59,18 +63,20 @@ public class PrototypeQuest : MonoBehaviour
         villager.transform.localScale = new Vector3(1.4f, .35f, 1);
         villager.transform.position = new Vector3(PrototypeWorld.Elder.x, -.3f, 0);
     }
+    // 대화창을 닫는다.
     void Close()
     {
         IsDialogOpen = false;
         Player.CanMove = combat.PlayerHealth > 0;
     }
+    // E로 노인·비석·쪽지와 상호작용하고, 부적 퍼즐을 처리한다.
     void Update()
     {
         if (combat != null && ((combat.Tavern != null && combat.Tavern.IsOpen) || (combat.Peddler != null && combat.Peddler.IsOpen))) return;
         if (combat == null || Player == null || combat.PlayerHealth <= 0) return;
         if (charmReveal >= 0)
         {
-            // The dialog stays open (and combat paused) until the reveal finishes.
+            // 부적 연출이 끝날 때까지 창이 열려 있다(전투도 멈춤).
             charmReveal += Time.unscaledDeltaTime;
             if (charmReveal >= CharmRevealLength) charmReveal = -1;
             return;
@@ -116,8 +122,8 @@ public class PrototypeQuest : MonoBehaviour
         IsDialogOpen = true;
         Player.CanMove = false;
     }
-    // What the elder has to say, as the story stands. Each entry is one speech bubble.
-    // `fleeing`: he has come back across the river from the Kongjwi demon to rest and buy what he needs.
+    // 이야기 진행에 따라 노인이 할 말. 항목 하나가 말풍선 하나.
+    // `fleeing`: 콩쥐 요괴를 피해 강을 건너 돌아와 쉬고 물건을 사러 왔음.
     public static string[] ElderPages(QuestProgress q, bool fleeing = false, bool keepsake = false)
     {
         if (fleeing && !q.ElderDead) return new[] {
@@ -143,6 +149,7 @@ public class PrototypeQuest : MonoBehaviour
             "비석 터로 가려면 들판의 망령들을 물리쳐야 하오. 그리고 부디, 도깨비를 마을로 끌어들이지는 마시오. 주민들이 다칠까 두렵소." };
     }
 
+    // 노인 대화창, 비석·쪽지 창, 부적 연출을 그린다.
     void OnGUI()
     {
         if (combat == null || Player == null) return;
@@ -155,12 +162,12 @@ public class PrototypeQuest : MonoBehaviour
         if (!IsDialogOpen) return;
         if (!shrineDialog && !progress.ElderDead)
         {
-            // The elder talks in a window with his portrait; the stone and his note stay as narration boxes.
+            // 노인은 초상화 창에서 말하고, 비석과 쪽지는 내레이션 상자로 남는다.
             bool more = pages != null && pageAt + 1 < pages.Length;
             JinaUI.TalkWindow("마을 노인", "elder", message, more ? "E 다음 (" + (pageAt + 1) + "/" + pages.Length + ")   ·   Esc 닫기" : "E / Esc 닫기", false);
             return;
         }
-        // The stone and the note: a paper window as tall as its words.
+        // 비석과 쪽지: 글 높이만큼의 한지 창.
         float width = Mathf.Min(760, JinaUI.W - 30), inner = width - JinaUI.WindowPad * 2;
         float textHeight = JinaUI.Height(message, 17, inner);
         bool puzzle = shrineDialog && progress.HeardClue;
@@ -174,7 +181,7 @@ public class PrototypeQuest : MonoBehaviour
         if (charmReveal >= 0) DrawCharmReveal(charmReveal);
     }
 
-    // Veil, turning rays, the charm rising into place, rising sparks, then the caption.
+    // 장막, 도는 빛줄기, 제자리로 떠오르는 부적, 떠오르는 불티, 그리고 설명.
     void DrawCharmReveal(float t)
     {
         var screen = new Rect(0, 0, JinaUI.W, JinaUI.H);
@@ -225,6 +232,7 @@ public class PrototypeQuest : MonoBehaviour
         JinaUI.Text(new Rect(0, captionY, JinaUI.W, unit * 10), "정화 부적을 얻었다", 35, new Color(1, .88f, .55f, caption), TextAnchor.MiddleCenter, true);
         JinaUI.Text(new Rect(0, captionY + unit * 10, JinaUI.W, unit * 7), "도깨비 가까이에서 F를 누르면 저주를 풀 수 있다.", 20, new Color(.95f, .92f, .85f, caption), TextAnchor.MiddleCenter);
     }
+    // 만든 표시를 지운다.
     void OnDestroy()
     {
         if (villager != null) Destroy(villager.gameObject);

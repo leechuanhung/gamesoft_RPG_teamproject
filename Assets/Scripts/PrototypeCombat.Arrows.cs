@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Arrows: aiming, the shot leaving the bow, and their flight until they hit something.
+// 화살: 조준, 활을 떠나는 순간, 무언가에 맞을 때까지의 비행.
 public partial class PrototypeCombat
 {
     private class FlyingArrow
@@ -10,11 +10,11 @@ public partial class PrototypeCombat
         public Vector2 direction;
         public float remaining = 12f;
     }
-    // Hold up or down while shooting to aim the bow 30° up or down (bow_up / bow_down frames).
+    // 쏠 때 위나 아래를 누르고 있으면 활을 30도 위·아래로 겨눈다(bow_up / bow_down 프레임).
     public const float AimAngle = 30f;
     private int pendingAim;
-    // Where the arrow leaves the bow, from the feet, for a right-facing shot. The level shot leaves 1.1 ahead at
-    // the drawn nock height; aimed shots turn that point about the release frame's shoulder (x 400, 285 px up).
+    // 오른쪽을 보고 쏠 때 화살이 활을 떠나는 위치(발 기준). 수평 사격은 그려진 시위 높이에서 1.1 앞,
+    // 조준 사격은 그 점을 놓는 프레임의 어깨(x 400, 위로 285px)를 축으로 돌린다.
     public static Vector2 ArrowLaunch(int aim)
     {
         var level = new Vector2(1.1f, JinaArt.BowArrowHeight);
@@ -22,14 +22,15 @@ public partial class PrototypeCombat
         var pivot = new Vector2(100f, 285f) / (510f / 1.9f);
         return pivot + (Vector2)(Quaternion.Euler(0, 0, AimAngle * aim) * (level - pivot));
     }
+    // 조준 단계와 방향으로 화살이 날아갈 방향을 구한다.
     public static Vector2 ArrowDirection(int aim, int facing) =>
         new Vector2(facing * Mathf.Cos(AimAngle * aim * Mathf.Deg2Rad), Mathf.Sin(AimAngle * aim * Mathf.Deg2Rad));
     private readonly List<FlyingArrow> arrows = new List<FlyingArrow>();
 
-    // Released at the bow's nock (raised or lowered for an aimed shot), flying along the aim.
+    // 활의 시위(조준하면 올리거나 내린 위치)에서 놓아 조준 방향으로 날아간다.
     void Shoot()
     {
-        // Spent on release, so a shot cancelled by a dialog keeps its arrow.
+        // 놓을 때 소모한다. 대화창 때문에 취소된 사격은 화살이 남는다.
         Arrows--;
         slashUntil = 0;
         var arrow = MakeSprite("Arrow", new Vector2(.55f, .1f), new Color(1f,.85f,.35f));
@@ -39,7 +40,7 @@ public partial class PrototypeCombat
         arrow.flipX = attackFacing < 0;
         arrow.sortingOrder = 4;
         arrow.transform.rotation = Quaternion.Euler(0, 0, AimAngle * pendingAim * attackFacing);
-        // Use the same foot reference as SeonbiVisual, including during jumps.
+        // 점프 중에도 SeonbiVisual과 같은 발 기준을 쓴다.
         var launch = ArrowLaunch(pendingAim);
         arrow.transform.position = new Vector3(player.transform.position.x + attackFacing * launch.x,
             playerArt.bounds.min.y + launch.y, 0);
@@ -48,7 +49,7 @@ public partial class PrototypeCombat
         JinaFx.Dots(arrow.transform.position, 3, Color.white, 1.8f, .18f, attackFacing);
     }
 
-    // Sweep each frame so fast arrows cannot pass through a target or a wall.
+    // 매 프레임 지나간 길을 훑어서 빠른 화살이 대상이나 벽을 뚫고 지나가지 않게 한다.
     void AdvanceArrows(float deltaTime)
     {
         for (int i = arrows.Count - 1; i >= 0; i--)
@@ -90,7 +91,7 @@ public partial class PrototypeCombat
                 JinaFx.Stop(.03f);
             }
             arrow.remaining -= step;
-            // A pale streak behind it, and chips where it strikes the ground.
+            // 뒤로 옅은 줄기, 땅에 꽂히면 부스러기.
             if (Time.frameCount % 2 == 0) JinaFx.Rise(origin, 1, new Color(1, .96f, .84f, .7f), 0, 0, .14f);
             if (wall.collider != null && !hitsEnemy) JinaFx.Dots(origin + direction * wall.distance, 5, new Color(.7f, .6f, .46f), 2.2f, .28f, 0, 10);
             if (hitsEnemy || wall.collider != null || arrow.remaining <= 0)
@@ -102,18 +103,20 @@ public partial class PrototypeCombat
         }
     }
 
-    // Arrows stop at the ground and walls but fly through the one-way ledges.
+    // 화살은 땅과 벽에서 멈추지만 한 방향 발판은 통과한다.
     static RaycastHit2D Wall(Vector2 origin, Vector2 direction, float distance)
     {
         foreach (var hit in Physics2D.RaycastAll(origin, direction, distance, 1 << 8))
             if (!hit.collider.usedByEffector) return hit;
         return default;
     }
+    // 수평 사격용: 대상에 맞기까지의 거리(안 맞으면 무한대).
     public static float ArrowHitDistance(Bounds target, Vector2 origin, int direction, float distance) =>
         ArrowHitDistance(target, origin, Vector2.right * direction, distance);
+    // 화살이 대상에 맞기까지의 거리(안 맞으면 무한대).
     public static float ArrowHitDistance(Bounds target, Vector2 origin, Vector2 direction, float distance)
     {
-        // Account for arrow thickness without extending its damage past the traveled segment.
+        // 화살 두께를 고려하되, 피해 판정은 실제 지나간 구간을 넘지 않게 한다.
         target.Expand(new Vector3(.1f, .1f, 0));
         if (target.Contains(origin)) return 0;
         float hit;
@@ -121,6 +124,7 @@ public partial class PrototypeCombat
             ? hit : float.PositiveInfinity;
     }
 
+    // 날고 있는 화살을 모두 지운다(재시작).
     void ClearArrows()
     {
         foreach (var arrow in arrows)

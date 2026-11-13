@@ -2,15 +2,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using Who = PrototypeKongVillage.Who;
 
-// What follows the fight with the Kongjwi demon, line by line in speech bubbles (the game goes on meanwhile).
-// Purified out on the hill or the pass: Kongjwi wakes on her knees and he tells her it is over (the field scene);
-// she goes home once he has left her map. In the village (at once if purified there, or when he next comes):
-//   - Patjwi dead: Kongjwi sees her, runs past the other bodies to hers, and falls over it wailing; she stays there.
-//   - others dead: she kneels and weeps for them, like the dokkaebi over the elder.
-//   - survivors who saw the demon: they cry out that it was Kongjwi and come at her to kill her; Patjwi steps between
-//     them and the seonbi tells them the toad is gone; they back away.
-//   - nobody saw it: Patjwi comes to her sister.
-// Slain in the village: a survivor's cry, and Patjwi's one word.
+// 콩쥐 요괴와 싸운 뒤의 일을 말풍선으로 한 줄씩 보여 준다(그동안 게임은 계속된다).
+// 뒷산이나 고개에서 정화: 콩쥐가 무릎 꿇은 채 깨어나고 선비가 다 끝났다고 말한다(들판 장면).
+// 선비가 그 맵을 떠나면 집으로 간다. 마을에서는(마을에서 정화했으면 바로, 아니면 다음에 왔을 때):
+//   - 팥쥐가 죽었으면: 콩쥐가 보고 다른 시체들을 지나 팥쥐에게 달려가 엎드려 오열하고, 거기 머문다.
+//   - 다른 사람들이 죽었으면: 도깨비가 노인에게 그랬듯 무릎 꿇고 운다.
+//   - 요괴를 본 생존자가 있으면: 콩쥐였다고 외치며 죽이려 달려든다. 팥쥐가 사이에 서고
+//     선비가 두꺼비는 사라졌다고 말하면 물러난다.
+//   - 아무도 못 봤으면: 팥쥐가 언니에게 온다.
+// 마을에서 토벌: 생존자의 외침과 팥쥐의 한마디.
 public class PrototypeKongAftermath : MonoBehaviour
 {
     public PrototypeCombat combat;
@@ -21,7 +21,7 @@ public class PrototypeKongAftermath : MonoBehaviour
     private float cueTime;
     private bool fieldPlayed, villagePlayed, slainPlayed;
     public bool Playing => at >= 0 && at < cues.Count;
-    // The field scene is over (or there was none): she may go home.
+    // 들판 장면이 끝났거나 없었다: 집에 가도 된다.
     public bool FieldDone => fieldPlayed && !Playing;
     public string Scene { get; private set; } = "";
     public int CueCount => cues.Count;
@@ -36,6 +36,7 @@ public class PrototypeKongAftermath : MonoBehaviour
     float PlayerX => combat.player.transform.position.x;
     bool PlayerInVillage => PlayerX >= PrototypeWorld.KongStart && PlayerX < PrototypeWorld.KongEnd;
 
+    // 싸움 뒤 상황을 보고 알맞은 장면을 시작하고, 지금 큐를 돌린다.
     void Update()
     {
         if (combat == null || Kong == null || Boss == null || combat.PlayerHealth <= 0 || combat.Paused) return;
@@ -54,7 +55,7 @@ public class PrototypeKongAftermath : MonoBehaviour
         }
     }
 
-    // Runs the current cue for `dt`; the next starts once its time is up and whatever it waits for has happened.
+    // 지금 큐를 `dt`만큼 돌린다. 시간이 다 되고 기다리던 일이 일어나면 다음 큐가 시작된다.
     public void Step(float dt)
     {
         if (!Playing) return;
@@ -63,8 +64,9 @@ public class PrototypeKongAftermath : MonoBehaviour
         if (cueTime < cue.length || (cue.wait != null && !cue.wait())) return;
         Begin(at + 1);
     }
-    // Moves straight on to the next line (the checks use it).
+    // 바로 다음 줄로 넘어간다(검사에서 쓴다).
     public void Advance() { if (Playing) Begin(at + 1); }
+    // `index`번 큐를 시작한다.
     void Begin(int index)
     {
         at = index; cueTime = 0;
@@ -76,7 +78,7 @@ public class PrototypeKongAftermath : MonoBehaviour
     Cue Seonbi(string line, System.Action act = null) { var c = new Cue { seonbi = true, line = line, act = act }; cues.Add(c); return c; }
     void Turn(Who who, float x) => Kong.Face(who, x >= Kong.PersonX(who) ? 1 : -1);
 
-    // On the hill or the pass, beside the kneeling girl the toad left behind.
+    // 뒷산이나 고개에서, 두꺼비가 남기고 간 무릎 꿇은 소녀 곁에서.
     void Field()
     {
         cues.Clear();
@@ -86,6 +88,7 @@ public class PrototypeKongAftermath : MonoBehaviour
         Play("field");
     }
 
+    // 마을 장면을 고른다: 팥쥐가 죽었는지, 생존자가 요괴를 봤는지에 따라.
     void Village(bool cameHome)
     {
         cues.Clear();
@@ -97,7 +100,7 @@ public class PrototypeKongAftermath : MonoBehaviour
         if (!cameHome) Say(K, "…여, 여기가… 저는…", () => Kong.SetLook(K, VillagerVisual.Look.Kneel));
         if (!Kong.Alive(P))
         {
-            // Past every other body to her sister's.
+            // 다른 시체들을 지나 동생에게로.
             float body = Kong.PersonX(P) + .9f;
             Say(K, "…팥쥐야?", () => { Kong.SetLook(K, VillagerVisual.Look.Sad); Turn(K, Kong.PersonX(P)); });
             var run = Say(K, "팥쥐야!!", () => { Kong.WalkTo(K, body, RunSpeed); Turn(K, Kong.PersonX(P)); });
@@ -130,13 +133,13 @@ public class PrototypeKongAftermath : MonoBehaviour
             int toward = side >= 0 ? 1 : -1;
             Say(s1, "콩, 콩쥐?! 저 괴물 속에서 콩쥐가 나왔어!", () => { foreach (var s in survivors) Turn(s, kx); });
             Say(s2, "저게 콩쥐였다고? 우리를 다 잡아먹으려던 게?!");
-            // They close in on her, each a step behind the last; the line holds until they are there.
+            // 한 사람씩 조금 늦게 다가온다. 모두 도착할 때까지 대사가 머문다.
             var anger = Say(s1, "저 요물을 살려 둘 수 없소! 죽여야 하오!", () =>
             {
                 for (int i = 0; i < survivors.Count; i++) Kong.WalkTo(survivors[i], kx + toward * (2.6f + i * .9f), 3f);
             });
             anger.wait = () => survivors.TrueForAll(s => Kong.Arrived(s));
-            // Patjwi runs in from wherever she was and stands between them.
+            // 팥쥐가 어디 있었든 달려와 사이에 선다.
             var run = Say(P, "언니!", () => { Kong.WalkTo(P, kx + toward * 1.1f, RunSpeed); Turn(P, kx + toward * 1.1f); });
             run.length = .6f; run.wait = () => Kong.Arrived(P);
             Say(P, "그만해요! 언니 잘못이 아니에요… 저 두꺼비가 언니를 삼키고 있었던 거예요!", () => Kong.Face(P, toward));
@@ -151,7 +154,7 @@ public class PrototypeKongAftermath : MonoBehaviour
         }
         else
         {
-            // Nobody else saw the demon (or nobody else is left): her sister comes to her.
+            // 요괴를 본 사람이 없다(또는 남은 사람이 없다): 동생이 언니에게 온다.
             float kx = Kong.PersonX(K); int side = Kong.PersonX(P) >= kx ? 1 : -1;
             Say(P, Kong.Raided ? "…언니. 언니였구나… 그 안에." : "…언니? 언니 맞아?", () => { Kong.WalkTo(P, kx + side * 1.1f, 2.2f); Kong.Face(P, -side); });
             Say(K, "팥쥐야… 미안해. 다 기억나. 어머니 일도…", () => { Kong.SetLook(K, VillagerVisual.Look.Kneel, true); Turn(K, kx + side); });
@@ -161,6 +164,7 @@ public class PrototypeKongAftermath : MonoBehaviour
         Play("village");
     }
 
+    // 마을에서 토벌한 뒤의 한마디.
     void Slain()
     {
         cues.Clear();
@@ -171,6 +175,7 @@ public class PrototypeKongAftermath : MonoBehaviour
         if (cues.Count > 0) Play("slain");
     }
 
+    // 지금 대사를 말풍선으로, 오열 중에는 붉은 화면을 그린다.
     void OnGUI()
     {
         if (!Playing || combat == null || combat.Paused || combat.PlayerHealth <= 0) return;
@@ -180,7 +185,7 @@ public class PrototypeKongAftermath : MonoBehaviour
             : cue.field ? Boss.Feet + Vector3.up * 1.3f : Kong.Head(cue.who);
         if (cue.big)
         {
-            // Her wail over Patjwi: the screen dims red and pulses with it.
+            // 팥쥐를 안고 오열: 화면이 붉게 어두워지고 함께 맥박친다.
             float pulse = .14f + .08f * Mathf.Sin(cueTime * 9);
             JinaUI.Fill(new Rect(0, 0, JinaUI.W, JinaUI.H), new Color(.3f, 0, .02f, pulse * Mathf.Clamp01(cueTime / .3f)));
         }

@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Everything that flies off a blow: crescents, sparks, dust, shock rings, after-images, drifting dots and the numbers
-// that pop out of what was hit. Each is a pooled sprite with a short life and no effect on the game. Hit-stop, the
-// instant the world holds its breath on a landed blow, lives here too.
+// 타격에서 튀어나오는 모든 것: 초승달 칼빛, 불티, 먼지, 충격파, 잔상, 떠다니는 점, 맞은 곳에서 튀는 숫자.
+// 모두 풀링된 스프라이트로 수명이 짧고 게임에 영향이 없다. 타격이 들어간 순간 세상이 숨을 멈추는
+// 히트스톱도 여기 있다.
 public class JinaFx : MonoBehaviour
 {
     class Bit
@@ -32,6 +32,7 @@ public class JinaFx : MonoBehaviour
     float stopUntil;
 
     static Sprite[] arc, spark, dust, ring;
+    // 효과 프레임을 한 번만 불러 캐시에 둔다.
     static Sprite[] Frames(ref Sprite[] cache, string name, int n)
     {
         if (cache != null && cache.Length > 0 && cache[0] != null) return cache;
@@ -40,6 +41,7 @@ public class JinaFx : MonoBehaviour
         return cache;
     }
 
+    // 풀에서 쉬고 있는 효과 하나를 꺼낸다(없으면 새로 만든다).
     Bit Take()
     {
         foreach (var b in bits) if (!b.active) { Prepare(b); return b; }
@@ -48,6 +50,7 @@ public class JinaFx : MonoBehaviour
         bits.Add(made); Prepare(made);
         return made;
     }
+    // 꺼낸 효과를 기본값으로 되돌린다.
     static void Prepare(Bit b)
     {
         b.active = true; b.age = 0; b.velocity = Vector3.zero; b.gravity = 0; b.spin = 0; b.grow = 1; b.startScale = 1; b.frames = null;
@@ -55,9 +58,10 @@ public class JinaFx : MonoBehaviour
         b.art.transform.rotation = Quaternion.identity; b.art.transform.localScale = Vector3.one;
     }
 
+    // 살아 있는 효과를 움직이고 수명이 다한 것을 거둔다.
     void LateUpdate()
     {
-        // The hold ends on real time, whatever the game's clock is doing.
+        // 멈춤은 게임 시계와 상관없이 실제 시간으로 끝난다.
         if (stopUntil > 0 && Time.unscaledTime >= stopUntil)
         {
             if (Mathf.Approximately(Time.timeScale, Stopped)) Time.timeScale = Normal;
@@ -81,15 +85,16 @@ public class JinaFx : MonoBehaviour
         }
     }
 
-    // ---- what the game calls ----
+    // ---- 게임이 부르는 함수 ----
 
-    // The world holds still for a moment. Off in batch checks, whose clocks barely move.
+    // 세상이 잠깐 멈춘다. 시계가 거의 안 가는 배치 검사에서는 끈다.
     public static void Stop(float seconds)
     {
         if (Application.isBatchMode || Time.timeScale < .5f) return;
         Time.timeScale = Stopped;
         Self.stopUntil = Time.unscaledTime + seconds;
     }
+    // 모든 효과를 지운다(재시작).
     public static void Clear()
     {
         if (self == null) return;
@@ -98,7 +103,7 @@ public class JinaFx : MonoBehaviour
         if (self.stopUntil > 0) { if (Mathf.Approximately(Time.timeScale, Stopped)) Time.timeScale = Normal; self.stopUntil = 0; }
     }
 
-    // The sword's crescent. `angle`: 0 sweeps down in front, positive tips it upward. `size` scales it.
+    // 칼의 초승달. `angle`: 0이면 앞쪽 아래로 휩쓸고, 양수면 위로 기운다. `size`는 크기 배율.
     public static void Arc(Vector3 at, int facing, float angle, float size, Color colour, float life = .16f)
     {
         var b = Self.Take();
@@ -110,7 +115,7 @@ public class JinaFx : MonoBehaviour
         b.from = colour; b.to = new Color(colour.r, colour.g, colour.b, .55f);
         b.art.sortingOrder = 7;
     }
-    // The star where a blow lands, with a few dots thrown back the way it came.
+    // 타격이 꽂힌 곳의 별, 날아온 쪽으로 튀는 점 몇 개.
     public static void Hit(Vector3 at, int direction, Color colour, float size = 1)
     {
         var b = Self.Take();
@@ -120,7 +125,7 @@ public class JinaFx : MonoBehaviour
         b.art.sortingOrder = 8;
         Dots(at, 6, colour, 3.4f, .3f, direction, 9);
     }
-    // Dots burst from a point. `direction` biases them to one side (0 for all round); gravity pulls them down.
+    // 한 점에서 점들이 터진다. `direction`은 한쪽으로 치우침(0이면 사방), 중력으로 떨어진다.
     public static void Dots(Vector3 at, int count, Color colour, float speed, float life, int direction = 0, float gravity = 0, float dotSize = 1)
     {
         for (int i = 0; i < count; i++)
@@ -137,7 +142,7 @@ public class JinaFx : MonoBehaviour
             b.art.sortingOrder = 8;
         }
     }
-    // Dots rising gently from a point: a heal, a wisp leaving a body, a coin's glitter.
+    // 한 점에서 천천히 떠오르는 점들: 회복, 몸에서 빠져나가는 기운, 동전의 반짝임.
     public static void Rise(Vector3 at, int count, Color colour, float spread, float height, float life)
     {
         for (int i = 0; i < count; i++)
@@ -150,7 +155,7 @@ public class JinaFx : MonoBehaviour
             b.from = colour; b.to = new Color(colour.r, colour.g, colour.b, 0);
         }
     }
-    // A puff of dust on the ground; `drift` moves it.
+    // 땅의 먼지 한 줌. `drift`만큼 흘러간다.
     public static void Dust(Vector3 feet, float drift = 0, float size = 1, Color? tint = null)
     {
         var b = Self.Take();
@@ -161,7 +166,7 @@ public class JinaFx : MonoBehaviour
         var c = tint ?? new Color(.86f, .8f, .68f, .9f);
         b.from = c; b.to = new Color(c.r, c.g, c.b, .15f);
     }
-    // The ring a heavy landing sends along the ground, and the dust and clods with it.
+    // 무겁게 내려앉을 때 땅을 따라 퍼지는 고리와 함께 튀는 먼지·흙덩이.
     public static void Shock(Vector3 feet, float size = 1)
     {
         var b = Self.Take();
@@ -174,7 +179,7 @@ public class JinaFx : MonoBehaviour
                 Dust(feet + Vector3.right * side * (.4f + i * .5f) * size, side * (1.2f + i * .5f), 1.1f + i * .25f);
         Dots(feet + Vector3.up * .1f, 14, new Color(.5f, .38f, .28f), 5, .5f, 0, 16, 1.2f);
     }
-    // The flash before a blow.
+    // 타격 직전의 번쩍임.
     public static void Glint(Vector3 at, Color colour)
     {
         var b = Self.Take();
@@ -184,7 +189,7 @@ public class JinaFx : MonoBehaviour
         b.from = colour; b.to = new Color(colour.r, colour.g, colour.b, 0);
         b.art.sortingOrder = 9;
     }
-    // A fading copy of a body left where it was: the backstep, the charge.
+    // 몸이 있던 자리에 남는 사라지는 잔상: 백스텝, 돌진.
     public static void AfterImage(SpriteRenderer body, Color colour, float life = .22f)
     {
         if (body == null || body.sprite == null) return;
@@ -195,17 +200,19 @@ public class JinaFx : MonoBehaviour
         b.from = colour; b.to = new Color(colour.r, colour.g, colour.b, 0);
         b.art.sortingOrder = body.sortingOrder - 1;
     }
-    // A number jumping out of what was hit.
+    // 맞은 곳에서 튀어나오는 숫자.
     public static void Number(Vector3 at, int amount, Color colour, int size = 20)
     {
         Self.popups.Add(new Popup { at = at, text = amount.ToString(), colour = colour, born = Time.time, size = size });
     }
+    // 맞은 곳에서 튀어나오는 글자.
     public static void Word(Vector3 at, string text, Color colour, int size = 20)
     {
         Self.popups.Add(new Popup { at = at, text = text, colour = colour, born = Time.time, size = size });
     }
 
     const float PopupLength = .62f;
+    // 튀어나온 숫자와 글자를 그린다.
     void OnGUI()
     {
         if (popups.Count == 0) return;
@@ -221,7 +228,7 @@ public class JinaFx : MonoBehaviour
             var world = p.at + Vector3.up * (.5f * (1 - (1 - t) * (1 - t)));
             var at = JinaUI.FromWorld(cam, world);
             var c = p.colour; c.a = Mathf.Clamp01((1 - t) * 3);
-            // Bigger for an instant, then settling.
+            // 잠깐 커졌다가 가라앉는다.
             int size = Mathf.RoundToInt(p.size * (t < .15f ? 1 + (1 - t / .15f) * .35f : 1));
             var r = new Rect(at.x - 60, at.y - 20, 120, 40);
             var ink = new Color(.04f, .03f, .04f, c.a);

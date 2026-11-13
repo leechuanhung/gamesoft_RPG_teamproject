@@ -4,15 +4,16 @@ using System.IO;
 using System.Reflection;
 using UnityEngine;
 
-// Screenshots of every window and notice, which the camera captures in JinaPlayChecks cannot see (IMGUI draws only in
-// a real player). Compiled only into the build made by Tools/run_ui_shots.sh; it puts the game into each state, saves
-// <width>x<height>_<name>.png into the folder after -uishots, at each screen size, and quits.
+// 모든 창과 알림의 스크린샷. JinaPlayChecks의 카메라 캡처로는 안 보인다(IMGUI는 실제
+// 플레이어에서만 그려짐). Tools/run_ui_shots.sh가 만드는 빌드에만 들어간다. 게임을 각 상태로 만들고
+// 화면 크기마다 -uishots 뒤 폴더에 <너비>x<높이>_<이름>.png를 저장하고 끝낸다.
 public class UiShots : MonoBehaviour
 {
     PrototypeCombat combat;
     string folder;
     int width, height;
 
+    // -uishots 인자가 있으면 촬영기를 띄운다.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Launch()
     {
@@ -24,6 +25,7 @@ public class UiShots : MonoBehaviour
         DontDestroyOnLoad(shots.gameObject);
     }
 
+    // 화면 크기마다 모든 장면을 찍고 끝낸다.
     IEnumerator Start()
     {
         Application.runInBackground = true;
@@ -43,20 +45,22 @@ public class UiShots : MonoBehaviour
         Application.Quit();
     }
 
+    // 창 크기를 바꾼다.
     IEnumerator Size(int w, int h)
     {
         Screen.SetResolution(w, h, FullScreenMode.Windowed);
         yield return new WaitForSecondsRealtime(.6f);
     }
+    // 지금 화면을 파일로 저장한다.
     IEnumerator Shot(string name)
     {
         yield return new WaitForSecondsRealtime(.35f);
-        // Read back after the frame, once IMGUI has drawn over the camera.
+        // IMGUI가 카메라 위에 그린 뒤, 프레임이 끝나고 읽는다.
         yield return new WaitForEndOfFrame();
         var image = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
         image.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
         image.Apply();
-        // This project's player has no PNG encoder module: raw pixels as a PPM, which run_ui_shots.sh converts.
+        // 이 프로젝트의 플레이어에는 PNG 인코더 모듈이 없다: 원본 픽셀을 PPM으로, run_ui_shots.sh가 변환한다.
         using (var file = File.Create(Path.Combine(folder, width + "x" + height + "_" + name + ".ppm")))
         {
             var header = System.Text.Encoding.ASCII.GetBytes("P6 " + image.width + " " + image.height + " 255 ");
@@ -67,6 +71,7 @@ public class UiShots : MonoBehaviour
         Destroy(image);
     }
 
+    // 비공개 필드를 이름으로 찾는다.
     static FieldInfo Find(object o, string name)
     {
         for (var t = o.GetType(); t != null; t = t.BaseType)
@@ -77,9 +82,11 @@ public class UiShots : MonoBehaviour
         throw new System.MissingFieldException(o.GetType().Name, name);
     }
     static void Set(object o, string name, object value) => Find(o, name).SetValue(o, value);
+    // 비공개 함수를 이름으로 부른다.
     static void Call(object o, string name, params object[] args) =>
         o.GetType().GetMethod(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Invoke(o, args);
 
+    // `x`에서 새로 시작한 상태로 만든다.
     void Fresh(float x, bool quiet = true)
     {
         combat.Restart();
@@ -91,7 +98,7 @@ public class UiShots : MonoBehaviour
     void Move(float x) { combat.player.transform.position = new Vector3(x, .3f, 0); combat.player.GetComponent<Rigidbody2D>().velocity = Vector2.zero; combat.Maps.Sync(); }
     void Solve() { combat.Quest.progress.Resolve(false); Set(combat, "EnemyHealth", 0); }
 
-    // Puts her straight into the fight at `x` (in the village the raid begins as soon as she moves).
+    // `x`에서 바로 싸움을 시작한다(마을이면 요괴가 움직이자마자 습격 시작).
     void KongFighting(float x)
     {
         var boss = combat.KongBoss;
@@ -99,17 +106,19 @@ public class UiShots : MonoBehaviour
         boss.transform.position = new Vector3(x, PrototypeWorld.Top(x), 0);
         var body = boss.GetComponent<Rigidbody2D>(); body.position = boss.transform.position; body.simulated = true;
     }
+    // `done`이 참이 될 때까지(최대 `limit`초) 기다린다.
     IEnumerator Until(System.Func<bool> done, float limit = 8)
     {
         for (float t = 0; t < limit && !done(); t += Time.unscaledDeltaTime) yield return null;
     }
-    // Skips the scene after the fight to the line that has `words`, then lets it be typed out.
+    // 싸움 뒤 장면을 `words`가 있는 줄까지 건너뛰고, 그 줄이 찍히게 둔다.
     IEnumerator CueWith(string words)
     {
         var after = combat.Aftermath;
         while (after.Playing && !after.CurrentLine.Contains(words)) after.Advance();
         yield return new WaitForSecondsRealtime(1.1f);
     }
+    // 콩쥐 요괴 장면들을 찍는다.
     IEnumerator KongBoss()
     {
         var boss = combat.KongBoss; var kong = combat.Kong; var W = PrototypeKongVillage.Who.Kongjwi; var P = PrototypeKongVillage.Who.Patjwi;
@@ -128,13 +137,13 @@ public class UiShots : MonoBehaviour
         yield return new WaitForSecondsRealtime(1.2f);
         yield return Shot("kongboss_fight");
 
-        // The raid: everyone bound, one squeezed and crying out, a death told.
+        // 습격: 모두 묶이고, 한 명이 조여 비명을 지르고, 죽음 알림.
         Fresh(PrototypeWorld.Hunjang.x - 3.5f); Solve();
         KongFighting(PrototypeWorld.Hunjang.x + PrototypeKongBoss.KillReach);
         kong.StartRaid(); kong.Kill(PrototypeKongVillage.Who.Yeot); kong.Threaten(PrototypeKongVillage.Who.Hunjang);
         yield return Shot("kongboss_raid");
 
-        // Purified in the village with three dead: she weeps, two survivors come at her, Patjwi and he stop them.
+        // 세 명이 죽은 마을에서 정화: 콩쥐가 울고, 생존자 둘이 달려들고, 팥쥐와 선비가 말린다.
         Fresh(PrototypeWorld.Halmi.x + .3f); Solve();
         KongFighting(PrototypeWorld.Halmi.x + 1.7f);
         kong.StartRaid(); kong.Place(P, PrototypeWorld.PatjwiRaidX);
@@ -154,7 +163,7 @@ public class UiShots : MonoBehaviour
         yield return CueWith("물러서시오");
         yield return Shot("kongboss_seonbi");
 
-        // Patjwi dead: Kongjwi runs to her and wails.
+        // 팥쥐 죽음: 콩쥐가 달려가 오열한다.
         Fresh(PrototypeWorld.PatjwiRaidX + 4); Solve();
         KongFighting(PrototypeWorld.PatjwiRaidX + 6);
         kong.StartRaid(); kong.Place(P, PrototypeWorld.PatjwiRaidX);
@@ -171,10 +180,11 @@ public class UiShots : MonoBehaviour
         Fresh(0);
     }
 
+    // 모든 장면을 차례로 찍는다.
     IEnumerator All()
     {
         var q = combat.Quest;
-        // The HUD
+        // HUD
         Fresh(0);
         yield return Shot("hud_village");
         Set(combat.Hud, "GuideOpen", false);
@@ -185,7 +195,7 @@ public class UiShots : MonoBehaviour
         combat.GiveWard(); combat.player.HasteUntil = Time.time + 15;
         yield return Shot("hud_charms_prompt");
 
-        // The inventory: the hairpin that was cut off, food, an arrow bundle, and empty
+        // 인벤토리: 잘린 은비녀, 음식, 화살 묶음, 빈칸
         Fresh(0);
         var bag = JinaItems.Inventory; var ui = bag.GetComponent<InventoryUI>();
         bag.TryAdd(JinaItems.Keepsake);
@@ -205,7 +215,7 @@ public class UiShots : MonoBehaviour
         yield return Shot("inventory_empty");
         Call(ui, "CloseInventory");
 
-        // The shops
+        // 상점
         Fresh(PrototypeWorld.Peddler.x - 1);
         yield return Shot("peddler_prompt");
         Set(combat.Peddler, "IsOpen", true); Set(combat.Peddler, "message", "등짐 진 보부상이오. 화살도 있고, 먼 길에 요긴한 것들도 챙겨 왔소.");
@@ -222,7 +232,7 @@ public class UiShots : MonoBehaviour
         Set(combat.Tavern, "IsOpen", true); Set(combat.Tavern, "message", "도깨비를 달래셨다지요? 오늘은 귀한 삼계탕을 내어 드리리다.");
         yield return Shot("tavern_special");
 
-        // Talk and reading
+        // 대화와 읽기
         Fresh(PrototypeWorld.Elder.x - 1);
         Set(q, "IsDialogOpen", true); Set(q, "shrineDialog", false);
         Set(q, "message", "숲의 도깨비는 본디 산을 지키던 주인이었소. 망한 나라의 원한이 씌어 저리 되었으니, 서쪽 비석 터의 옛 비석을 찾아가 보시오. 달이 먼저요, 그다음이 강, 마지막이 산이라오.");
@@ -238,7 +248,7 @@ public class UiShots : MonoBehaviour
         Set(q, "message", "피 묻은 쪽지가 떨어져 있다.\n선비에게. 서쪽 비석에 달, 강, 산의 차례로 손을 얹으면 부적이 나올 것이오. 부디 그 아이를 베지 말고 풀어 주시오.");
         yield return Shot("elder_note");
 
-        // The forest: the thorns' prompt; every notice at once under the boss's bar
+        // 숲: 가시덤불 안내, 보스 막대 아래 모든 알림 한꺼번에
         Fresh(PrototypeWorld.FerryStart - 1.5f);
         yield return Shot("thorns_prompt");
         Fresh(40);
@@ -247,7 +257,7 @@ public class UiShots : MonoBehaviour
         Set(combat, "noArrowsUntil", Time.time + 5);
         yield return Shot("toasts_bossbar");
 
-        // A blow landing, numbers and sparks in the air
+        // 타격, 공중의 숫자와 불티
         Fresh(40);
         Set(combat, "alerted", true);
         Set(combat.Encounter, "played", true); Set(combat.Encounter, "finished", true);
@@ -258,7 +268,7 @@ public class UiShots : MonoBehaviour
         JinaFx.Shock(combat.BossPosition - Vector3.up * 1.2f, 1.2f);
         yield return new WaitForSecondsRealtime(.04f);
         yield return Shot("fight");
-        // The sword's three steps, held at the moment each blow lands
+        // 칼 3연격, 각 타격이 꽂히는 순간에 멈춤
         Fresh(0);
         Set(combat, "invulnerableUntil", 0f);
         var visual = combat.player.GetComponent<SeonbiVisual>();
@@ -276,14 +286,14 @@ public class UiShots : MonoBehaviour
             yield return Shot("combo" + step + "_" + time);
             Time.timeScale = 1;
         }
-        // Ground and sky of each map
+        // 맵마다 땅과 하늘
         foreach (var map in new[] { -50f, -25f, 45f, 75f, 120f, 170f })
         {
             Fresh(map); Solve();
             yield return Shot("world_" + map);
         }
 
-        // Cinematics
+        // 연출
         Fresh(30);
         combat.Encounter.Play();
         yield return new WaitForSecondsRealtime(2.2f);
@@ -299,7 +309,7 @@ public class UiShots : MonoBehaviour
         yield return new WaitForSecondsRealtime(PrototypeGameOver.TextAt + 2.4f);
         yield return Shot("gameover");
 
-        // Across the river
+        // 강 건너
         Fresh(PrototypeWorld.Ferryman.x + 1); Solve();
         combat.Ferry.Open();
         yield return Shot("ferry_talk");
@@ -323,7 +333,7 @@ public class UiShots : MonoBehaviour
         Set(combat.Kong, "Stayed", true); Set(combat.Kong, "HeardPatjwi", true); Set(combat.Kong, "SawCrocks", true); Set(combat.Kong, "ReadList", true);
         combat.Kong.Open(PrototypeKongVillage.Who.Kongjwi); combat.Kong.Next();
         yield return Shot("kong_unmasked");
-        // The night at the house
+        // 그 집의 하룻밤
         Fresh(PrototypeWorld.Kongjwi.x - 2.5f); Solve();
         var stay = combat.Stay;
         stay.Begin();
@@ -342,7 +352,7 @@ public class UiShots : MonoBehaviour
             stay.Show(PrototypeKongStay.Phase.Morning, t);
             yield return Shot("stay_morning" + t);
         }
-        // Her plea, his choice, each way it can go.
+        // 콩쥐의 부탁, 선비의 선택, 갈 수 있는 모든 길.
         foreach (bool blunt in new[] { false, true })
         {
             stay.Show(PrototypeKongStay.Phase.Parting, 5);
@@ -371,10 +381,10 @@ public class UiShots : MonoBehaviour
         combat.Pass.UseShrine();
         yield return Shot("shrine_toast");
 
-        // The Kongjwi demon: her talk on the hill, the change and its card, the fight, the raid, and what follows.
+        // 콩쥐 요괴: 뒷산 대화, 변신과 이름 카드, 싸움, 습격, 그 뒤.
         yield return KongBoss();
 
-        // The ending's title
+        // 결말 제목
         Fresh(0); Solve();
         combat.Ending.Play(PrototypeEnding.Kind.Slain);
         combat.Ending.Skip();

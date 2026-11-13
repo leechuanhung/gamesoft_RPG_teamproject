@@ -1,28 +1,29 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// The look of every window and notice in the game, "hanji and wood": fibred cream paper in a grained wooden frame with
-// brass corners, dark lacquer panels for the always-on HUD, and text that is typed out as people speak.
-// The UI is laid out on a screen 720 units tall whatever the window's size (W x H): PrototypeKoreanUI.Apply sets the
-// matrix, and text is drawn at its real pixel size so it stays crisp. Text is measured (Height) so a window can grow to
-// fit it instead of cutting it off. Toasts stack downward and only one Prompt shows, so notices from different scripts
-// never land on top of each other.
+// ===== UI 공통 모양 (JinaUI) =====
+// 게임 속 모든 창과 알림의 모양, "한지와 나무": 나뭇결 테두리와 놋쇠 모서리 안의 섬유질 한지,
+// 상시 HUD는 어두운 옻칠 판, 글자는 말하듯 한 자씩 찍힌다.
+// UI는 창 크기와 상관없이 높이 720 단위 화면(W x H)에 배치한다. PrototypeKoreanUI.Apply가 행렬을
+// 맞추고, 글자는 실제 픽셀 크기로 그려 또렷하다. 글자 높이를 재서(Height) 창이 글자를 자르지 않고
+// 늘어나게 한다. 알림(Toast)은 아래로 쌓이고 행동 안내(Prompt)는 하나만 보여서, 여러 스크립트의 알림이
+// 서로 겹치지 않는다.
 public static class JinaUI
 {
     public static readonly Color Ink = new Color(.04f, .035f, .04f), Wood = new Color(.33f, .21f, .12f), WoodLight = new Color(.5f, .34f, .2f);
     public static readonly Color Paper = new Color(.96f, .92f, .81f), PaperDark = new Color(.87f, .8f, .65f), PaperLight = new Color(.99f, .97f, .9f);
     public static readonly Color SlotEdge = new Color(.56f, .43f, .29f), Night = new Color(.1f, .085f, .08f, .95f), Gone = new Color(.6f, .55f, .47f);
-    // Text on paper.
+    // 한지 위 글자색.
     public static readonly Color TextDark = new Color(.16f, .11f, .08f), TextDim = new Color(.42f, .34f, .26f), Red = new Color(.66f, .16f, .13f), Green = new Color(.08f, .4f, .18f);
-    // Text on wood or night.
+    // 나무나 밤 배경 위 글자색.
     public static readonly Color Bright = new Color(.97f, .94f, .86f), Gold = new Color(1f, .86f, .52f), Faint = new Color(.74f, .69f, .6f);
 
-    // One layout unit in screen pixels, and the layout's size. Small windows stop shrinking before text is unreadable.
+    // 레이아웃 1단위의 화면 픽셀 크기와 레이아웃 크기. 작은 창에서도 글자가 읽힐 만큼만 줄어든다.
     public static float Scale => Mathf.Max(.75f, Screen.height / 720f);
     public static float W => Screen.width / Scale;
     public static float H => Screen.height / Scale;
     public static void Begin() { GUI.matrix = Matrix4x4.Scale(new Vector3(Scale, Scale, 1)); }
-    // Where a point in the world falls in layout units (top-left origin); z < 0 is behind the camera.
+    // 월드의 한 점이 레이아웃 좌표(왼쪽 위 원점)로 어디인지. z < 0이면 카메라 뒤.
     public static Vector3 FromWorld(Camera cam, Vector3 world)
     {
         var p = cam.WorldToScreenPoint(world);
@@ -30,6 +31,7 @@ public static class JinaUI
     }
 
     static GUIStyle text;
+    // 글자 크기·정렬·굵기에 맞는 GUI 스타일(캐시).
     static GUIStyle Style(int size, TextAnchor anchor, bool bold)
     {
         if (text == null) text = new GUIStyle { wordWrap = false, richText = false, clipping = TextClipping.Overflow };
@@ -38,10 +40,11 @@ public static class JinaUI
         return text;
     }
     static int Px(int size) => Mathf.Max(8, Mathf.RoundToInt(size * Scale));
-    // Line breaks are worked out here, not left to IMGUI: its own wrapping can break a line that just fits differently
-    // from one draw to the next, which split text from its shadow. Words stay whole unless one is wider than the line.
-    // Sizes and widths here are real pixels, so a line that fits on one screen fits the same way on all of them.
+    // 줄바꿈은 IMGUI에 맡기지 않고 여기서 계산한다. IMGUI는 딱 맞는 줄을 그릴 때마다 다르게 끊어서
+    // 글자와 그림자가 어긋났다. 한 단어가 줄보다 넓지 않으면 단어는 쪼개지 않는다.
+    // 크기와 너비는 실제 픽셀이라, 한 화면에서 맞는 줄은 모든 화면에서 똑같이 맞는다.
     static readonly Dictionary<(string, int, bool, int), string> wrapped = new Dictionary<(string, int, bool, int), string>();
+    // 글을 `width`에 맞게 줄바꿈한다.
     static string Wrap(string s, int size, float width, bool bold)
     {
         var key = (s, size, bold, Mathf.RoundToInt(width));
@@ -71,12 +74,14 @@ public static class JinaUI
         }
         return wrapped[key] = result.ToString();
     }
-    // How tall this text is when wrapped to `width`.
+    // `width`로 줄바꿈했을 때 글자 높이.
     public static float Height(string s, int size, float width, bool bold = false) =>
         string.IsNullOrEmpty(s) ? 0 : Mathf.Ceil(Style(Px(size), TextAnchor.UpperLeft, bold).CalcHeight(new GUIContent(Wrap(s, Px(size), Mathf.Round(width * Scale), bold)), 10000) / Scale);
+    // 글의 너비(레이아웃 단위).
     public static float Width(string s, int size, bool bold = false) =>
         string.IsNullOrEmpty(s) ? 0 : Mathf.Ceil(Style(Px(size), TextAnchor.UpperLeft, bold).CalcSize(new GUIContent(s)).x / Scale);
 
+    // 사각형을 한 색으로 채운다.
     public static void Fill(Rect r, Color c)
     {
         var saved = GUI.color; GUI.color = c;
@@ -84,8 +89,9 @@ public static class JinaUI
         GUI.color = saved;
     }
 
-    // The tiling grains the windows are made of (19_UI, Tools/ArtGen/make_ui.py), multiplied by the fill colour.
+    // 창을 이루는 반복 무늬(19_UI, Tools/ArtGen/make_ui.py)에 채움 색을 곱한다.
     static readonly Dictionary<string, Texture2D> grains = new Dictionary<string, Texture2D>();
+    // 19_UI 그림을 불러온다(캐시).
     public static Texture2D Art(string name)
     {
         if (grains.TryGetValue(name, out var t) && t != null) return t;
@@ -93,16 +99,17 @@ public static class JinaUI
         if (t != null) { t.wrapMode = TextureWrapMode.Repeat; t.filterMode = FilterMode.Point; }
         return grains[name] = t;
     }
+    // 무늬 그림을 사각형에 반복해 깐다.
     static void Tile(Rect r, string grain, Color c)
     {
         var t = Art(grain);
         if (t == null) { Fill(r, c); return; }
         var saved = GUI.color; GUI.color = c;
-        // Two layout units to a texel: the dots of the grain match the art's.
+        // 텍셀 하나가 레이아웃 2단위: 무늬의 도트가 그림 도트와 맞는다.
         GUI.DrawTextureWithTexCoords(r, t, new Rect(r.x / (t.width * 2), r.y / (t.height * 2), r.width / (t.width * 2), r.height / (t.height * 2)));
         GUI.color = saved;
     }
-    // An icon from 19_UI at its dots' size (each dot `dot` layout units).
+    // 19_UI의 아이콘을 도트 크기대로(도트 하나가 `dot` 단위).
     public static void Icon(string name, float x, float y, float dot = 1.5f, float alpha = 1)
     {
         var t = Art(name);
@@ -112,7 +119,7 @@ public static class JinaUI
         GUI.color = saved;
     }
 
-    // Ink outline with notched corners, a wooden band, then the fill: paper for light colours, lacquer for dark ones.
+    // 모서리를 깎은 먹 외곽선, 나무 띠, 그리고 채움: 밝은 색이면 한지, 어두운 색이면 옻칠.
     public static void Box(Rect r, Color fill, Color edge, float band = 2)
     {
         Fill(new Rect(r.x, r.y + 2, r.width, r.height - 4), Ink);
@@ -122,11 +129,12 @@ public static class JinaUI
         Tile(inside, fill.grayscale > .45f ? "grain_paper" : "grain_night", fill);
         if (band >= 3)
         {
-            // A soft shadow under the frame's top edge, as if the paper sat inside it, and brass on the corners.
+            // 테두리 윗변 아래 옅은 그림자(한지가 틀 안에 들어간 듯)와 모서리의 놋쇠.
             Fill(new Rect(inside.x, inside.y, inside.width, 2), new Color(0, 0, 0, .14f));
             Corners(r, 2);
         }
     }
+    // 창 네 모서리에 놋쇠 장식을 그린다.
     static void Corners(Rect r, float dot)
     {
         var t = Art("corner");
@@ -137,6 +145,7 @@ public static class JinaUI
         GUI.DrawTextureWithTexCoords(new Rect(r.x, r.yMax - s, s, s), t, new Rect(0, 1, 1, -1));
         GUI.DrawTextureWithTexCoords(new Rect(r.xMax - s, r.yMax - s, s, s), t, new Rect(1, 1, -1, -1));
     }
+    // 상시 HUD용 어두운 옻칠 판.
     public static void HudPanel(Rect r)
     {
         Box(r, Night, WoodLight, 1);
@@ -144,7 +153,7 @@ public static class JinaUI
     }
 
     public const float TitleHeight = 36, WindowPad = 16;
-    // A paper window with a wooden title bar; returns the area under the bar, inset by WindowPad.
+    // 나무 제목줄이 있는 한지 창. 제목줄 아래 영역을 WindowPad만큼 안쪽으로 돌려준다.
     public static Rect Window(Rect r, string title, string right = null)
     {
         Fill(new Rect(r.x + 5, r.y + 6, r.width, r.height), new Color(0, 0, 0, .28f));
@@ -157,13 +166,13 @@ public static class JinaUI
         if (right != null) Text(new Rect(r.x + WindowPad, r.y + 3, r.width - WindowPad * 2, TitleHeight - 6), right, 13, Bright, TextAnchor.MiddleRight);
         return new Rect(r.x + WindowPad, r.y + TitleHeight + 12, r.width - WindowPad * 2, r.height - TitleHeight - 12 - WindowPad);
     }
-    // Bright text gets a shadow so it stays crisp over anything; dark text on paper needs none. `visible` draws only
-    // that many characters, with the lines already broken as for the whole text, so words do not jump as they appear.
+    // 밝은 글자는 그림자를 넣어 어디서나 또렷하게, 한지 위 어두운 글자는 그림자 없이. `visible`은
+    // 그만큼의 글자만 그린다. 줄은 전체 글 기준으로 이미 끊어 두어 글자가 나타나면서 단어가 튀지 않는다.
     public static void Text(Rect r, string s, int size, Color colour, TextAnchor anchor = TextAnchor.UpperLeft, bool bold = false, int visible = -1)
     {
         if (string.IsNullOrEmpty(s)) return;
         float k = Scale; int px = Px(size);
-        // Whole pixels: fractional positions can wrap a line differently from its shadow or from the measured height.
+        // 정수 픽셀: 소수 위치면 그림자나 잰 높이와 줄바꿈이 달라질 수 있다.
         r = new Rect(Mathf.Round(r.x * k), Mathf.Round(r.y * k), Mathf.Round(r.width * k), Mathf.Round(r.height * k));
         s = Wrap(s, px, Mathf.Round(r.width), bold);
         if (visible >= 0 && visible < s.Length) s = Cut(s, visible);
@@ -179,7 +188,7 @@ public static class JinaUI
         GUI.Label(r, s, style);
         GUI.matrix = matrix;
     }
-    // The first `count` characters of wrapped text, not counting its line breaks.
+    // 줄바꿈한 글의 앞 `count`글자(줄바꿈 문자는 세지 않음).
     static string Cut(string s, int count)
     {
         int i = 0, seen = 0;
@@ -187,11 +196,12 @@ public static class JinaUI
         return s.Substring(0, i);
     }
 
-    // Spoken words appear a few at a time. Visible says how many characters of `s` show `since` seconds after it began.
+    // 대사는 몇 글자씩 나타난다. Visible은 시작 `since`초 뒤 `s`가 몇 글자 보이는지 알려 준다.
     public const float TypeSpeed = 34;
     public static int Visible(string s, float since) => string.IsNullOrEmpty(s) || since < 0 ? 0 : Mathf.Min(s.Length, Mathf.CeilToInt(since * TypeSpeed));
-    // The same when nobody keeps the start time: a line starts over if it has not been drawn for a moment.
+    // 시작 시각을 따로 갖고 있지 않을 때: 잠깐 안 그려지면 처음부터 다시 찍는다.
     static readonly Dictionary<string, (float first, float last)> typing = new Dictionary<string, (float, float)>();
+    // 시작 시각 없이 쓰는 타자 효과: 지금 몇 글자 보이는지.
     public static int VisibleAuto(string s)
     {
         if (string.IsNullOrEmpty(s)) return 0;
@@ -202,7 +212,7 @@ public static class JinaUI
         return Visible(s, now - seen.first);
     }
 
-    // For E on a line still being typed: true if it was, and now it shows whole.
+    // 타자 중인 줄에서 E를 누를 때: 타자 중이었으면 true를 돌려주고 전체를 보여 준다.
     public static bool FinishTyping(string s)
     {
         if (string.IsNullOrEmpty(s) || !typing.TryGetValue(s, out var seen)) return false;
@@ -211,6 +221,7 @@ public static class JinaUI
         return true;
     }
 
+    // 나무 버튼. 누르면 true.
     public static bool Button(Rect r, string label, bool enabled = true)
     {
         bool over = enabled && r.Contains(Event.current.mousePosition);
@@ -220,8 +231,9 @@ public static class JinaUI
     }
     public static void Slot(Rect r, bool selected, bool over) => Box(r, over ? PaperLight : PaperDark, selected ? Red : SlotEdge, selected ? 2 : 1);
 
-    // One thing for sale: icon, name, gold-red price, green effect; true when bought. It lights up under the mouse.
+    // 판매 물건 한 칸: 아이콘, 이름, 금적색 가격, 초록 효과. 사면 true. 마우스를 올리면 밝아진다.
     public const float GoodHeight = 58;
+    // 판매 물건 한 칸을 그린다. 사면 true.
     public static bool Good(Rect r, Sprite icon, string name, string price, string effect, bool open)
     {
         bool over = open && r.Contains(Event.current.mousePosition);
@@ -239,15 +251,16 @@ public static class JinaUI
         Text(new Rect(x, r.y + 33, w, 20), effect, 13, open ? Green : TextDim);
         return GUI.Button(r, "", GUIStyle.none) && open;
     }
-    // A shopkeeper's words inside the window, in a strip at least two lines tall so the window does not jump.
+    // 창 안의 상인 대사. 창이 들썩이지 않게 최소 두 줄 높이의 띠.
     public static float SayHeight(string s, float width) => Mathf.Max(Height(s, 16, width - 24), 44) + 12;
+    // 창 안의 상인 대사 띠를 그린다.
     public static void Say(Rect r, string speaker, string s)
     {
         Box(r, PaperLight, SlotEdge, 1);
         string whole = speaker + ":  " + s;
         Text(new Rect(r.x + 12, r.y + 6, r.width - 24, r.height - 12), whole, 16, TextDark, TextAnchor.UpperLeft, false, VisibleAuto(whole));
     }
-    // A gauge: dark trough, a pale stretch for what was just lost (`lag`, 0 for none), the colour with a lit top edge.
+    // 게이지: 어두운 홈, 방금 잃은 만큼의 옅은 구간(`lag`, 0이면 없음), 윗변이 밝은 색 막대.
     public static void Bar(Rect r, float full, Color colour, string label, float lag = 0)
     {
         Box(r, new Color(.13f, .1f, .1f), Ink, 0);
@@ -261,12 +274,12 @@ public static class JinaUI
         Text(r, label, 13, Bright, TextAnchor.MiddleCenter, true);
     }
 
-    // Where the toast column starts (the HUD moves it below the boss's bar), and how wide it may be between the panels.
+    // 알림 칸이 시작하는 높이(HUD가 보스 막대 아래로 옮김)와 양쪽 판 사이에서 쓸 수 있는 너비.
     public static float ToastTop = 14;
     public static float CenterWidth => Mathf.Clamp(W - 640, 240, 560);
     static int toastFrame = -1, promptFrame = -1;
     static float toastY;
-    // A short notice in the column at the top centre; call it every OnGUI while it should show.
+    // 위 가운데 칸의 짧은 알림. 보이는 동안 OnGUI마다 부른다.
     public static void Toast(string s)
     {
         if (Event.current.type != EventType.Repaint) return;
@@ -277,9 +290,10 @@ public static class JinaUI
         Text(new Rect(r.x + 14, r.y + 9, w - 28, h - 18), s, 15, Bright, TextAnchor.UpperCenter);
         toastY += h + 6;
     }
-    // What the player can do right here, bottom centre; if two scripts ask in one frame the first one wins.
-    // "E: 말 걸기" draws its key as a little keycap in front of the words.
+    // 지금 여기서 할 수 있는 행동, 아래 가운데. 한 프레임에 두 스크립트가 부르면 먼저 부른 쪽이 이긴다.
+    // "E: 말 걸기"는 키를 작은 키캡으로 글 앞에 그린다.
     public const float PromptBottom = 44;
+    // 화면 아래 가운데에 행동 안내를 띄운다.
     public static void Prompt(string s)
     {
         if (Event.current.type != EventType.Repaint || promptFrame == Time.frameCount) return;
@@ -304,13 +318,13 @@ public static class JinaUI
         Text(new Rect(x, r.y, r.xMax - x - 14, h), words, 15, Bright, TextAnchor.MiddleLeft, true);
     }
 
-    // A talk window with the speaker's portrait (17_Portraits) inside its left end, the name on a plate and the line
-    // typed out; `menacing` reddens the words, `toLeft` keeps it to the left of the screen. Returns the window.
+    // 말하는 사람의 초상화(17_Portraits)가 왼쪽 끝 안에 들어가는 대화창. 이름표와 한 자씩 찍히는 대사.
+    // `menacing`이면 글자가 붉고, `toLeft`면 화면 왼쪽에 둔다. 창 영역을 돌려준다.
     public static Rect TalkWindow(string name, string portrait, string line, string hint, bool menacing, float since = -1, bool toLeft = false)
     {
         const float h = 200;
         var sprite = JinaArt.Portrait(portrait);
-        // The portrait sits inside the window at its full height, in a thin frame.
+        // 초상화는 창 높이 그대로 얇은 테두리 안에 들어간다.
         float ph = h - 24, pw = ph * sprite.rect.width / sprite.rect.height;
         float w = Mathf.Min(toLeft ? Mathf.Max(640, W * .7f) : 880, W - 30);
         var box = new Rect(toLeft ? 16 : (W - w) / 2, H - h - 14, w, h);
@@ -326,5 +340,98 @@ public static class JinaUI
         Text(new Rect(x, box.y + 58, tw, h - 58 - 34), line, 19, menacing ? Red : TextDark, TextAnchor.UpperLeft, false, since >= 0 ? Visible(line, since) : VisibleAuto(line));
         Text(new Rect(x, box.yMax - 32, tw, 20), hint, 13, TextDim, TextAnchor.MiddleRight);
         return box;
+    }
+}
+
+// ===== 말풍선 (SpeechBubble) =====
+// 월드의 말하는 사람을 가리키는 도트풍 말풍선과 이름표. 대사는 말하듯 한 자씩 찍힌다.
+// 말풍선 크기는 전체 대사로 재 두어 글자가 나타나는 동안 커지지 않는다.
+public static class SpeechBubble
+{
+    const float Border = 3, Pad = 16, Step = 4;
+    static readonly Color Ink = new Color(.04f, .035f, .04f), Paper = new Color(.99f, .97f, .9f);
+
+    // 말하는 사람이 카메라 폭 안에 있는지. 말풍선은 화면 안으로 붙으므로 화면 밖 인물은 말하지 않는다.
+    public static bool OnScreen(Vector3 head)
+    {
+        var cam = Camera.main;
+        if (cam == null) return false;
+        var v = cam.WorldToViewportPoint(head);
+        return v.x > 0 && v.x < 1;
+    }
+
+    // `since`: 이 대사가 시작된 뒤 초. 음수면 처음 보인 때부터 계산한다.
+    public static void Draw(Vector3 head, string speaker, string message, string hint = null, float since = -1)
+    {
+        var cam = Camera.main;
+        if (cam == null) return;
+        PrototypeKoreanUI.Apply();
+        Vector3 point = JinaUI.FromWorld(cam, head);
+        if (point.z < 0) return;
+        float width = Mathf.Min(Mathf.Max(260, JinaUI.Width(message, 17) + Pad * 2 + 6), Mathf.Min(500, JinaUI.W - 40));
+        float body = JinaUI.Height(message, 17, width - Pad * 2);
+        float height = body + Pad * 2 + (hint == null ? 0 : 20);
+        float tipX = point.x, tipY = point.y, tail = Step * 5;
+        var box = new Rect(Mathf.Clamp(tipX - width / 2, 20, JinaUI.W - width - 20), Mathf.Max(30, tipY - tail - height), width, height);
+        tipX = Mathf.Clamp(tipX, box.x + 24, box.xMax - 24);
+
+        JinaUI.Fill(new Rect(box.x + 6, box.y + 6, box.width, box.height), new Color(0, 0, 0, .3f));
+        // 두 테두리 사각형을 겹쳐 도트풍으로 깎인 모서리를 만든다.
+        JinaUI.Fill(new Rect(box.x - Border, box.y, box.width + Border * 2, box.height), Ink);
+        JinaUI.Fill(new Rect(box.x, box.y - Border, box.width, box.height + Border * 2), Ink);
+        JinaUI.Fill(box, Paper);
+        // 아래쪽 가장자리의 옅은 접힌 그림자.
+        JinaUI.Fill(new Rect(box.x, box.yMax - 3, box.width, 3), new Color(.8f, .72f, .58f));
+        for (int i = 0; i < 5; i++)
+        {
+            float w = 22 - i * 4, y = box.yMax + i * Step;
+            JinaUI.Fill(new Rect(tipX - w / 2 - Border, y, w + Border * 2, Step), Ink);
+            JinaUI.Fill(new Rect(tipX - w / 2, y, w, Step), Paper);
+        }
+        JinaUI.Fill(new Rect(tipX - Border / 2 - 1, box.yMax + tail, Border + 2, Step), Ink);
+
+        float tagWidth = JinaUI.Width(speaker, 14, true) + 24;
+        var nameTag = new Rect(box.x + 14, box.y - 15, tagWidth, 26);
+        JinaUI.Box(new Rect(nameTag.x - Border, nameTag.y - Border, nameTag.width + Border * 2, nameTag.height + Border * 2), JinaUI.Wood, JinaUI.WoodLight, 1);
+        JinaUI.Text(nameTag, speaker, 14, JinaUI.Gold, TextAnchor.MiddleCenter, true);
+        int visible = since >= 0 ? JinaUI.Visible(message, since) : JinaUI.VisibleAuto(message);
+        JinaUI.Text(new Rect(box.x + Pad, box.y + Pad + 4, width - Pad * 2, body), message, 17, new Color(.12f, .09f, .08f), TextAnchor.UpperLeft, false, visible);
+        if (hint != null) JinaUI.Text(new Rect(box.x + Pad, box.yMax - 24, width - Pad * 2, 20), hint, 13, new Color(.45f, .4f, .36f), TextAnchor.LowerRight);
+    }
+}
+
+// ===== UI 배율과 한글 글꼴 (PrototypeKoreanUI) =====
+public static class PrototypeKoreanUI
+{
+    private static Font koreanFont;
+    public static Font Font
+    {
+        get
+        {
+            if (koreanFont == null)
+                koreanFont = UnityEngine.Font.CreateDynamicFontFromOSFont(
+                    new[] { "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", "Noto Sans CJK KR", "Noto Sans KR" }, 16);
+            return koreanFont;
+        }
+    }
+    // OnGUI 처음에 부른다: 화면 배율과 한글 글꼴을 맞춘다.
+    public static void Apply()
+    {
+        JinaUI.Begin();
+        GUI.skin.font = Font;
+        GUI.skin.label.fontSize = 15;
+        GUI.skin.label.wordWrap = true;
+        GUI.skin.box.fontSize = 15;
+        GUI.skin.box.wordWrap = true;
+    }
+    // 보스 처리 결과(토벌·정화)를 한글로.
+    public static string Outcome(EncounterOutcome outcome)
+    {
+        switch (outcome)
+        {
+            case EncounterOutcome.Slain: return "도깨비 토벌";
+            case EncounterOutcome.Purified: return "도깨비 정화";
+            default: return "해결되지 않은 사연";
+        }
     }
 }
