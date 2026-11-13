@@ -39,7 +39,7 @@ public class PrototypeCamp : MonoBehaviour
         Spawn(sprite, "일반 몬스터", new[] { -18f, -26f, -34f });
         gate = new GameObject("비석 길 봉인");
         gate.transform.SetParent(transform);
-        gate.transform.position = new Vector3(PrototypeWorld.GateX, 9.5f, 0);
+        gate.transform.position = new Vector3(WorldBuilder.GateX, 9.5f, 0);
         gate.transform.localScale = new Vector3(.8f, 20, 1);
         gate.layer = 8;
         var image = gate.AddComponent<SpriteRenderer>();
@@ -62,7 +62,7 @@ public class PrototypeCamp : MonoBehaviour
     public void InitializeRiver(PrototypeCombat owner, Sprite sprite)
     {
         combat = owner; river = true; coins = CoinsPerWaterGhost;
-        minX = PrototypeWorld.RiverLeft - 1; maxX = PrototypeWorld.RiverRight + 1;
+        minX = WorldBuilder.RiverLeft - 1; maxX = WorldBuilder.RiverRight + 1;
         body = new Color(.25f,.4f,.55f); tint = new Color(.62f,.82f,1f);
         Spawn(sprite, "물귀신", new[] { 84f, 90f, 96f });
         ResetCamp();
@@ -83,7 +83,7 @@ public class PrototypeCamp : MonoBehaviour
         }
     }
     // 구역: 마을 서쪽 들판, 또는 물귀신이면 나루터 맵.
-    public bool Inside(Vector3 p) => river ? p.x >= PrototypeWorld.FerryStart && p.x < PrototypeWorld.FerryEnd : p.x < PrototypeWorld.VillageLeft;
+    public bool Inside(Vector3 p) => river ? p.x >= WorldBuilder.FerryStart && p.x < WorldBuilder.FerryEnd : p.x < WorldBuilder.VillageLeft;
     // 쓰러진 물귀신은 선비가 돌아올 때마다(처음 떠 있던 자리에서) 되살아난다.
     public void Rise()
     {

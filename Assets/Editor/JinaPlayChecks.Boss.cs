@@ -46,9 +46,9 @@ public static partial class JinaPlayChecks
     static void Remorse()
     {
         var bossVisual=boss.GetComponent<JinaActorVisual>(); var tear=Field<SpriteRenderer[]>(bossVisual,"dots")[0];
-        boss.transform.position=new Vector3(PrototypeWorld.Elder.x+1.5f,boss.transform.position.y,0);
+        boss.transform.position=new Vector3(WorldBuilder.Elder.x+1.5f,boss.transform.position.y,0);
         combat.Quest.progress.SacrificeElder(); combat.Quest.ShowElderDeath();
-        boss.transform.position=new Vector3(PrototypeWorld.Elder.x-3,boss.transform.position.y,0);
+        boss.transform.position=new Vector3(WorldBuilder.Elder.x-3,boss.transform.position.y,0);
         Set(combat,"<BossFacing>k__BackingField",-1);
         Check(WithCharm(combat.Quest.progress).Resolve(true),"Purified after the elder fell");
         foreach(float t in new[]{.3f,.8f,2f})
@@ -58,7 +58,7 @@ public static partial class JinaPlayChecks
             string expect=t<BossRemorse.Realise ? JinaArt.Purified : t<BossRemorse.Realise+BossRemorse.Kneel ? "boss_grieve_00" : "boss_grieve_01";
             Check(Picture(bossVisual).sprite.name.EndsWith(expect),"Remorse frame "+expect);
             Check(!Picture(bossVisual).flipX,"He turns toward the elder's body");
-            Capture("boss-remorse-"+t.ToString("0.0"),new Vector3(PrototypeWorld.Elder.x-2,1,-10),3);
+            Capture("boss-remorse-"+t.ToString("0.0"),new Vector3(WorldBuilder.Elder.x-2,1,-10),3);
         }
         Check(tear.enabled,"Tears fall while he weeps");
         combat.Restart();

@@ -14,20 +14,20 @@ public class PrototypeMaps : MonoBehaviour
     // 왼쪽에서 오른쪽으로, 경계를 공유한다. 바깥 벽은 첫 맵과 마지막 맵 바로 밖에 있다.
     public static readonly Map[] All =
     {
-        new Map("옛 비석 터", "망한 나라의 비석이 홀로 남은 곳", -70, PrototypeWorld.GateX),
-        new Map("망령의 들판", "무덤 없는 군졸들의 넋이 떠도는 곳", PrototypeWorld.GateX, PrototypeWorld.VillageLeft),
-        new Map("주막 마을", "산 넘는 길손이 쉬어 가는 마을", PrototypeWorld.VillageLeft, PrototypeWorld.ForestStart),
-        new Map("도깨비 숲", "산의 주인이 미혹되어 길을 막는 숲", PrototypeWorld.ForestStart, PrototypeWorld.FerryStart),
-        new Map("나루터", "강 건너 한양으로 가는 길목", PrototypeWorld.FerryStart, PrototypeWorld.FerryEnd),
-        new Map("콩밭 마을", "효녀 콩쥐와 못된 팥쥐가 산다는 부잣집 마을", PrototypeWorld.KongStart, PrototypeWorld.KongEnd),
-        new Map("고개와 서낭당", "길손의 걱정이 돌무더기로 쌓인 고개", PrototypeWorld.PassStart, PrototypeWorld.PassEnd),
-        new Map("뒷산", "소리를 질러도 아무도 듣지 못한다는 고개 너머 뒷산", PrototypeWorld.HillStart, PrototypeWorld.HillEnd),
+        new Map("옛 비석 터", "망한 나라의 비석이 홀로 남은 곳", -70, WorldBuilder.GateX),
+        new Map("망령의 들판", "무덤 없는 군졸들의 넋이 떠도는 곳", WorldBuilder.GateX, WorldBuilder.VillageLeft),
+        new Map("주막 마을", "산 넘는 길손이 쉬어 가는 마을", WorldBuilder.VillageLeft, WorldBuilder.ForestStart),
+        new Map("도깨비 숲", "산의 주인이 미혹되어 길을 막는 숲", WorldBuilder.ForestStart, WorldBuilder.FerryStart),
+        new Map("나루터", "강 건너 한양으로 가는 길목", WorldBuilder.FerryStart, WorldBuilder.FerryEnd),
+        new Map("콩밭 마을", "효녀 콩쥐와 못된 팥쥐가 산다는 부잣집 마을", WorldBuilder.KongStart, WorldBuilder.KongEnd),
+        new Map("고개와 서낭당", "길손의 걱정이 돌무더기로 쌓인 고개", WorldBuilder.PassStart, WorldBuilder.PassEnd),
+        new Map("뒷산", "소리를 질러도 아무도 듣지 못한다는 고개 너머 뒷산", WorldBuilder.HillStart, WorldBuilder.HillEnd),
     };
     // 맵이 바뀌기 전 경계를 얼마나 넘어 걷는지, 어둠이 닫히고 열리는 시간, 이름 카드.
     public const float Margin = .2f, FadeOut = .22f, FadeIn = .3f, CardLength = 2.4f;
 
     public PrototypeCombat combat;
-    public int Current { get; private set; } = Index(PrototypeWorld.Spawn.x);
+    public int Current { get; private set; } = Index(WorldBuilder.Spawn.x);
     public float LeftAt { get; private set; } = -1;
     public float EnteredAt { get; private set; } = -1;
     public bool Travelling => LeftAt >= 0;
@@ -40,7 +40,7 @@ public class PrototypeMaps : MonoBehaviour
         return All.Length - 1;
     }
 
-    public void ResetMaps() { Current = Index(PrototypeWorld.Spawn.x); LeftAt = EnteredAt = -1; }
+    public void ResetMaps() { Current = Index(WorldBuilder.Spawn.x); LeftAt = EnteredAt = -1; }
     // 맵 전환 없이 지금 선 맵으로 바로 둔다(뒷산 체크포인트).
     public void Jump() { LeftAt = EnteredAt = -1; if (combat != null) Current = Index(combat.player.transform.position.x); }
 

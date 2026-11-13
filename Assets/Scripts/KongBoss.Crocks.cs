@@ -4,7 +4,7 @@ using UnityEngine;
 // 뒷산 곳곳의 큰 독. 콩쥐 요괴가 던지는 것을 막는다. 요괴 탄 세 번이나
 // 선비의 타격(칼이나 화살) 두 번에 깨진다. 깨진 독에서 꿀단지가 튀어나와 땅에 떨어지고,
 // 닿으면 바로 회복된다(인벤토리 물건이 아니고, 체력이 가득하면 기다린다).
-public partial class PrototypeKongBoss
+public partial class KongBoss
 {
     public const int CrockShots = 3, CrockBlows = 2, HoneyHeal = 20;
     class Crock

@@ -1,19 +1,19 @@
 using UnityEngine;
 
-// 강 건너 콩밭 마을(PrototypeWorld.KongStart..KongEnd): 콩쥐팥쥐 이야기를 뒤집었다
+// 강 건너 콩밭 마을(WorldBuilder.KongStart..KongEnd): 콩쥐팥쥐 이야기를 뒤집었다
 // (기획서.md, 1-1). 모두 착한 콩쥐를 불쌍히 여기고 괴롭히는 팥쥐를 욕한다. 사실 콩쥐가
 // 요괴이고, 팥쥐에게 남들 앞에서 반말로 못된 동생 역할을 시켜 유일하게 아는 팥쥐를
 // 마을이 미워하게 만든다. 단둘일 때 팥쥐는 넌지시 알릴 뿐이다. 넷을 다 만나고 콩쥐에게 돌아가면
-// 콩쥐가 손님방에서 하룻밤 묵게 하고(PrototypeKongStay), 아침에 뒷산으로 와 달라고 한다.
+// 콩쥐가 손님방에서 하룻밤 묵게 하고(KongNightStay), 아침에 뒷산으로 와 달라고 한다.
 // 그제서야 독을 열고 그 옆 종이를 찾을 수 있다. 단서 세 개:
 //   팥쥐의 말(어머니가 강에서 돌아오지 않음), 독(젓갈 속 뼈),
 //   잔치 차림표(마을 사람들 이름, 맨 끝에 "선비").
 // 셋 다 알고 다음에 말을 걸면 콩쥐가 가면을 벗는다. 고개 너머 뒷산에서 기다린다
-// (PrototypeKongBoss). 다른 마을 사람 셋(훈장, 엿장수, 할멈)은 말만 한다.
+// (KongBoss). 다른 마을 사람 셋(훈장, 엿장수, 할멈)은 말만 한다.
 // 요괴가 선비를 따라 여기까지 오면 저주로 모두 그 자리에 묶이고(팥쥐는 먼저 맨 왼쪽으로 달아남)
 // 오른쪽부터 한 명씩 죽인다(Raided, Kill: 한 명당 −10). 여기서는 아무도 대피하지 않는다.
 // 싸운 뒤 PrototypeKongAftermath가 WalkTo, SetLook, Face로 사람들을 움직이고 자세를 고른다.
-public class PrototypeKongVillage : MonoBehaviour
+public class KongVillage : MonoBehaviour
 {
     public PrototypeCombat combat;
     public enum Who { Kongjwi, Patjwi, Anak, Namu, Hunjang, Yeot, Halmi }
@@ -119,9 +119,9 @@ public class PrototypeKongVillage : MonoBehaviour
     public static string Name(Who who) => who == Who.Kongjwi ? "콩쥐" : who == Who.Patjwi ? "팥쥐" : who == Who.Anak ? "아낙" : who == Who.Namu ? "나무꾼"
         : who == Who.Hunjang ? "훈장" : who == Who.Yeot ? "엿장수" : "할멈";
     // 인물이 처음 서 있는 자리.
-    public static Vector2 Spot(Who who) => who == Who.Kongjwi ? PrototypeWorld.Kongjwi : who == Who.Patjwi ? PrototypeWorld.Patjwi
-        : who == Who.Anak ? PrototypeWorld.Anak : who == Who.Namu ? PrototypeWorld.Namu
-        : who == Who.Hunjang ? PrototypeWorld.Hunjang : who == Who.Yeot ? PrototypeWorld.Yeot : PrototypeWorld.Halmi;
+    public static Vector2 Spot(Who who) => who == Who.Kongjwi ? WorldBuilder.Kongjwi : who == Who.Patjwi ? WorldBuilder.Patjwi
+        : who == Who.Anak ? WorldBuilder.Anak : who == Who.Namu ? WorldBuilder.Namu
+        : who == Who.Hunjang ? WorldBuilder.Hunjang : who == Who.Yeot ? WorldBuilder.Yeot : WorldBuilder.Halmi;
     // 인물의 그림 경로.
     public static string Art(Who who) => who == Who.Kongjwi ? Kongjwi : who == Who.Patjwi ? Patjwi : who == Who.Anak ? Anak : who == Who.Namu ? Namu
         : who == Who.Hunjang ? Hunjang : who == Who.Yeot ? Yeot : Halmi;
@@ -174,7 +174,7 @@ public class PrototypeKongVillage : MonoBehaviour
         if (Raided) return;
         Raided = true; RaidAt = Time.time; IsOpen = false; SceneAt = -1;
         for (int i = 1; i < People; i++) if (fates[i] != Fate.Dead) fates[i] = Fate.Bound;
-        if (Alive(Who.Patjwi)) WalkTo(Who.Patjwi, PrototypeWorld.PatjwiRaidX, 3.4f);
+        if (Alive(Who.Patjwi)) WalkTo(Who.Patjwi, WorldBuilder.PatjwiRaidX, 3.4f);
     }
     // 아직 묶인 사람 중 맨 오른쪽. 맨 왼쪽의 팥쥐가 마지막이다.
     public Who? NextVictim()
@@ -204,7 +204,7 @@ public class PrototypeKongVillage : MonoBehaviour
         ReleasedAt = Time.time; ThreatAt = -1;
         for (int i = 1; i < People; i++) if (fates[i] == Fate.Bound) fates[i] = Fate.Free;
     }
-    // 싸움 뒤 장면용(PrototypeKongAftermath).
+    // 싸움 뒤 장면용(KongAftermath).
     public void WalkTo(Who who, float x, float speed) { goals[(int)who] = x; speeds[(int)who] = speed; }
     public void Place(Who who, float x) { xs[(int)who] = goals[(int)who] = x; speeds[(int)who] = 0; }
     public bool Arrived(Who who) => Mathf.Abs(xs[(int)who] - goals[(int)who]) < .01f;
@@ -226,9 +226,9 @@ public class PrototypeKongVillage : MonoBehaviour
     float PlayerX => combat.player.transform.position.x;
     bool Near(float x, float range) => Mathf.Abs(PlayerX - x) < range && combat.player.transform.position.y < 2f;
     // 종이는 다음 날 아침에만 놓여 있고, 그 옆에 서면 독보다 가깝다.
-    bool OnPaper => Stayed && Near(PrototypeWorld.FeastListX, LookRange)
-        && Mathf.Abs(PlayerX - PrototypeWorld.FeastListX) <= Mathf.Abs(PlayerX - PrototypeWorld.JangdokX);
-    public bool InVillage => PlayerX >= PrototypeWorld.KongStart && PlayerX < PrototypeWorld.KongEnd;
+    bool OnPaper => Stayed && Near(WorldBuilder.FeastListX, LookRange)
+        && Mathf.Abs(PlayerX - WorldBuilder.FeastListX) <= Mathf.Abs(PlayerX - WorldBuilder.JangdokX);
+    public bool InVillage => PlayerX >= WorldBuilder.KongStart && PlayerX < WorldBuilder.KongEnd;
     bool HasKeepsake => JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0;
 
     // 여기서 말을 걸 사람(손 닿는 거리에서 가장 가까운 사람), 없으면 없음.
@@ -244,7 +244,7 @@ public class PrototypeKongVillage : MonoBehaviour
     }
 
     // 여기 무언가가 E에 반응한다(PrototypeLore는 비켜 준다).
-    public bool HasSomethingHere => Nearest().HasValue || OnPaper || Near(PrototypeWorld.JangdokX, LookRange);
+    public bool HasSomethingHere => Nearest().HasValue || OnPaper || Near(WorldBuilder.JangdokX, LookRange);
 
     // 하룻밤이 끝나고 아침에 깨어난다(`blunt`: 대놓고 의심했음).
     public void WakeUp(bool blunt = false)
@@ -392,7 +392,7 @@ public class PrototypeKongVillage : MonoBehaviour
         Speaker = who; Page = 0; IsOpen = true;
         afterTalk = FightOver;
         unmasking = !afterTalk && who == Who.Kongjwi && (Revealed || Clues == 3);
-        lines = afterTalk ? AfterLines(who, combat.KongBoss.Now == PrototypeKongBoss.Phase.Purified, Alive(Who.Patjwi))
+        lines = afterTalk ? AfterLines(who, combat.KongBoss.Now == KongBoss.Phase.Purified, Alive(Who.Patjwi))
             : who >= Who.Hunjang ? TownLines(who, Stayed, Revealed)
             : Lines(who, HeardPatjwi, SawCrocks, ReadList, Revealed, HasKeepsake, Stayed, Blunt, Met(who), KeepsakeTold, ReadyForNight);
         // 선비가 다 알기 전에 은비녀에 대해 한 말은 두 번 하지 않는다.
@@ -450,11 +450,11 @@ public class PrototypeKongVillage : MonoBehaviour
             var who = Nearest();
             if (who.HasValue) Open(who.Value);
             else if (OnPaper) ReadFeastList();
-            else if (Near(PrototypeWorld.JangdokX, LookRange)) ExamineCrocks();
+            else if (Near(WorldBuilder.JangdokX, LookRange)) ExamineCrocks();
         }
         // 선비가 가까이 있는 동안 장면이 되풀이된다. 콩쥐 가면이 벗겨지거나 뒷산에 올라가면 끝.
         bool quiet = Revealed || (combat.KongBoss != null && (combat.KongBoss.Started || !combat.KongBoss.AtHome));
-        if (!quiet && SceneAt < 0 && Time.time >= nextScene && Mathf.Abs(PlayerX - PrototypeWorld.Kongjwi.x) < SceneRange) SceneAt = Time.time;
+        if (!quiet && SceneAt < 0 && Time.time >= nextScene && Mathf.Abs(PlayerX - WorldBuilder.Kongjwi.x) < SceneRange) SceneAt = Time.time;
         if (SceneAt >= 0 && Time.time - SceneAt >= LineLength * 4) { SceneAt = -1; scene = (scene + 1) % CurrentScenes.Length; nextScene = Time.time + SceneGap; }
     }
 
@@ -468,7 +468,7 @@ public class PrototypeKongVillage : MonoBehaviour
     {
         if (people == null) return;
         var stay = combat.Stay;
-        bool evening = stay != null && stay.Now == PrototypeKongStay.Phase.Evening;
+        bool evening = stay != null && stay.Now == KongNightStay.Phase.Evening;
         var boss = combat.KongBoss;
         for (int i = 0; i < People; i++)
         {
@@ -511,7 +511,7 @@ public class PrototypeKongVillage : MonoBehaviour
         if (!InVillage) return;
         if (RaidAt >= 0 && Time.time - RaidAt > 1.4f && Time.time - RaidAt < 4.6f && Alive(Who.Patjwi))
             Say(Who.Patjwi, "다들 도망쳐요! …안 돼, 발이… 발이 안 움직여…!");
-        if (ThreatAt >= 0 && Time.time - ThreatAt < PrototypeKongBoss.KillWindup && Alive(Threatened)) Say(Threatened, Cry(Threatened));
+        if (ThreatAt >= 0 && Time.time - ThreatAt < KongBoss.KillWindup && Alive(Threatened)) Say(Threatened, Cry(Threatened));
         if (SceneLine >= 0)
         {
             var (who, line) = CurrentScenes[scene % CurrentScenes.Length][SceneLine];
@@ -522,7 +522,7 @@ public class PrototypeKongVillage : MonoBehaviour
         var near = Nearest();
         string prompt = near.HasValue ? "E: " + Name(near.Value) + "와(과) 이야기하기"
             : OnPaper ? "E: 항아리 곁의 종이 읽기"
-            : Near(PrototypeWorld.JangdokX, LookRange) ? "E: 장독대 살펴보기" : null;
+            : Near(WorldBuilder.JangdokX, LookRange) ? "E: 장독대 살펴보기" : null;
         if (prompt != null) JinaUI.Prompt(prompt);
     }
 

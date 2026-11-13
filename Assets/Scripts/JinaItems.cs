@@ -6,7 +6,7 @@ using UnityEngine;
 public class JinaItem : ItemData
 {
     // 은비녀: 물에 빠져 죽은 어머니의 비녀. 콩쥐 요괴 체력이 절반 아래일 때 가까이서 쓰면 정화한다
-    // (PrototypeKongBoss.TryPurify). 그 밖에서는 지니고만 있는다.
+    // (KongBoss.TryPurify). 그 밖에서는 지니고만 있는다.
     public enum Effect { Heal, Arrows, Ward, Haste, Keepsake }
     public Effect effect;
     public int amount, price;

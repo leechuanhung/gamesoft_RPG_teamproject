@@ -1,15 +1,15 @@
 using UnityEngine;
 
-// ===== 주막 (PrototypeTavern) =====
+// ===== 주막 (TavernShop) =====
 [DefaultExecutionOrder(-110)]
-public class PrototypeTavern : MonoBehaviour
+public class TavernShop : MonoBehaviour
 {
     public PrototypeCombat combat;
     public readonly TavernWallet wallet = new TavernWallet();
     public bool IsOpen { get; private set; }
     private string message = "어서 오시오. 먼 길에 시장하실 터이니 한술 들고 가시오.";
     public bool Near => combat != null && (combat.Village == null || combat.Village.KeeperHome)
-        && Vector2.Distance(combat.player.transform.position, PrototypeWorld.Tavern) < 2.2f;
+        && Vector2.Distance(combat.player.transform.position, WorldBuilder.Tavern) < 2.2f;
     private QuestProgress Progress => combat != null && combat.Quest != null ? combat.Quest.progress : null;
     // 재시작: 주막 상태를 처음으로.
     public void ResetShop()
@@ -97,18 +97,18 @@ public class PrototypeTavern : MonoBehaviour
     }
 }
 
-// ===== 보부상 상점 (PrototypePeddler) =====
+// ===== 보부상 상점 (PeddlerShop) =====
 // 주막 옆 보부상: 화살과 길에서 쓸 물건(JinaItems, 인벤토리로)을 판다.
 // 주막과 돈주머니를 같이 쓴다.
 [DefaultExecutionOrder(-110)]
-public class PrototypePeddler : MonoBehaviour
+public class PeddlerShop : MonoBehaviour
 {
     public PrototypeCombat combat;
     public bool IsOpen { get; private set; }
     private string message = "";
     private SpriteRenderer marker;
     public bool Near => combat != null && (combat.Village == null || combat.Village.PeddlerHome)
-        && Vector2.Distance(combat.player.transform.position, PrototypeWorld.Peddler) < 1.8f;
+        && Vector2.Distance(combat.player.transform.position, WorldBuilder.Peddler) < 1.8f;
     public SpriteRenderer Marker => marker;
     private QuestProgress Progress => combat.Quest != null ? combat.Quest.progress : null;
     private TavernWallet Wallet => combat.Tavern.wallet;
@@ -117,7 +117,7 @@ public class PrototypePeddler : MonoBehaviour
     void Start()
     {
         marker = new GameObject("보부상").AddComponent<SpriteRenderer>();
-        marker.transform.position = PrototypeWorld.Peddler;
+        marker.transform.position = WorldBuilder.Peddler;
         marker.transform.localScale = new Vector3(.75f, 1.4f, 1);
         marker.sprite = combat.player.GetComponent<SpriteRenderer>().sprite;
         marker.color = new Color(.55f, .45f, .3f);
@@ -302,10 +302,10 @@ public class TavernWallet
     public void Reset() { Coins = 30; }
 }
 
-// ===== 주모·보부상 잡담 (PrototypeChatter) =====
+// ===== 주모·보부상 잡담 (ShopChatter) =====
 // 선비가 가까이 있으면 주모와 보부상이 잡담한다: 이따금 한 사람이 말하고
 // 다른 사람이 답한다. 이야기는 진행을 따른다(도깨비가 날뜀, 토벌, 정화, 노인이 죽음).
-public class PrototypeChatter : MonoBehaviour
+public class ShopChatter : MonoBehaviour
 {
     public PrototypeCombat combat;
     // 한 줄의 초, 주고받기 사이, 첫 주고받기 전, 엿들으려면 선비가 얼마나 가까워야 하는지.
@@ -356,7 +356,7 @@ public class PrototypeChatter : MonoBehaviour
     public bool CanChat => combat != null && combat.Quest != null && combat.Village != null && !combat.Paused
         && combat.PlayerHealth > 0 && combat.Village.KeeperHome && combat.Village.PeddlerHome
         && (!combat.Village.Alarmed || combat.Village.Cleared)
-        && Mathf.Abs(combat.player.transform.position.x - (PrototypeWorld.Tavern.x + PrototypeWorld.Peddler.x) / 2) < Range;
+        && Mathf.Abs(combat.player.transform.position.x - (WorldBuilder.Tavern.x + WorldBuilder.Peddler.x) / 2) < Range;
 
     public void ResetChatter() { nextAt = Time.time + FirstAt; startedAt = -1; count = 0; }
     // 잡담을 시작한다.
@@ -385,7 +385,7 @@ public class PrototypeChatter : MonoBehaviour
         if (!Talking || !CanChat) return;
         bool keeper = Time.time - startedAt < LineLength;
         // 가게 가까이에서는 가게 안내가 화면 아래를 쓰고, 말풍선은 말하는 사람 위에 뜬다.
-        var at = keeper ? new Vector3(PrototypeWorld.Tavern.x, 1.4f, 0) : new Vector3(PrototypeWorld.Peddler.x, 1.55f, 0);
+        var at = keeper ? new Vector3(WorldBuilder.Tavern.x, 1.4f, 0) : new Vector3(WorldBuilder.Peddler.x, 1.55f, 0);
         if (SpeechBubble.OnScreen(at)) SpeechBubble.Draw(at, keeper ? "주모" : "보부상", current[keeper ? 0 : 1]);
     }
 }

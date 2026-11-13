@@ -44,23 +44,23 @@ public class PrototypeHud : MonoBehaviour
         if (!combat.EnemyDefeated)
         {
             if (q.HasCharm) return "도깨비 가까이에서 F로 저주를 풀거나, 칼로 쓰러뜨리세요. 해결하면 숲 끝 가시덤불이 걷힙니다.";
-            if (combat.Camp != null && combat.Camp.Remaining > 0 && x < PrototypeWorld.ForestStart)
+            if (combat.Camp != null && combat.Camp.Remaining > 0 && x < WorldBuilder.ForestStart)
                 return "서쪽 유령을 물리치면 비석 터에서 정화 부적을 얻습니다. 도깨비를 칼로만 상대해도 됩니다.";
             return "숲의 도깨비를 토벌하거나, 비석 터의 부적으로 정화하세요. 해결하면 숲 끝 가시덤불이 걷힙니다.";
         }
         var boss = combat.KongBoss;
         if (boss != null && boss.Fighting) return KongGoal(x);
-        if (x < PrototypeWorld.FerryStart) return "숲 동쪽 끝을 지나 나루터로 가세요.";
-        if (x < PrototypeWorld.RiverRight) return "뱃사공과 이야기하고, 나룻배로 강을 건너세요.";
+        if (x < WorldBuilder.FerryStart) return "숲 동쪽 끝을 지나 나루터로 가세요.";
+        if (x < WorldBuilder.RiverRight) return "뱃사공과 이야기하고, 나룻배로 강을 건너세요.";
         if (boss != null && boss.Resolved) return "뒷산 끝의 금빛 표식까지 가면 한양으로 가는 길입니다.";
-        if (x < PrototypeWorld.KongEnd && combat.Kong != null && !combat.Kong.Revealed)
+        if (x < WorldBuilder.KongEnd && combat.Kong != null && !combat.Kong.Revealed)
         {
             if (!combat.Kong.Stayed) return combat.Kong.ReadyForNight ? "마을 사람들과 모두 이야기했습니다. 콩쥐에게 다시 말을 걸어 보세요."
                 : "콩밭 마을 사람들의 이야기를 들어 보세요. 콩쥐, 팥쥐, 아낙, 나무꾼 모두에게 말을 걸어 보세요.";
             if (combat.Kong.Clues < 3) return Clue();
             return "모든 것을 알았습니다. 콩쥐와 마주하세요.";
         }
-        if (combat.Kong != null && combat.Kong.Revealed) return x < PrototypeWorld.PassStart ? "콩쥐가 뒷산에서 기다립니다. 먼저 팥쥐의 말을 들어 보세요." : "콩쥐가 말한 뒷산은 고개 너머입니다.";
+        if (combat.Kong != null && combat.Kong.Revealed) return x < WorldBuilder.PassStart ? "콩쥐가 뒷산에서 기다립니다. 먼저 팥쥐의 말을 들어 보세요." : "콩쥐가 말한 뒷산은 고개 너머입니다.";
         return "고개를 넘어 뒷산을 지나면 한양으로 가는 금빛 표식이 있습니다.";
     }
     // 콩쥐 요괴와 싸우는 동안: 요괴가 어디 있고 무엇을 할 수 있는지.
@@ -68,10 +68,10 @@ public class PrototypeHud : MonoBehaviour
     {
         var boss = combat.KongBoss; var kong = combat.Kong;
         bool hairpin = JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0;
-        if (x < PrototypeWorld.RiverRight)
+        if (x < WorldBuilder.RiverRight)
             return kong != null && kong.AnyoneToTake ? "강 건너 마을에서 콩쥐 요괴가 사람들을 해치고 있습니다. 채비를 마치면 나룻배로 돌아가세요."
                 : "콩쥐 요괴는 강을 건너지 못합니다. 채비를 마치면 나룻배로 돌아가세요.";
-        if (kong != null && kong.Raided && kong.AnyoneToTake && x < PrototypeWorld.KongEnd) return "콩쥐 요괴가 묶인 마을 사람들을 하나씩 해치고 있습니다! 칼로 두 번 베면 멈칫합니다.";
+        if (kong != null && kong.Raided && kong.AnyoneToTake && x < WorldBuilder.KongEnd) return "콩쥐 요괴가 묶인 마을 사람들을 하나씩 해치고 있습니다! 칼로 두 번 베면 멈칫합니다.";
         if (hairpin) return boss.Weakened ? "지금입니다! 콩쥐 요괴 가까이에서 F로 은비녀를 쓰세요." : "콩쥐 요괴의 체력을 절반 아래로 깎은 뒤, 가까이에서 F로 은비녀를 쓰면 콩쥐를 되찾습니다.";
         return "콩쥐 요괴를 쓰러뜨리세요. 은비녀가 있으면 정화할 수 있습니다. 강을 건너면 쫓아오지 못합니다.";
     }
@@ -198,7 +198,7 @@ public class PrototypeHud : MonoBehaviour
         string[] rows =
         {
             q.ElderDead ? "노인 희생" : null,
-            combat.Camp != null && combat.Camp.Remaining > 0 && combat.player.transform.position.x < PrototypeWorld.ForestStart ? "들판 유령 " + combat.Camp.Remaining + "마리 남음" : null,
+            combat.Camp != null && combat.Camp.Remaining > 0 && combat.player.transform.position.x < WorldBuilder.ForestStart ? "들판 유령 " + combat.Camp.Remaining + "마리 남음" : null,
             combat.River != null && combat.RiverFelled < PrototypeCombat.KeepsakeAt && (combat.RiverFelled > 0 || combat.River.Inside(combat.player.transform.position))
                 ? "물귀신 " + combat.RiverFelled + " / " + PrototypeCombat.KeepsakeAt : null,
             combat.Kong != null && combat.Kong.InVillage && !combat.Kong.Revealed ? "콩밭 단서 " + combat.Kong.Clues + " / 3" : null,

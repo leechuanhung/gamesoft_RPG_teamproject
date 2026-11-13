@@ -2,15 +2,15 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // 콩쥐 요괴(기획서.md 1-1): 밑 빠진 독에 낀 두꺼비가 콩쥐를 앞다리처럼 걸치고 있다.
-// 고개 너머 뒷산에서 기다린다(PrototypeWorld.KongLair). 선비가 가까이 오면 게임이 멈추고
+// 고개 너머 뒷산에서 기다린다(WorldBuilder.KongLair). 선비가 가까이 오면 게임이 멈추고
 // 초상화 창으로 대화한다. 마지막 대사 "젓갈로 담가 주마!"에 요괴로 변한다(띠, 요괴를 보는
 // 카메라, 부풀어 오르는 검은 형체, 번쩍임, 포효, 이름 카드). 그다음 멀리서 싸우고, 선비처럼 지형을 뛰어넘고
 // (벽에 막히고 바위에 다치지 않음), 선비를 따라 콩밭 마을까지 내려가 마을 사람들을 묶고
-// 오른쪽부터 죽인다(PrototypeKongVillage). 강은 건너지 못한다.
+// 오른쪽부터 죽인다(KongVillage). 강은 건너지 못한다.
 // 토벌: +10. 체력이 절반 아래면 어머니의 은비녀(F, 또는 보따리에서 사용)가 두꺼비를 태워 없애고
-// 콩쥐만 남긴다: +50(그 뒤 장면은 PrototypeKongAftermath).
-// 싸움 자체(이동, 공격, 던지는 것)는 PrototypeKongBoss.Fight.cs에 있다.
-public partial class PrototypeKongBoss : MonoBehaviour
+// 콩쥐만 남긴다: +50(그 뒤 장면은 KongAftermath).
+// 싸움 자체(이동, 공격, 던지는 것)는 KongBoss.Fight.cs에 있다.
+public partial class KongBoss : MonoBehaviour
 {
     public PrototypeCombat combat;
     public enum Phase { Waiting, Meeting, Changing, Fighting, Slain, Purified }
@@ -39,7 +39,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
     public float PurifiedAt { get; private set; } = -1;
     public float HitAt { get; private set; } = -1;
     // 마을 밖에서 정화되면 선비가 그 맵을 떠날 때까지 무릎 꿇고 있다가 집으로 돌아가고
-    // 마을(PrototypeKongVillage)이 그린다.
+    // 마을(KongVillage)이 그린다.
     public bool HandedBack { get; private set; }
     // 두꺼비가 타 없어질 때 있던 자리.
     public float PurifiedX { get; private set; }
@@ -121,7 +121,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
         MetAt = ChangedAt = DownAt = PurifiedAt = HitAt = NoticeAt = -1; HandedBack = false; PurifiedX = 0;
         lines = null; page = 0;
         body.simulated = false; body.velocity = Vector2.zero;
-        transform.position = new Vector3(PrototypeWorld.KongLair, PrototypeWorld.Top(PrototypeWorld.KongLair), 0);
+        transform.position = new Vector3(WorldBuilder.KongLair, WorldBuilder.Top(WorldBuilder.KongLair), 0);
         body.position = transform.position;
         ResetFight();
         PrototypeView.Focus(0, 0);
@@ -131,7 +131,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
     bool HasKeepsake => JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0;
     // 콩쥐가 (뒷산이 아니라) 마을에 있음: 싸우기 전 선비가 뒷산을 볼 수 없을 때,
     // 그리고 싸운 뒤 집에 돌아갔을 때.
-    public bool AtHome => (Now == Phase.Waiting && PlayerX < PrototypeWorld.PassStart) || (Now == Phase.Purified && HandedBack);
+    public bool AtHome => (Now == Phase.Waiting && PlayerX < WorldBuilder.PassStart) || (Now == Phase.Purified && HandedBack);
 
     // 만남, 대화, 변신, 싸움 단계를 진행한다.
     void Update()
@@ -152,7 +152,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
     // 뒷산에서 보이는 곳에 오면 대화가 시작된다.
     void WaitForHim()
     {
-        if (combat.Paused || combat.Maps == null || !combat.Maps.Shows(PrototypeWorld.HillStart)) return;
+        if (combat.Paused || combat.Maps == null || !combat.Maps.Shows(WorldBuilder.HillStart)) return;
         if (Mathf.Abs(PlayerX - Feet.x) < MeetRange) Meet(true);
     }
 
@@ -251,7 +251,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
     void GoHome()
     {
         if (HandedBack || Time.time - PurifiedAt < PurifyLength) return;
-        bool inVillage = Feet.x >= PrototypeWorld.KongStart && Feet.x < PrototypeWorld.KongEnd;
+        bool inVillage = Feet.x >= WorldBuilder.KongStart && Feet.x < WorldBuilder.KongEnd;
         bool away = combat.Maps != null && combat.Maps.Current != PrototypeMaps.Index(Feet.x) && !combat.Maps.Travelling;
         var after = combat.Aftermath;
         if (!inVillage && !(away && (after == null || after.FieldDone))) return;
@@ -259,9 +259,9 @@ public partial class PrototypeKongBoss : MonoBehaviour
         var kong = combat.Kong;
         if (kong == null) return;
         // 마을에서 무릎 꿇은 자리, 아니면 자기 집 문 앞.
-        kong.Place(PrototypeKongVillage.Who.Kongjwi, inVillage ? Feet.x : PrototypeWorld.Kongjwi.x);
-        kong.SetLook(PrototypeKongVillage.Who.Kongjwi, inVillage ? VillagerVisual.Look.Kneel : VillagerVisual.Look.Sad);
-        kong.Face(PrototypeKongVillage.Who.Kongjwi, inVillage ? Facing : 0);
+        kong.Place(KongVillage.Who.Kongjwi, inVillage ? Feet.x : WorldBuilder.Kongjwi.x);
+        kong.SetLook(KongVillage.Who.Kongjwi, inVillage ? VillagerVisual.Look.Kneel : VillagerVisual.Look.Sad);
+        kong.Face(KongVillage.Who.Kongjwi, inVillage ? Facing : 0);
     }
 
     // ---- 모습 ----
@@ -278,10 +278,10 @@ public partial class PrototypeKongBoss : MonoBehaviour
         switch (Now)
         {
             case Phase.Waiting:
-                if (!AtHome) Show(human, JinaArt.Load(PrototypeKongVillage.Kongjwi), Feet, flip);
+                if (!AtHome) Show(human, JinaArt.Load(KongVillage.Kongjwi), Feet, flip);
                 break;
             case Phase.Meeting:
-                Show(human, JinaArt.Load(PrototypeKongVillage.Kongjwi), Feet, flip);
+                Show(human, JinaArt.Load(KongVillage.Kongjwi), Feet, flip);
                 break;
             case Phase.Changing: DrawChange(Time.time - ChangedAt, flip); break;
             case Phase.Fighting: DrawFighter(flip); break;
@@ -313,7 +313,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
     {
         if (t < SwellAt)
         {
-            Show(human, JinaArt.Load(PrototypeKongVillage.Kongjwi), Feet + Vector3.right * Shudder(t) * (t > .4f ? 2 : 1), flip);
+            Show(human, JinaArt.Load(KongVillage.Kongjwi), Feet + Vector3.right * Shudder(t) * (t > .4f ? 2 : 1), flip);
             human.color = Color.Lerp(Color.white, new Color(.45f, .4f, .55f), t / SwellAt);
             return;
         }
@@ -383,7 +383,7 @@ public partial class PrototypeKongBoss : MonoBehaviour
         {
             DrawBars(Mathf.Clamp01((Time.time - MetAt) / .4f));
             bool revealed = combat.Kong != null && combat.Kong.Revealed;
-            PrototypeKongVillage.TalkWindow(PrototypeKongVillage.Who.Kongjwi, MeetingPortrait(page, revealed || Retries > 0), lines[page],
+            KongVillage.TalkWindow(KongVillage.Who.Kongjwi, MeetingPortrait(page, revealed || Retries > 0), lines[page],
                 "E 다음 (" + (page + 1) + "/" + lines.Length + ")   ·   Esc 넘기기", page > 0 || revealed);
             return;
         }

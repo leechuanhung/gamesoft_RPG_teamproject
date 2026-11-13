@@ -9,7 +9,7 @@ public static class KoreanUIChecks
         var font = PrototypeKoreanUI.Font;
         if (font == null) throw new Exception("Korean font could not be loaded.");
         int count = 0;
-        foreach (var file in new[] { "PrototypeView.cs", "PrototypeCombat.cs", "PrototypeQuest.cs", "JinaUI.cs", "PrototypeShops.cs", "PrototypeNarration.cs", "PrototypeVillage.cs", "PrototypeBossStory.cs", "PrototypeGameOver.cs", "JinaItems.cs", "InventoryUI.cs", "PrototypeMaps.cs", "PrototypeRoad.cs", "PrototypeKongVillage.cs", "PrototypeHud.cs", "PrototypeKongStay.cs", "JinaFx.cs", "PrototypeWorld.cs", "PrototypeKongBoss.cs", "PrototypeKongBoss.Fight.cs", "PrototypeKongAftermath.cs", "PrototypeCheats.cs", "ActorVisuals.cs" })
+        foreach (var file in new[] { "PrototypeView.cs", "PrototypeCombat.cs", "ElderQuest.cs", "JinaUI.cs", "Shops.cs", "Narration.cs", "VillageAlarm.cs", "BossStory.cs", "GameOver.cs", "JinaItems.cs", "InventoryUI.cs", "PrototypeMaps.cs", "RoadEvents.cs", "KongVillage.cs", "PrototypeHud.cs", "KongNightStay.cs", "JinaFx.cs", "WorldBuilder.cs", "KongBoss.cs", "KongBoss.Fight.cs", "KongAftermath.cs", "DevCheats.cs", "ActorVisuals.cs" })
             foreach (char c in File.ReadAllText("Assets/Scripts/" + file))
                 // Hangul syllables plus the Hanja used in the intro narration.
                 if ((c >= '\uac00' && c <= '\ud7a3') || (c >= '\u4e00' && c <= '\u9fff'))

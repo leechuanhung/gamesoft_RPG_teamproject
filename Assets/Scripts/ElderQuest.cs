@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [DefaultExecutionOrder(-100)]
-public class PrototypeQuest : MonoBehaviour
+public class ElderQuest : MonoBehaviour
 {
     public PrototypeCombat combat;
     public readonly QuestProgress progress = new QuestProgress();
@@ -22,7 +22,7 @@ public class PrototypeQuest : MonoBehaviour
     // 노인 표시를 만들고 그림을 붙인다.
     void Start()
     {
-        villager = Marker("Village Elder", PrototypeWorld.Elder, new Vector2(.75f, 1.4f), new Color(.35f,.75f,1f));
+        villager = Marker("Village Elder", WorldBuilder.Elder, new Vector2(.75f, 1.4f), new Color(.35f,.75f,1f));
         JinaActorVisual.Attach(villager, JinaArt.Elder, combat);
     }
     // 색 사각형 표시를 하나 만든다.
@@ -49,7 +49,7 @@ public class PrototypeQuest : MonoBehaviour
         if (Player != null) Player.CanMove = true;
         if (villager != null)
         {
-            villager.transform.position = PrototypeWorld.Elder;
+            villager.transform.position = WorldBuilder.Elder;
             villager.transform.localScale = new Vector3(.75f, 1.4f, 1);
             villager.color = new Color(.35f,.75f,1f);
         }
@@ -61,7 +61,7 @@ public class PrototypeQuest : MonoBehaviour
         ElderStruckAt = Time.time;
         villager.color = Color.gray;
         villager.transform.localScale = new Vector3(1.4f, .35f, 1);
-        villager.transform.position = new Vector3(PrototypeWorld.Elder.x, -.3f, 0);
+        villager.transform.position = new Vector3(WorldBuilder.Elder.x, -.3f, 0);
     }
     // 대화창을 닫는다.
     void Close()
@@ -100,7 +100,7 @@ public class PrototypeQuest : MonoBehaviour
             return;
         }
         if (!Input.GetKeyDown(KeyCode.E) || (combat.BossTalk != null && combat.BossTalk.IsOpen)) return;
-        if (Near(PrototypeWorld.Elder))
+        if (Near(WorldBuilder.Elder))
         {
             shrineDialog = false;
             progress.HearClue();
@@ -108,7 +108,7 @@ public class PrototypeQuest : MonoBehaviour
                 JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0);
             pageAt = 0; message = pages[0];
         }
-        else if (Near(PrototypeWorld.Stone))
+        else if (Near(WorldBuilder.Stone))
         {
             if (combat.Camp != null && combat.Camp.Remaining > 0) return;
             shrineDialog = true;
@@ -156,8 +156,8 @@ public class PrototypeQuest : MonoBehaviour
         PrototypeKoreanUI.Apply();
         if (!IsDialogOpen && combat.PlayerHealth > 0 && !combat.Paused)
         {
-            if (Near(PrototypeWorld.Elder)) JinaUI.Prompt(progress.ElderDead ? "E: 노인이 남긴 쪽지 살펴보기" : "E: 마을 노인과 대화");
-            else if (Near(PrototypeWorld.Stone)) JinaUI.Prompt("E: 비석 살펴보기");
+            if (Near(WorldBuilder.Elder)) JinaUI.Prompt(progress.ElderDead ? "E: 노인이 남긴 쪽지 살펴보기" : "E: 마을 노인과 대화");
+            else if (Near(WorldBuilder.Stone)) JinaUI.Prompt("E: 비석 살펴보기");
         }
         if (!IsDialogOpen) return;
         if (!shrineDialog && !progress.ElderDead)

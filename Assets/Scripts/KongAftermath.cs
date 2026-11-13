@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
-using Who = PrototypeKongVillage.Who;
+using Who = KongVillage.Who;
 
 // 콩쥐 요괴와 싸운 뒤의 일을 말풍선으로 한 줄씩 보여 준다(그동안 게임은 계속된다).
 // 뒷산이나 고개에서 정화: 콩쥐가 무릎 꿇은 채 깨어나고 선비가 다 끝났다고 말한다(들판 장면).
@@ -11,7 +11,7 @@ using Who = PrototypeKongVillage.Who;
 //     선비가 두꺼비는 사라졌다고 말하면 물러난다.
 //   - 아무도 못 봤으면: 팥쥐가 언니에게 온다.
 // 마을에서 토벌: 생존자의 외침과 팥쥐의 한마디.
-public class PrototypeKongAftermath : MonoBehaviour
+public class KongAftermath : MonoBehaviour
 {
     public PrototypeCombat combat;
     public const float LineLength = 3.4f, RunSpeed = 3.4f;
@@ -27,31 +27,31 @@ public class PrototypeKongAftermath : MonoBehaviour
     public int CueCount => cues.Count;
     public int CueIndex => at;
     public string CurrentLine => Playing ? cues[at].line : null;
-    public string CurrentSpeaker => !Playing ? null : cues[at].seonbi ? "선비" : PrototypeKongVillage.Name(cues[at].who);
+    public string CurrentSpeaker => !Playing ? null : cues[at].seonbi ? "선비" : KongVillage.Name(cues[at].who);
 
     public void ResetAftermath() { cues.Clear(); at = -1; cueTime = 0; fieldPlayed = villagePlayed = slainPlayed = false; Scene = ""; }
 
-    PrototypeKongVillage Kong => combat.Kong;
-    PrototypeKongBoss Boss => combat.KongBoss;
+    KongVillage Kong => combat.Kong;
+    KongBoss Boss => combat.KongBoss;
     float PlayerX => combat.player.transform.position.x;
-    bool PlayerInVillage => PlayerX >= PrototypeWorld.KongStart && PlayerX < PrototypeWorld.KongEnd;
+    bool PlayerInVillage => PlayerX >= WorldBuilder.KongStart && PlayerX < WorldBuilder.KongEnd;
 
     // 싸움 뒤 상황을 보고 알맞은 장면을 시작하고, 지금 큐를 돌린다.
     void Update()
     {
         if (combat == null || Kong == null || Boss == null || combat.PlayerHealth <= 0 || combat.Paused) return;
         if (Playing) { Step(Time.deltaTime); return; }
-        if (Boss.Now == PrototypeKongBoss.Phase.Purified && Time.time - Boss.PurifiedAt >= PrototypeKongBoss.PurifyLength)
+        if (Boss.Now == KongBoss.Phase.Purified && Time.time - Boss.PurifiedAt >= KongBoss.PurifyLength)
         {
-            bool inVillage = Boss.PurifiedX >= PrototypeWorld.KongStart && Boss.PurifiedX < PrototypeWorld.KongEnd;
+            bool inVillage = Boss.PurifiedX >= WorldBuilder.KongStart && Boss.PurifiedX < WorldBuilder.KongEnd;
             if (!inVillage && !fieldPlayed) { fieldPlayed = true; Field(); return; }
             if (Boss.HandedBack && !villagePlayed && PlayerInVillage && Mathf.Abs(PlayerX - Kong.PersonX(Who.Kongjwi)) < 12)
             { villagePlayed = true; Village(!inVillage); }
         }
-        if (Boss.Now == PrototypeKongBoss.Phase.Slain && !slainPlayed && Time.time - Boss.DownAt >= PrototypeKongBoss.DeathLength)
+        if (Boss.Now == KongBoss.Phase.Slain && !slainPlayed && Time.time - Boss.DownAt >= KongBoss.DeathLength)
         {
             slainPlayed = true;
-            if (PlayerInVillage && Boss.Feet.x < PrototypeWorld.KongEnd) Slain();
+            if (PlayerInVillage && Boss.Feet.x < WorldBuilder.KongEnd) Slain();
         }
     }
 
@@ -119,7 +119,7 @@ public class PrototypeKongAftermath : MonoBehaviour
         if (lost > 0)
         {
             Who nearest = P; float best = float.MaxValue;
-            for (int i = 1; i < PrototypeKongVillage.People; i++)
+            for (int i = 1; i < KongVillage.People; i++)
                 if (!Kong.Alive((Who)i) && Mathf.Abs(Kong.PersonX((Who)i) - Kong.PersonX(K)) < best) { best = Mathf.Abs(Kong.PersonX((Who)i) - Kong.PersonX(K)); nearest = (Who)i; }
             Say(K, "저, 저 사람들… 아주머니… 아저씨…", () => { Kong.SetLook(K, VillagerVisual.Look.Sad); Turn(K, Kong.PersonX(nearest)); });
             Say(K, "내가… 내가 그런 거예요? 이 손으로…", () => Kong.SetLook(K, VillagerVisual.Look.Kneel, true));
@@ -148,7 +148,7 @@ public class PrototypeKongAftermath : MonoBehaviour
             Say(s1, "…허, 허나…");
             Say(s2, lost > 0 ? "…선비님 말씀이 그러하다면. 허나 죽은 이들은 어찌하오…" : "…알겠소. 선비님 말씀이 그러하다면.", () =>
             {
-                foreach (var s in survivors) { Kong.WalkTo(s, PrototypeKongVillage.Spot(s).x, 1.1f); Kong.Face(s, 0); }
+                foreach (var s in survivors) { Kong.WalkTo(s, KongVillage.Spot(s).x, 1.1f); Kong.Face(s, 0); }
             });
             Say(K, "…미안해요. 정말… 미안해요.", () => { Kong.SetLook(K, VillagerVisual.Look.Kneel, true); Turn(K, Kong.PersonX(P)); });
         }

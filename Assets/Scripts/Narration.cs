@@ -1,9 +1,9 @@
 using UnityEngine;
 
-// ===== 낭독 공통: 검은 화면에 한 줄씩 (PrototypeNarration) =====
+// ===== 낭독 공통: 검은 화면에 한 줄씩 (Narration) =====
 // 검은 화면의 낭독: 줄이 하나씩 나타나고 한 장씩 넘어간다. 스페이스를 길게 누르면 건너뛴다.
 // 인트로는 시작할 때, 결말은 선비가 한양 가는 길에 닿았을 때 재생한다.
-public abstract class PrototypeNarration : MonoBehaviour
+public abstract class Narration : MonoBehaviour
 {
     public PrototypeCombat combat;
     const float LineGap = 2.6f, FadeIn = 1.2f, Hold = 2.4f, FadeOut = 1f, PageGap = .6f, SkipHold = 1f;
@@ -83,9 +83,9 @@ public abstract class PrototypeNarration : MonoBehaviour
     }
 }
 
-// ===== 인트로 (PrototypeIntro) =====
+// ===== 인트로 (IntroNarration) =====
 // 시작 낭독, 실행할 때 한 번. 끝나면 검은 화면이 게임으로 밝아진다.
-public class PrototypeIntro : PrototypeNarration
+public class IntroNarration : Narration
 {
     static readonly string[][] Pages =
     {
@@ -124,10 +124,10 @@ public class PrototypeIntro : PrototypeNarration
     }
 }
 
-// ===== 결말 (PrototypeEnding) =====
+// ===== 결말 (EndingNarration) =====
 // 도깨비를 해결하고 한양 가는 길에 닿으면 화면이 어두워지고 선비의 선택에 맞는 결말을
 // 낭독한 뒤, R로 다시 시작할 때까지 제목이 남는다.
-public class PrototypeEnding : PrototypeNarration
+public class EndingNarration : Narration
 {
     public enum Kind { Slain, Purified, Sacrifice }
     static readonly string[][] SlainPages =
@@ -200,7 +200,7 @@ public class PrototypeEnding : PrototypeNarration
         var story = kind == Kind.Sacrifice ? (remorse ? RemorsePages : SacrificePages) : kind == Kind.Purified ? PurifiedPages : SlainPages;
         var q = combat != null && combat.Quest != null ? combat.Quest.progress : null;
         var coda = q != null && q.KongOutcome != EncounterOutcome.Unresolved
-            ? KongCoda(q.KongOutcome, combat.Kong == null || combat.Kong.Alive(PrototypeKongVillage.Who.Patjwi), q.VillagersLost)
+            ? KongCoda(q.KongOutcome, combat.Kong == null || combat.Kong.Alive(KongVillage.Who.Patjwi), q.VillagersLost)
             : Coda(combat != null && combat.Kong != null && combat.Kong.Revealed, combat != null && combat.Kong != null && combat.Kong.Stayed,
                 JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0);
         Begin(WithCoda(story, coda));
@@ -218,7 +218,7 @@ public class PrototypeEnding : PrototypeNarration
         {
             // 길은 뒷산 너머라서 콩쥐 요괴도 해결해야 한다.
             bool kongDone = combat.KongBoss == null || combat.KongBoss.Resolved;
-            if (combat.EnemyDefeated && kongDone && combat.PlayerHealth > 0 && combat.player.transform.position.x > PrototypeWorld.GoalX - 1)
+            if (combat.EnemyDefeated && kongDone && combat.PlayerHealth > 0 && combat.player.transform.position.x > WorldBuilder.GoalX - 1)
                 Play(For(combat.Quest.progress));
             return;
         }

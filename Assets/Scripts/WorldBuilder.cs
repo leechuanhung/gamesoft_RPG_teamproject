@@ -1,8 +1,8 @@
 using UnityEngine;
 
-// ===== 땅·기물·배경·발판 배치 (PrototypeWorld) =====
+// ===== 땅·기물·배경·발판 배치 (WorldBuilder) =====
 // 이어진 구역들은 플레이어가 오가는 동안 퀘스트 상태를 유지한다(PrototypeMaps가 각각을 맵으로 보여 줌).
-public class PrototypeWorld : MonoBehaviour
+public class WorldBuilder : MonoBehaviour
 {
     public const float VillageLeft = -12f;
     public const float ForestStart = 28f;
@@ -13,7 +13,7 @@ public class PrototypeWorld : MonoBehaviour
     // 숲 동쪽의 나루터: 가까운 둑, 강(배로 건넘), 길이 있는 건너편 둑.
     public const float FerryStart = 64f, RiverLeft = 80f, RiverRight = 100f, FerryEnd = 110f;
     // 나루터 너머 고개: 서낭당 고원까지 오르는 계단, 그리고 한양 가는 길로 다시 내려감.
-    // 강 건너 콩쥐와 팥쥐가 사는 콩밭 마을(PrototypeKongVillage).
+    // 강 건너 콩쥐와 팥쥐가 사는 콩밭 마을(KongVillage).
     public const float KongStart = FerryEnd, KongEnd = 150f;
     public static readonly Vector2 Kongjwi = new Vector2(133f, .2f), Patjwi = new Vector2(135.2f, .2f),
         Anak = new Vector2(116.5f, .2f), Namu = new Vector2(123f, .2f),
@@ -25,7 +25,7 @@ public class PrototypeWorld : MonoBehaviour
     // 고개의 계단: (왼쪽, 오른쪽, 윗면).
     public static readonly (float left, float right, float top)[] PassSteps =
         { (150, 162, -.5f), (162, 168, 1f), (168, 186, 2.5f), (186, 190, 1f), (190, 198, -.5f) };
-    // 고개 너머 콩쥐가 기다리는 뒷산(PrototypeKongBoss): 울퉁불퉁한 땅, 높이 쌓인 발판 여럿,
+    // 고개 너머 콩쥐가 기다리는 뒷산(KongBoss): 울퉁불퉁한 땅, 높이 쌓인 발판 여럿,
     // 요괴가 던지는 것을 막는 큰 독. 한양 가는 길(금빛 표식)은 맨 끝에 있다.
     public const float HillStart = PassEnd, HillEnd = 246f, KongLair = 231f;
     // 뒷산의 높낮이: (왼쪽, 오른쪽, 윗면).
@@ -118,11 +118,11 @@ public class PrototypeWorld : MonoBehaviour
         Prop("서낭나무", "seonang_tree", 176.5f, -10).transform.position = new Vector3(176.5f, Top(176.5f), 0);
         Prop("서낭당 돌무더기", "cairn", ShrineX, -4).transform.position = new Vector3(ShrineX, Top(ShrineX), 0);
         foreach (var x in new[] { 66.5f, 79.2f, 100.8f, 109f }) Prop("갈대", "reeds", x, -4, x > 90);
-        // 강: 둑 사이, 둑 바로 아래의 물 띠(바닥이 없다. PrototypeFerry 참고).
+        // 강: 둑 사이, 둑 바로 아래의 물 띠(바닥이 없다. Ferry 참고).
         for (float x = RiverLeft + 2; x < RiverRight; x += 4) Prop("강물", "water", x, 6).transform.position = new Vector3(x, WaterBottom, 0);
         foreach (var (art, x) in Backdrops)
         {
-            Prop("원경 " + art, "bg_" + art + "_far", x, -19).gameObject.AddComponent<PrototypeParallax>().home = x;
+            Prop("원경 " + art, "bg_" + art + "_far", x, -19).gameObject.AddComponent<ParallaxLayer>().home = x;
             Prop("근경 " + art, "bg_" + art + "_near", x, -18);
         }
         foreach (var (art, left, right) in Lands)
@@ -225,10 +225,10 @@ public class PrototypeWorld : MonoBehaviour
     }
 }
 
-// ===== 원경 패럴랙스 (PrototypeParallax) =====
+// ===== 원경 패럴랙스 (ParallaxLayer) =====
 // 먼 배경 층이 깊이감을 위해 카메라를 따라 조금 흐른다. 각 층은 구역보다 2칸 넓게 그려져 있고
 // 그 이상 밀리지 않으므로 옆 구역으로 넘어가지 않는다.
-public class PrototypeParallax : MonoBehaviour
+public class ParallaxLayer : MonoBehaviour
 {
     public float home, factor = .15f;
     public const float MaxShift = 2f;
@@ -243,11 +243,11 @@ public class PrototypeParallax : MonoBehaviour
     }
 }
 
-// ===== 맵별 분위기 효과 (PrototypeAmbience) =====
+// ===== 맵별 분위기 효과 (MapAmbience) =====
 // 맵마다 사람 사는 느낌을 주는 것, 플레이에는 영향 없음: 산 뒤로 흐르는 구름, 공중의 티끌
 // (비석 터의 반딧불, 들판의 재, 숲의 잎, 강가의 안개와 잠자리, 콩밭의 씨앗,
 // 고개의 바람), 주막 굴뚝 연기, 강의 물빛, 전체에 옅은 비네트.
-public class PrototypeAmbience : MonoBehaviour
+public class MapAmbience : MonoBehaviour
 {
     public PrototypeCombat combat;
     enum Kind { Firefly, Ash, Petal, Leaf, Mist, Seed, Wind }
@@ -389,7 +389,7 @@ public class PrototypeAmbience : MonoBehaviour
             smoke[i].enabled = show;
             if (!show) continue;
             float life = Mathf.Repeat(t * .22f + i * .1f, 1);
-            smoke[i].transform.position = new Vector3(PrototypeWorld.Tavern.x + 2.4f + Mathf.Sin(life * 6 + t) * .1f + life * .5f, 3.0f + life * 2.6f, 0);
+            smoke[i].transform.position = new Vector3(WorldBuilder.Tavern.x + 2.4f + Mathf.Sin(life * 6 + t) * .1f + life * .5f, 3.0f + life * 2.6f, 0);
             smoke[i].transform.localScale = Vector3.one * (.5f + life * 1.3f);
             smoke[i].color = new Color(.92f, .92f, .9f, .42f * (1 - life));
         }
@@ -402,7 +402,7 @@ public class PrototypeAmbience : MonoBehaviour
         {
             shimmer[i].enabled = show;
             if (!show) continue;
-            float x = PrototypeWorld.RiverLeft + Mathf.Repeat(i * 1.9f + t * .24f * (i % 2 == 0 ? 1 : -1), PrototypeWorld.RiverRight - PrototypeWorld.RiverLeft);
+            float x = WorldBuilder.RiverLeft + Mathf.Repeat(i * 1.9f + t * .24f * (i % 2 == 0 ? 1 : -1), WorldBuilder.RiverRight - WorldBuilder.RiverLeft);
             float y = -1.1f - (i % 4) * .5f;
             float pulse = Mathf.Clamp01(Mathf.Sin(t * 1.4f + i * 1.7f) * 1.5f);
             shimmer[i].transform.position = new Vector3(x, y, 0);

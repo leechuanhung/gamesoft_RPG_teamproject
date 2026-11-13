@@ -1,10 +1,10 @@
 using UnityEngine;
 
-// ===== 도깨비 첫 조우 연출 (PrototypeEncounter) =====
+// ===== 도깨비 첫 조우 연출 (BossEncounter) =====
 // 도깨비가 처음 선비를 알아챌 때: 검은 띠가 들어오고, 카메라가 도깨비로 돌고, 몽둥이를 들고
 // 포효하고(화면 흔들림), 이름 카드가 나오고 한마디 한다. 그다음 띠가 걷히고 싸움이 시작된다.
 // 그동안 게임은 멈추고, 한 판에 한 번만 나온다.
-public class PrototypeEncounter : MonoBehaviour
+public class BossEncounter : MonoBehaviour
 {
     public PrototypeCombat combat;
     public const string Name = "미혹된 도깨비", Epithet = "망국의 원한에 사로잡힌 산의 주인";
@@ -75,10 +75,10 @@ public class PrototypeEncounter : MonoBehaviour
     }
 }
 
-// ===== 정화된 도깨비의 사연 (PrototypeBossTalk) =====
+// ===== 정화된 도깨비의 사연 (BossTalk) =====
 // 정화된 도깨비에게 말을 걸 수 있다(E): 망한 나라의 망령들이 어떻게 저주했는지 이야기한다.
 // 노인을 죽였다면 그 곁에 있게 해 달라고만 한다. E로 넘기고 Esc로 닫는다.
-public class PrototypeBossTalk : MonoBehaviour
+public class BossTalk : MonoBehaviour
 {
     public PrototypeCombat combat;
     static readonly string[] Story =

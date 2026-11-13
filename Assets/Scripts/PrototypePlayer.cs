@@ -98,7 +98,7 @@ public class PrototypePlayer : MonoBehaviour
             if (groundHits[i].normal.y > 0.65f)
             {
                 grounded = true;
-                var boat = groundHits[i].collider.GetComponent<PrototypeBoat>();
+                var boat = groundHits[i].collider.GetComponent<FerryBoat>();
                 if (boat != null) carry = boat.Velocity.x;
             }
 

@@ -41,7 +41,7 @@ public partial class PrototypeCombat
     public Vector3 BossPosition => enemy != null ? enemy.transform.position : Vector3.zero;
     // 화가 나서 선비를 따라 숲 경계를 넘어온 도깨비.
     public bool BossAlerted => alerted;
-    public bool BossInVillage => alerted && !EnemyDefeated && enemy != null && enemy.transform.position.x < PrototypeWorld.ForestStart;
+    public bool BossInVillage => alerted && !EnemyDefeated && enemy != null && enemy.transform.position.x < WorldBuilder.ForestStart;
 
     // 화가 나면 선비를 따라간다(마을에 들어가면 노인부터 노림). 가까우면
     // 근접 공격, 멀면 돌진이나 도약. 도깨비가 서 있는 동안 Update에서 돈다.
@@ -50,10 +50,10 @@ public partial class PrototypeCombat
         Vector2 delta = player.transform.position - enemy.transform.position;
         // 화가 난 도깨비는 마을까지 따라와 노인을 알아챈다.
         // 숲 맵이 화면에 보일 때만 알아채서, 조우가 마을 화면 뒤에서 시작되지 않게 한다.
-        if ((Maps == null || Maps.Shows(PrototypeWorld.ForestStart)) && PrototypeWorld.CanDetect(player.transform.position, enemy.transform.position)) alerted = true;
+        if ((Maps == null || Maps.Shows(WorldBuilder.ForestStart)) && WorldBuilder.CanDetect(player.transform.position, enemy.transform.position)) alerted = true;
         bool targetElder = alerted && Quest != null && !Quest.progress.ElderDead
-            && Mathf.Abs(enemy.transform.position.x - PrototypeWorld.Elder.x) < 6f;
-        if (targetElder) delta = (Vector3)PrototypeWorld.Elder - enemy.transform.position;
+            && Mathf.Abs(enemy.transform.position.x - WorldBuilder.Elder.x) < 6f;
+        if (targetElder) delta = (Vector3)WorldBuilder.Elder - enemy.transform.position;
         if (Move != BossMove.None) { StepMove(); TintBoss(); return; }
         if (windupUntil < 0 && Time.time >= bossRecoveryUntil && Mathf.Abs(delta.x) > .01f) BossFacing = delta.x > 0 ? 1 : -1;
         if (alerted && !targetElder && windupUntil < 0 && Time.time >= bossRecoveryUntil && Time.time >= nextMoveAt && StartMove(delta))
@@ -69,7 +69,7 @@ public partial class PrototypeCombat
                 var strikeBounds = new Bounds(lockedStrike, new Vector3(1.7f, 1.5f, 1));
                 bool killedElder = false;
                 if (strikeElder && Quest != null && !Quest.progress.ElderDead
-                    && Mathf.Abs(enemy.transform.position.x - PrototypeWorld.Elder.x) < 2f)
+                    && Mathf.Abs(enemy.transform.position.x - WorldBuilder.Elder.x) < 2f)
                 {
                     if (Quest.progress.SacrificeElder())
                     {
@@ -100,7 +100,7 @@ public partial class PrototypeCombat
         else if (alerted && Mathf.Abs(delta.x) > 1.25f && Time.time >= bossRecoveryUntil)
         {
             var position = enemy.transform.position;
-            position.x = Mathf.Clamp(position.x + Mathf.Sign(delta.x) * ChaseSpeed * Time.deltaTime, PrototypeWorld.EnemyMin, PrototypeWorld.EnemyMax);
+            position.x = Mathf.Clamp(position.x + Mathf.Sign(delta.x) * ChaseSpeed * Time.deltaTime, WorldBuilder.EnemyMin, WorldBuilder.EnemyMax);
             enemy.transform.position = position;
         }
         TintBoss();
@@ -128,7 +128,7 @@ public partial class PrototypeCombat
         {
             Move = BossMove.LeapWindup; moveUntil = Time.time + LeapWindup;
             leapFrom = enemy.transform.position.x;
-            leapTo = Mathf.Clamp(player.transform.position.x, PrototypeWorld.EnemyMin, PrototypeWorld.EnemyMax);
+            leapTo = Mathf.Clamp(player.transform.position.x, WorldBuilder.EnemyMin, WorldBuilder.EnemyMax);
         }
         else { Move = BossMove.ChargeWindup; moveUntil = Time.time + ChargeWindup; }
         return true;
@@ -145,10 +145,10 @@ public partial class PrototypeCombat
                 break;
             case BossMove.Charging:
                 Trail(new Color(1, .45f, .35f, .55f));
-                position.x = Mathf.Clamp(position.x + moveDir * ChargeSpeed * Time.deltaTime, PrototypeWorld.EnemyMin, PrototypeWorld.EnemyMax);
+                position.x = Mathf.Clamp(position.x + moveDir * ChargeSpeed * Time.deltaTime, WorldBuilder.EnemyMin, WorldBuilder.EnemyMax);
                 enemy.transform.position = position;
                 if (!moveHit && enemy.bounds.Intersects(playerArt.bounds)) { moveHit = true; HurtPlayer(BossAttack); }
-                if (Time.time >= moveUntil || position.x <= PrototypeWorld.EnemyMin || position.x >= PrototypeWorld.EnemyMax) EndMove(.5f);
+                if (Time.time >= moveUntil || position.x <= WorldBuilder.EnemyMin || position.x >= WorldBuilder.EnemyMax) EndMove(.5f);
                 break;
             case BossMove.LeapWindup:
                 if (Time.time >= moveUntil) { Move = BossMove.Leaping; moveUntil = Time.time + LeapLength; JinaFx.Dust(BossFeet, -1, 1.5f); JinaFx.Dust(BossFeet, 1, 1.5f); }

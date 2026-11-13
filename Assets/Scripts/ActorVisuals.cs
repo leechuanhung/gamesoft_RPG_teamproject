@@ -164,7 +164,7 @@ public class BossVisual : JinaActorVisual
     // 노인 시체 쪽으로 돌아서 무릎을 꿇고, 떨면서 감은 눈에서 눈물을 흘린다.
     void Grieve(ref Frame f,float t)
     {
-        facing=Toward(PrototypeWorld.Elder.x);
+        facing=Toward(WorldBuilder.Elder.x);
         if(t<BossRemorse.Realise) return;
         f.sprite=grieves[t<BossRemorse.Realise+BossRemorse.Kneel ? 0 : 1];
         if(t<BossRemorse.Realise+BossRemorse.Kneel) return;
@@ -350,7 +350,7 @@ public class PeddlerVisual : JinaActorVisual
         float speed=Time.deltaTime>0 ? Mathf.Abs(dx)/Time.deltaTime : 0;
         if(!combat.Paused) walkTime=moving ? walkTime+Time.deltaTime : 0;
         if(moving) f.sprite=runs[(int)(walkTime/(speed>2 ? .09f : .2f))%4];
-        else if(combat.Village!=null && combat.Village.IsMourning(source)) facing=Toward(PrototypeWorld.Elder.x);
+        else if(combat.Village!=null && combat.Village.IsMourning(source)) facing=Toward(WorldBuilder.Elder.x);
         else facing=combat.Peddler!=null && combat.Peddler.IsOpen ? Toward(combat.player.transform.position.x) : native;
         // 마을은 사각형의 알파값으로 집 문 앞에서 그를 나타나고 사라지게 한다.
         f.tint.a=source.color.a;
@@ -395,7 +395,7 @@ public class KeeperVisual : MonoBehaviour
         walkTime=0;
         art.sprite=idle;
         // 애도 중에는 쓰러진 노인을, 그 밖에는 상대하는 손님을 본다.
-        if(combat!=null && combat.Village!=null && combat.Village.IsMourning(art)) art.flipX=PrototypeWorld.Elder.x>transform.position.x;
+        if(combat!=null && combat.Village!=null && combat.Village.IsMourning(art)) art.flipX=WorldBuilder.Elder.x>transform.position.x;
         else art.flipX=combat!=null && combat.Tavern!=null && combat.Tavern.IsOpen && combat.player.transform.position.x>transform.position.x;
     }
 }

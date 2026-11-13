@@ -3,7 +3,7 @@ using UnityEngine;
 // 게임 오버: 세상이 검게 꺼지고 선비만 남아 자기만의 동작으로 무너진다(뒤로 튕기고,
 // 주저앉고, 무릎 꿇고, 엎어짐). 그동안 무기가 뒤로 돌며 날아간다. 그다음 몇 마디와 R.
 // 게임 안 쓰러짐(SeonbiVisual.Fall)은 아래에서 그대로 재생되고 검은 화면에 가려진다.
-public class PrototypeGameOver : MonoBehaviour
+public class GameOver : MonoBehaviour
 {
     public PrototypeCombat combat;
     // PlayerDownAt 뒤 초: 검은 화면이 닫히고, 각 자세가 시작되고, 무기가 떨어지고, 글이 나온다.

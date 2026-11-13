@@ -1,16 +1,16 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-// ===== 가시덤불·뱃사공·나룻배 (PrototypeFerry) =====
-// 숲 동쪽의 나루터(PrototypeWorld.FerryStart..FerryEnd). 숲 끝의 가시덤불이 도깨비를 토벌하거나
+// ===== 가시덤불·뱃사공·나룻배 (Ferry) =====
+// 숲 동쪽의 나루터(WorldBuilder.FerryStart..FerryEnd). 숲 끝의 가시덤불이 도깨비를 토벌하거나
 // 정화할 때까지 길을 막아서, 늘 그 일을 끝낸 뒤에만 도착한다. 뱃사공이 말한다(E: 다음 줄,
 // Esc: 떠남). 선비가 이 맵에 있는 동안 배가 강을 오가며 위에 선 사람을 태운다.
 // 강에 빠지면 다치고 가까운 둑으로 돌아간다.
-public class PrototypeFerry : MonoBehaviour
+public class Ferry : MonoBehaviour
 {
     public PrototypeCombat combat;
     // 배의 양 끝(중심), 속도, 둑마다 기다리는 시간, 강에 휩쓸리기 전 가라앉는 깊이, 대화 거리.
-    public const float BoatLeft = PrototypeWorld.RiverLeft + 2.1f, BoatRight = PrototypeWorld.RiverRight - 2.1f;
+    public const float BoatLeft = WorldBuilder.RiverLeft + 2.1f, BoatRight = WorldBuilder.RiverRight - 2.1f;
     public const float BoatSpeed = 2.4f, BoatWait = 1.6f, SinkY = -1.6f, TalkRange = 1.8f;
     // 갑판 윗면(둑 높이)은 배 그림 아래에서 22줄 중 15줄 위.
     const float DeckHeight = 15f / 24f, Deck = -.5f;
@@ -24,20 +24,20 @@ public class PrototypeFerry : MonoBehaviour
     public bool ThornsShut => thornWall != null && thornWall.enabled;
     private SpriteRenderer thorns;
     private BoxCollider2D thornWall;
-    public PrototypeBoat Boat { get; private set; }
+    public FerryBoat Boat { get; private set; }
     private SpriteRenderer marker;
     private string[] lines;
     private bool talked;
 
-    public bool PlayerHere => combat != null && combat.player.transform.position.x >= PrototypeWorld.FerryStart && combat.player.transform.position.x < PrototypeWorld.FerryEnd;
-    bool AtThorns => ThornsShut && combat.player.transform.position.x > PrototypeWorld.FerryStart - 3;
-    public bool Near => combat != null && Vector2.Distance(combat.player.transform.position, PrototypeWorld.Ferryman) < TalkRange;
+    public bool PlayerHere => combat != null && combat.player.transform.position.x >= WorldBuilder.FerryStart && combat.player.transform.position.x < WorldBuilder.FerryEnd;
+    bool AtThorns => ThornsShut && combat.player.transform.position.x > WorldBuilder.FerryStart - 3;
+    public bool Near => combat != null && Vector2.Distance(combat.player.transform.position, WorldBuilder.Ferryman) < TalkRange;
 
     // 가시덤불, 뱃사공, 나룻배를 만든다.
     void Start()
     {
         marker = new GameObject("뱃사공").AddComponent<SpriteRenderer>();
-        marker.transform.position = PrototypeWorld.Ferryman;
+        marker.transform.position = WorldBuilder.Ferryman;
         marker.transform.localScale = new Vector3(.75f, 1.4f, 1);
         marker.sprite = combat.player.GetComponent<SpriteRenderer>().sprite;
         marker.color = new Color(.5f, .45f, .35f);   // 흰 사각형은 "방금 맞음"으로 읽혀 색이 입혀진다
@@ -51,11 +51,11 @@ public class PrototypeFerry : MonoBehaviour
         box.usedByEffector = true;
         var effector = boat.AddComponent<PlatformEffector2D>(); effector.useOneWay = true; effector.surfaceArc = 160;
         var body = boat.AddComponent<Rigidbody2D>(); body.bodyType = RigidbodyType2D.Kinematic; body.interpolation = RigidbodyInterpolation2D.Interpolate;
-        Boat = boat.AddComponent<PrototypeBoat>();
+        Boat = boat.AddComponent<FerryBoat>();
         Boat.ferry = this;
 
         var wall = new GameObject("숲 끝 가시덤불");
-        wall.transform.position = new Vector3(PrototypeWorld.FerryStart - .5f, -.5f, 0);
+        wall.transform.position = new Vector3(WorldBuilder.FerryStart - .5f, -.5f, 0);
         wall.layer = 8;
         thorns = wall.AddComponent<SpriteRenderer>(); thorns.sprite = JinaArt.Prop("thorn_wall"); thorns.sortingOrder = 7;
         thornWall = wall.AddComponent<BoxCollider2D>();
@@ -157,13 +157,13 @@ public class PrototypeFerry : MonoBehaviour
     public void Splash()
     {
         var p = combat.player.transform.position;
-        if (p.x <= PrototypeWorld.RiverLeft || p.x >= PrototypeWorld.RiverRight || p.y > SinkY) return;
+        if (p.x <= WorldBuilder.RiverLeft || p.x >= WorldBuilder.RiverRight || p.y > SinkY) return;
         SplashAt = Time.time;
-        JinaFx.Dots(new Vector3(p.x, PrototypeWorld.WaterBottom + 1, 0), 22, new Color(.8f, .92f, 1), 6, .6f, 0, 16);
+        JinaFx.Dots(new Vector3(p.x, WorldBuilder.WaterBottom + 1, 0), 22, new Color(.8f, .92f, 1), 6, .6f, 0, 16);
         combat.HurtPlayer();
-        bool nearLeft = p.x - PrototypeWorld.RiverLeft < PrototypeWorld.RiverRight - p.x;
+        bool nearLeft = p.x - WorldBuilder.RiverLeft < WorldBuilder.RiverRight - p.x;
         var body = combat.player.GetComponent<Rigidbody2D>();
-        combat.player.transform.position = new Vector3(nearLeft ? PrototypeWorld.RiverLeft - 1.2f : PrototypeWorld.RiverRight + 1.2f, .3f, 0);
+        combat.player.transform.position = new Vector3(nearLeft ? WorldBuilder.RiverLeft - 1.2f : WorldBuilder.RiverRight + 1.2f, .3f, 0);
         body.velocity = Vector2.zero;
     }
 
@@ -176,9 +176,9 @@ public class PrototypeFerry : MonoBehaviour
         if (AtThorns && !combat.Paused) JinaUI.Prompt("가시덤불이 길을 막았습니다. 숲의 도깨비를 해결해야 지나갈 수 있습니다.");
         if (ClearedAt >= 0 && Time.time - ClearedAt < ClearedNotice && !combat.Paused && combat.Encounter != null && !combat.Encounter.Playing)
             JinaUI.Toast("숲 끝을 막던 가시덤불이 시들었습니다. 나루터로 가는 길이 열렸습니다.");
-        if (IsOpen && SpeechBubble.OnScreen(PrototypeWorld.Ferryman))
+        if (IsOpen && SpeechBubble.OnScreen(WorldBuilder.Ferryman))
         {
-            SpeechBubble.Draw(new Vector3(PrototypeWorld.Ferryman.x, 1.6f, 0), "뱃사공", lines[Page]);
+            SpeechBubble.Draw(new Vector3(WorldBuilder.Ferryman.x, 1.6f, 0), "뱃사공", lines[Page]);
             JinaUI.Prompt("E: 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc: 그만 듣기");
         }
         if (SplashAt >= 0 && Time.time - SplashAt < 1.6f)
@@ -195,9 +195,9 @@ public class PrototypeFerry : MonoBehaviour
 }
 
 // 나룻배: 선비가 나루터 맵에 있는 동안 둑과 둑을 오가며 둑마다 기다리고, 갑판에 탄 선비를 태운다.
-public class PrototypeBoat : MonoBehaviour
+public class FerryBoat : MonoBehaviour
 {
-    public PrototypeFerry ferry;
+    public Ferry ferry;
     public Vector2 Velocity { get; private set; }
     private Rigidbody2D body;
     private int heading = 1;
@@ -216,22 +216,22 @@ public class PrototypeBoat : MonoBehaviour
     {
         Velocity = Vector2.zero;
         if (ferry == null || !ferry.PlayerHere || ferry.combat.Paused || Time.time < waitUntil) return;
-        float x = body.position.x + heading * PrototypeFerry.BoatSpeed * Time.fixedDeltaTime;
-        if (x >= PrototypeFerry.BoatRight || x <= PrototypeFerry.BoatLeft)
+        float x = body.position.x + heading * Ferry.BoatSpeed * Time.fixedDeltaTime;
+        if (x >= Ferry.BoatRight || x <= Ferry.BoatLeft)
         {
-            x = Mathf.Clamp(x, PrototypeFerry.BoatLeft, PrototypeFerry.BoatRight);
-            heading = -heading; waitUntil = Time.time + PrototypeFerry.BoatWait;
+            x = Mathf.Clamp(x, Ferry.BoatLeft, Ferry.BoatRight);
+            heading = -heading; waitUntil = Time.time + Ferry.BoatWait;
         }
         Velocity = new Vector2((x - body.position.x) / Time.fixedDeltaTime, 0);
         body.MovePosition(new Vector2(x, body.position.y));
     }
 }
 
-// ===== 고개: 굴러오는 바위·서낭당 (PrototypePass) =====
-// 나루터 너머 고개(PrototypeWorld.PassStart..PassEnd). 선비가 꼭대기 아래를 오르는 동안
+// ===== 고개: 굴러오는 바위·서낭당 (MountainPass) =====
+// 나루터 너머 고개(WorldBuilder.PassStart..PassEnd). 선비가 꼭대기 아래를 오르는 동안
 // 몇 초마다 바위가 계단을 굴러 내려온다: 뛰어넘거나 백스텝(K)으로 통과한다.
 // 고원의 서낭당에서 한 판에 한 번 돌탑에 돌을 얹으면(E) 체력이 다 찬다.
-public class PrototypePass : MonoBehaviour
+public class MountainPass : MonoBehaviour
 {
     public PrototypeCombat combat;
     public const float RockEvery = 3.2f, RollSpeed = 4.2f, Radius = .48f, Fall = 25f, ShrineRange = 1.8f;
@@ -242,9 +242,9 @@ public class PrototypePass : MonoBehaviour
     private float nextRock;
     private string shrineSaid = "";
 
-    public bool OnPass => combat != null && combat.player.transform.position.x >= PrototypeWorld.PassStart && combat.player.transform.position.x < PrototypeWorld.PassEnd;
-    public bool NearShrine => combat != null && Mathf.Abs(combat.player.transform.position.x - PrototypeWorld.ShrineX) < ShrineRange
-        && Mathf.Abs(combat.player.transform.position.y - PrototypeWorld.Top(PrototypeWorld.ShrineX)) < 1.5f;
+    public bool OnPass => combat != null && combat.player.transform.position.x >= WorldBuilder.PassStart && combat.player.transform.position.x < WorldBuilder.PassEnd;
+    public bool NearShrine => combat != null && Mathf.Abs(combat.player.transform.position.x - WorldBuilder.ShrineX) < ShrineRange
+        && Mathf.Abs(combat.player.transform.position.y - WorldBuilder.Top(WorldBuilder.ShrineX)) < 1.5f;
 
     // 재시작: 바위와 서낭당을 처음으로.
     public void ResetPass()
@@ -265,7 +265,7 @@ public class PrototypePass : MonoBehaviour
     {
         var art = new GameObject("굴러오는 바위").AddComponent<SpriteRenderer>();
         art.sprite = JinaArt.PropCentred("boulder"); art.sortingOrder = 4;
-        art.transform.position = new Vector3(x, PrototypeWorld.Top(x) + Radius, 0);
+        art.transform.position = new Vector3(x, WorldBuilder.Top(x) + Radius, 0);
         var rock = new Rock { art = art };
         rocks.Add(rock);
         return rock;
@@ -279,13 +279,13 @@ public class PrototypePass : MonoBehaviour
         {
             var r = rocks[i]; var p = r.art.transform.position;
             p.x -= RollSpeed * dt;
-            float floor = PrototypeWorld.Top(p.x) + Radius;
+            float floor = WorldBuilder.Top(p.x) + Radius;
             if (p.y > floor) { r.vy -= Fall * dt; p.y = Mathf.Max(floor, p.y + r.vy * dt); }
             else { p.y = floor; r.vy = 0; }
             r.art.transform.position = p;
             r.art.transform.Rotate(0, 0, RollSpeed * dt / Radius * Mathf.Rad2Deg);
             if (new Bounds(p, Vector3.one * Radius * 1.7f).Intersects(body)) combat.HurtPlayer();
-            if (p.x < PrototypeWorld.PassStart + 1) { Destroy(r.art.gameObject); rocks.RemoveAt(i); }
+            if (p.x < WorldBuilder.PassStart + 1) { Destroy(r.art.gameObject); rocks.RemoveAt(i); }
         }
     }
 
@@ -307,9 +307,9 @@ public class PrototypePass : MonoBehaviour
         if (combat == null || combat.PlayerHealth <= 0 || combat.Paused) return;
         if (NearShrine && Input.GetKeyDown(KeyCode.E)) UseShrine();
         // 선비가 고개에서 비탈 꼭대기 아래에 있을 때만 바위가 굴러온다.
-        if (OnPass && combat.player.transform.position.x < PrototypeWorld.RockStart - 1 && Time.time >= nextRock)
+        if (OnPass && combat.player.transform.position.x < WorldBuilder.RockStart - 1 && Time.time >= nextRock)
         {
-            Spawn(PrototypeWorld.RockStart);
+            Spawn(WorldBuilder.RockStart);
             nextRock = Time.time + RockEvery;
         }
         Step(Time.deltaTime);
@@ -328,10 +328,10 @@ public class PrototypePass : MonoBehaviour
     void OnDestroy() { foreach (var r in rocks) if (r.art != null) Destroy(r.art.gameObject); }
 }
 
-// ===== 길가 조사 지점 (PrototypeLore) =====
+// ===== 길가 조사 지점 (RoadsideLore) =====
 // 길가의 작은 것들이 E에 한두 줄로 답한다: 아무것도 여기에 달려 있지 않지만 어떤 곳인지
 // 알려 주고, 콩밭 마을에서는 그곳 사람들이 믿는 것과 조용히 어긋난다.
-public class PrototypeLore : MonoBehaviour
+public class RoadsideLore : MonoBehaviour
 {
     public PrototypeCombat combat;
     public const float Range = 1.1f, ShowFor = 5f;
@@ -381,7 +381,7 @@ public class PrototypeLore : MonoBehaviour
         for (int i = 0; i < Spots.Length; i++)
         {
             float d = Mathf.Abs(p.x - Spots[i].x);
-            if (d < bestD && p.y < PrototypeWorld.Top(Spots[i].x) + 2.6f) { bestD = d; best = i; }
+            if (d < bestD && p.y < WorldBuilder.Top(Spots[i].x) + 2.6f) { bestD = d; best = i; }
         }
         return best;
     }
@@ -396,8 +396,8 @@ public class PrototypeLore : MonoBehaviour
             if (camp != null)
                 foreach (var m in camp.mobs)
                     if (m.hp > 0 && m.art != null && Vector2.Distance(p, m.art.transform.position) < 6) return true;
-        if (Vector2.Distance(p, PrototypeWorld.Elder) < 1.9f || Vector2.Distance(p, PrototypeWorld.Stone) < 1.9f) return true;
-        if (Mathf.Abs(p.x - PrototypeWorld.Tavern.x) < 2.2f || Mathf.Abs(p.x - PrototypeWorld.Peddler.x) < 2.2f) return true;
+        if (Vector2.Distance(p, WorldBuilder.Elder) < 1.9f || Vector2.Distance(p, WorldBuilder.Stone) < 1.9f) return true;
+        if (Mathf.Abs(p.x - WorldBuilder.Tavern.x) < 2.2f || Mathf.Abs(p.x - WorldBuilder.Peddler.x) < 2.2f) return true;
         if (combat.Ferry != null && combat.Ferry.Near) return true;
         if (combat.Pass != null && combat.Pass.NearShrine) return true;
         if (combat.Kong != null && combat.Kong.InVillage && combat.Kong.HasSomethingHere) return true;

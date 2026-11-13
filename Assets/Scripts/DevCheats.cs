@@ -5,11 +5,11 @@ using UnityEngine;
 //       비석 봉인 해제), 노인 이야기 듣기, 비석 표식(달·강·산) 읽기, 도깨비에게 부적 사용
 //       (+30, 가시덤불이 시듦), 그다음 선비를 나루터 뱃사공 옆에 둔다.
 //       도깨비를 이미 해결했으면 나루터로 옮기기만 한다.
-public class PrototypeCheats : MonoBehaviour
+public class DevCheats : MonoBehaviour
 {
     public PrototypeCombat combat;
     public const KeyCode PurifyAndFerry = KeyCode.F9;
-    public static readonly Vector2 FerrySpot = new Vector2(PrototypeWorld.Ferryman.x - 2, .3f);
+    public static readonly Vector2 FerrySpot = new Vector2(WorldBuilder.Ferryman.x - 2, .3f);
     public float UsedAt { get; private set; } = -1;
     private string said = "";
 

@@ -6,17 +6,17 @@ using UnityEngine;
 // 가까이 오면 가슴 높이로 혀를 한 번 휘두르고(뛰거나 물러나 피함), 혀를 내민 채 잠시 앉아 있다:
 // 그때가 벨 기회다. 모든 공격은 먼저 주황색으로 번쩍인다. 뛰어서 움직이므로 계단과 벽에
 // 선비처럼 막히고, 발판 위로 따라 뛰어오른다. 고개의 바위는 해 없이 통과한다.
-// 뒷산의 큰 독이 던진 것을 막는다(PrototypeKongBoss.Crocks.cs).
+// 뒷산의 큰 독이 던진 것을 막는다(KongBoss.Crocks.cs).
 // 앞에 벽이 있거나, 선비가 더 높이 있거나, 뛰어도 제자리였으면 다음은 높이 뛰어서
 // 뒷산의 움푹한 곳과 고개의 계단을 올라온다.
 // 콩밭 마을에서는 묶인 사람을 오른쪽부터 노린다. 죽이려고 준비하는 동안 칼로 두 번 베면
 // 움찔하며 그 사람을 잠시 살려 둔다. 강은 건너지 못한다: 강 너머로 가면 마을로 돌아간다.
-public partial class PrototypeKongBoss
+public partial class KongBoss
 {
     public enum Attack { None, Spit, Beans, Tongue, Salt }
     public Attack Doing { get; private set; }
     public const int SpitDamage = 15, BrineDamage = 8, BeanDamage = 8, TongueDamage = 18, SaltDamage = 10;
-    public const float MinX = PrototypeWorld.RiverRight + 1.4f, MaxX = PrototypeWorld.HillEnd - 1.5f, VillageCentre = 130f;
+    public const float MinX = WorldBuilder.RiverRight + 1.4f, MaxX = WorldBuilder.HillEnd - 1.5f, VillageCentre = 130f;
     // 뛰기: 보통 뛰기와 높이 뛰기의 높이(약 2.45, 3.6칸), 추격 속도와 걸음 속도.
     public const float Gravity = 9.81f * 3, HopRise = 12f, HighRise = 14.6f, ChaseHop = 6.6f, StepHop = 4.2f, CrouchLength = .2f, HopRest = .28f;
     // 선호하는 거리: Close보다 가까우면 혀를 휘두르고, Far보다 멀면 뛰어서 쫓는다.
@@ -46,10 +46,10 @@ public partial class PrototypeKongBoss
     private float hopSpeed, hopRise;
     private readonly RaycastHit2D[] groundHits = new RaycastHit2D[8];
     // 습격.
-    public PrototypeKongVillage.Who? Victim { get; private set; }
+    public KongVillage.Who? Victim { get; private set; }
     public float KillAt { get; private set; } = -1;
     public float CastAt { get; private set; } = -1;
-    private PrototypeKongVillage.Who killing;
+    private KongVillage.Who killing;
     private bool killed;
     private float stagger, stunnedUntil, nextKillAt, castUntil;
 
@@ -107,7 +107,7 @@ public partial class PrototypeKongBoss
         StepShots(dt);
         var kong = combat.Kong;
         // 처음 마을에 들어옴: 소매를 들어 올리자 저주가 거기 있는 모두를 묶는다.
-        if (kong != null && !kong.Raided && Feet.x < PrototypeWorld.KongEnd - 2 && kong.AnyoneToTake)
+        if (kong != null && !kong.Raided && Feet.x < WorldBuilder.KongEnd - 2 && kong.AnyoneToTake)
         {
             kong.StartRaid();
             CastAt = Time.time; castUntil = Time.time + 1.3f; Doing = Attack.None; KillAt = -1;
@@ -139,14 +139,14 @@ public partial class PrototypeKongBoss
 
     // 가고 싶은 곳: 다음 희생자 옆, 아니면 선비와 던지기 좋은 거리, 선비가 강을 건넜으면
     // 건너편 둑(마을에 남은 사람이 없을 때) 또는 마을로 돌아감.
-    public float? Goal(PrototypeKongVillage kong)
+    public float? Goal(KongVillage kong)
     {
         float x = Feet.x;
         var victim = kong != null && kong.Raided ? kong.NextVictim() : null;
         if (victim.HasValue) { float vx = kong.PersonX(victim.Value); return Mathf.Clamp(vx + (x >= vx ? KillReach : -KillReach), MinX, MaxX); }
         if (!Reachable)
         {
-            if (kong != null && (kong.AnyoneToTake || kong.Raided)) return kong.AnyoneToTake ? PrototypeWorld.KongEnd - 4 : VillageCentre;
+            if (kong != null && (kong.AnyoneToTake || kong.Raided)) return kong.AnyoneToTake ? WorldBuilder.KongEnd - 4 : VillageCentre;
             return MinX;
         }
         float dx = PlayerX - x, d = Mathf.Abs(dx);
@@ -275,7 +275,7 @@ public partial class PrototypeKongBoss
     static float Landing(float x)
     {
         var hit = Physics2D.Raycast(new Vector2(x, 8), Vector2.down, 12, 1 << 8);
-        return hit.collider != null ? hit.point.y : PrototypeWorld.Top(x);
+        return hit.collider != null ? hit.point.y : WorldBuilder.Top(x);
     }
     // 탄 하나를 던진다.
     Shot Throw(Attack kind, string art, Vector3 at, Vector2 v, float life)
@@ -381,14 +381,14 @@ public partial class PrototypeKongBoss
     }
 
     // ---- 마을 ----
-    void StartKill(PrototypeKongVillage kong, PrototypeKongVillage.Who who)
+    void StartKill(KongVillage kong, KongVillage.Who who)
     {
         killing = who; KillAt = Time.time; killed = false; stagger = 0;
         Facing = kong.PersonX(who) >= Feet.x ? 1 : -1;
         kong.Threaten(who);
     }
     // 마을에서 묶인 사람을 조이고 죽이는 과정을 진행한다.
-    void StepKill(PrototypeKongVillage kong)
+    void StepKill(KongVillage kong)
     {
         float t = Time.time - KillAt;
         if (t < KillWindup) return;

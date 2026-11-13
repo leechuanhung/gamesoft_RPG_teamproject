@@ -4,7 +4,7 @@ using UnityEngine;
 // 집으로 달아난다. 도깨비가 토벌되거나 정화되면 다시 나와 천천히 제자리로 걷는다.
 // 노인이 쓰러졌으면 먼저 시체 곁에 잠시 서서 슬픔을 말한다.
 // 여기서는 움직임만 맡고, 프레임은 KeeperVisual, PeddlerVisual, ElderVisual이 고른다.
-public class PrototypeVillage : MonoBehaviour
+public class VillageAlarm : MonoBehaviour
 {
     public PrototypeCombat combat;
     public const string AlarmLine = "기어코 저 도깨비가 마을에 왔군! 모두 대피하시오!";
@@ -41,7 +41,7 @@ public class PrototypeVillage : MonoBehaviour
     // 다음 사람이 말을 시작할 수 있는 시각(앞사람이 끝난 뒤).
     private float lineFree;
 
-    // 주모는 PrototypeWorld가, 보부상은 PrototypePeddler.Start가 만드니 필요할 때 찾는다.
+    // 주모는 PrototypeWorld가, 보부상은 PeddlerShop.Start가 만드니 필요할 때 찾는다.
     void Bind()
     {
         if (Keeper == null)
@@ -51,8 +51,8 @@ public class PrototypeVillage : MonoBehaviour
             {
                 Keeper = new Villager
                 {
-                    art = keeper.GetComponent<SpriteRenderer>(), home = PrototypeWorld.Tavern.x, stagger = 0,
-                    name = "주모", bubble = 1.4f, mourn = PrototypeWorld.Elder.x - 2.4f,
+                    art = keeper.GetComponent<SpriteRenderer>(), home = WorldBuilder.Tavern.x, stagger = 0,
+                    name = "주모", bubble = 1.4f, mourn = WorldBuilder.Elder.x - 2.4f,
                     grief = "노인장… 이리 허망하게 가시다니요.",
                 };
                 keeperVisual = KeeperVisual.Attach(Keeper.art, combat);
@@ -61,8 +61,8 @@ public class PrototypeVillage : MonoBehaviour
         if (Peddler == null && combat.Peddler != null && combat.Peddler.Marker != null)
             Peddler = new Villager
             {
-                art = combat.Peddler.Marker, home = PrototypeWorld.Peddler.x, stagger = .25f,
-                name = "보부상", bubble = 1.55f, mourn = PrototypeWorld.Elder.x - 3.3f,
+                art = combat.Peddler.Marker, home = WorldBuilder.Peddler.x, stagger = .25f,
+                name = "보부상", bubble = 1.55f, mourn = WorldBuilder.Elder.x - 3.3f,
                 grief = "장터마다 노인장 덕담을 전했는데… 이제 누구에게 길을 묻겠소.",
             };
     }
@@ -153,7 +153,7 @@ public class PrototypeVillage : MonoBehaviour
     {
         if (combat == null || combat.Quest == null || combat.Paused) return;
         if (Alarmed && Time.time - AlarmAt < AlarmBubbleLength && !ElderDead)
-            SpeechBubble.Draw(new Vector3(PrototypeWorld.Elder.x, 1.45f, 0), "마을 노인", AlarmLine);
+            SpeechBubble.Draw(new Vector3(WorldBuilder.Elder.x, 1.45f, 0), "마을 노인", AlarmLine);
         // 한 번에 한 사람만 애도한다: 먼저 도착한 사람, 그 사람이 끝나면 다른 사람.
         foreach (var v in new[] { Keeper, Peddler })
             if (v != null && v.state == State.Mourning && Time.time >= v.speakAt && Time.time < v.speakAt + MournLineLength

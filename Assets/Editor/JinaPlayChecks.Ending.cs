@@ -22,7 +22,7 @@ public static partial class JinaPlayChecks
 
         // Game over: black over the world, and the seonbi alone collapsing in its own motion.
         var over=combat.GameOver; var actor=Field<SpriteRenderer>(over,"actor"); var veil=Field<SpriteRenderer>(over,"veil");
-        foreach(var (t,frame) in new[]{(.1f,"player_ko_00"),(.5f,"player_ko_01"),(1f,"player_ko_02"),(PrototypeGameOver.Down+.01f,"player_facedown")})
+        foreach(var (t,frame) in new[]{(.1f,"player_ko_00"),(.5f,"player_ko_01"),(1f,"player_ko_02"),(GameOver.Down+.01f,"player_facedown")})
         {
             Set(combat,"<PlayerDownAt>k__BackingField",Time.time-t); Call(over,"LateUpdate");
             Check(veil.enabled && actor.enabled && actor.sprite.name.EndsWith(frame),"Game over frame "+frame);
@@ -41,20 +41,20 @@ public static partial class JinaPlayChecks
         var slain=new QuestProgress(); slain.Resolve(false);
         var purified=WithCharm(new QuestProgress()); purified.Resolve(true);
         var sacrifice=WithCharm(new QuestProgress()); sacrifice.SacrificeElder(); sacrifice.Resolve(true);
-        Check(PrototypeEnding.For(slain)==PrototypeEnding.Kind.Slain && PrototypeEnding.For(purified)==PrototypeEnding.Kind.Purified
-            && PrototypeEnding.For(sacrifice)==PrototypeEnding.Kind.Sacrifice,"Each choice picks its ending");
+        Check(EndingNarration.For(slain)==EndingNarration.Kind.Slain && EndingNarration.For(purified)==EndingNarration.Kind.Purified
+            && EndingNarration.For(sacrifice)==EndingNarration.Kind.Sacrifice,"Each choice picks its ending");
 
         var ending=combat.Ending; var player=combat.player.transform;
-        player.position=new Vector3(PrototypeWorld.GoalX-3,player.position.y,0);
+        player.position=new Vector3(WorldBuilder.GoalX-3,player.position.y,0);
         Set(combat,"<EnemyHealth>k__BackingField",0); Call(ending);
         Check(!ending.Active,"No ending before the road");
-        player.position=new Vector3(PrototypeWorld.GoalX,player.position.y,0);
+        player.position=new Vector3(WorldBuilder.GoalX,player.position.y,0);
         Set(combat,"<EnemyHealth>k__BackingField",PrototypeCombat.EnemyMaxHealth); Call(ending);
         Check(!ending.Active,"No ending while the boss stands");
         Set(combat,"<EnemyHealth>k__BackingField",0); combat.Quest.progress.Resolve(false); Call(ending);
         Check(!ending.Active,"No ending while the Kongjwi demon stands on the hill");
-        Set(combat.KongBoss,"<Now>k__BackingField",PrototypeKongBoss.Phase.Slain); Call(ending);
-        Check(ending.Active && ending.IsPlaying && ending.Ending==PrototypeEnding.Kind.Slain && combat.Paused && !combat.player.CanMove,"Reaching the road plays the ending");
+        Set(combat.KongBoss,"<Now>k__BackingField",KongBoss.Phase.Slain); Call(ending);
+        Check(ending.Active && ending.IsPlaying && ending.Ending==EndingNarration.Kind.Slain && combat.Paused && !combat.player.CanMove,"Reaching the road plays the ending");
         ending.Skip();
         Check(ending.Active && !ending.IsPlaying && combat.Paused,"Skipping leaves the ending title up");
         combat.Restart();

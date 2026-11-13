@@ -8,7 +8,7 @@ public static partial class JinaPlayChecks
         foreach (var area in new[]{"stele","camp","village","forest"})
             Check(GameObject.Find("원경 "+area)!=null && GameObject.Find("근경 "+area)!=null,"Backdrop layers for "+area);
         Physics2D.SyncTransforms();
-        foreach (var set in new[]{PrototypeWorld.CampLedges,PrototypeWorld.ForestLedges})
+        foreach (var set in new[]{WorldBuilder.CampLedges,WorldBuilder.ForestLedges})
         {
             foreach (var ledge in set)
             {
@@ -48,7 +48,7 @@ public static partial class JinaPlayChecks
         var above=new Bounds(new Vector3(4,2.3f,0),new Vector3(1,1.4f,1));
         Check(!float.IsInfinity(PrototypeCombat.ArrowHitDistance(above,Vector2.zero,PrototypeCombat.ArrowDirection(1,1),10)),"Upward arrow hits a flier");
         Check(float.IsInfinity(PrototypeCombat.ArrowHitDistance(above,Vector2.zero,PrototypeCombat.ArrowDirection(0,1),10)),"A level arrow passes under it");
-        var ledge=PrototypeWorld.CampLedges[0];
+        var ledge=WorldBuilder.CampLedges[0];
         var wall=typeof(PrototypeCombat).GetMethod("Wall",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static)
             .Invoke(null,new object[]{new Vector2(ledge.x,ledge.y-1),Vector2.up,2f});
         Check(((RaycastHit2D)wall).collider==null,"Arrows fly through ledges");
@@ -58,7 +58,7 @@ public static partial class JinaPlayChecks
     {
         var camp=combat.Camp; var mob=camp.mobs[0]; var player=combat.player.transform;
         Check(mob.hp==PrototypeCamp.GhostHealth && PrototypeCamp.GhostHealth>3,"Ghosts are tougher");
-        player.position=new Vector3(mob.home-3,PrototypeWorld.CampLedges[0].y+.6f,0);
+        player.position=new Vector3(mob.home-3,WorldBuilder.CampLedges[0].y+.6f,0);
         float startY=mob.art.transform.position.y, startDist=Vector3.Distance(mob.art.transform.position,player.position);
         for(int i=0;i<200;i++) Call(camp);
         // Batch frames are a fraction of a millisecond, so this only checks the direction they move in.
@@ -87,7 +87,7 @@ public static partial class JinaPlayChecks
         Set(combat,"moveUntil",Time.time-.01f); Call(combat);
         Check(combat.Move==PrototypeCombat.BossMove.None,"The charge ends");
         // Up on a ledge: a leap.
-        var ledge=PrototypeWorld.ForestLedges[1];
+        var ledge=WorldBuilder.ForestLedges[1];
         boss.transform.position=new Vector3(ledge.x+3,PrototypeCombat.BossGround,0);
         player.position=new Vector3(ledge.x,ledge.y+.6f,0);
         Set(combat,"nextMoveAt",0f); Set(combat,"bossRecoveryUntil",0f); Call(combat);

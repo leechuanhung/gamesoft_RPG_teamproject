@@ -15,9 +15,9 @@ public class PrototypeView : MonoBehaviour
     {
         if (target != null && FindObjectOfType<PrototypeCombat>() == null)
         {
-            var world = new GameObject("네 구역 지도").AddComponent<PrototypeWorld>();
+            var world = new GameObject("네 구역 지도").AddComponent<WorldBuilder>();
             world.Build(target.GetComponent<SpriteRenderer>().sprite);
-            target.GetComponent<PrototypePlayer>().SetSpawn(PrototypeWorld.Spawn);
+            target.GetComponent<PrototypePlayer>().SetSpawn(WorldBuilder.Spawn);
             var combat = gameObject.AddComponent<PrototypeCombat>();
             combat.player = target.GetComponent<PrototypePlayer>();
         }
