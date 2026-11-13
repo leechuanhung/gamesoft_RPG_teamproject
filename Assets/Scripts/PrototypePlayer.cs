@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class PrototypePlayer : MonoBehaviour
 {
@@ -98,6 +98,7 @@ public class PrototypePlayer : MonoBehaviour
     // 스킬용 이동: dir 방향으로 length초 동안 speed 속도로 이동 (이동 중엔 Dodging = true)
     public void StartDash(int dir, float length, float speed)
     {
+        backstepDodge = false; // 스킬 대시임을 명시
         dodgeDir = dir > 0 ? 1 : -1;
         dashSpeed = speed;
         dodgeUntil = Time.time + length;
@@ -108,12 +109,15 @@ public class PrototypePlayer : MonoBehaviour
     {
         transform.position = spawn;
         body.velocity = Vector2.zero;
+
         jumpRequestedUntil = 0f;
-        dodgeUntil = nextDodge = lungeUntil = 0f; SlowUntil = 0f;
-        backstepDodge = false;
-        lastLeftTap = lastRightTap = -1;
-        dodgeUntil = lungeUntil = 0f; SlowUntil = 0f;
+        dodgeUntil = 0f;
+        lungeUntil = 0f;
+        SlowUntil = 0f;
         HasteUntil = 0f;
+
+        backstepDodge = false;
+
         IsGrounded = true;
         IsRunning = false;
         Facing = 1;
