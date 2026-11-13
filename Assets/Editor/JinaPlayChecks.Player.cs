@@ -117,6 +117,7 @@ public static partial class JinaPlayChecks
         Set(combat.player,"dodgeUntil",Time.time+1); visual.SendMessage("LateUpdate");
         Check(body().EndsWith("player_dodge"),"Backstep frame");
         Capture("player-dodge",new Vector3(0,1,-10),2);
+        Set(combat.player,"dodgeDir",-combat.player.Facing);   // K sets the hop backward; a double-tap dash sets it forward
         combat.player.SendMessage("FixedUpdate");
         Check(rb.velocity.x*combat.player.Facing<0,"Backstep moves away from where he faces");
         int health=combat.PlayerHealth; Set(combat,"invulnerableUntil",0f); combat.HurtPlayer();

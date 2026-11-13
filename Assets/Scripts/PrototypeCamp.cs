@@ -1,23 +1,23 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Flying ghosts that guard one stretch of the world. They drift toward the seonbi in any direction (over ledges
-// too) once he is in their stretch, wind up and strike.
-//   The camp's ghost guards (Initialize) block the stele road until all are felled, and stay felled.
-//   The river's water ghosts (InitializeRiver) rise again each time he comes back to the ferry; every one felled
-//   counts toward the drowned mother's keepsake (PrototypeCombat.RiverFelled).
+// 세상의 한 구간을 지키는 날아다니는 유령. 선비가 구간에 들어오면 어느 방향으로든(발판 위로도)
+// 다가와 준비 동작 뒤 공격한다.
+//   들판의 수호 유령(Initialize)은 전부 쓰러질 때까지 비석 길을 막고, 쓰러지면 그대로 남는다.
+//   강의 물귀신(InitializeRiver)은 나루터에 올 때마다 되살아나고, 쓰러뜨린 수는 모두
+//   어머니의 은비녀에 쌓인다(PrototypeCombat.RiverFelled).
 public class PrototypeCamp : MonoBehaviour
 {
     public PrototypeCombat combat;
     public const int GhostHealth = PrototypeCombat.MonsterMaxHealth, CoinsPerGhost = 4, CoinsPerWaterGhost = 1;
-    // Where they fly, the colour of their placeholder and their art, whether they rise again, what each leaves.
+    // 날아다니는 구역, 사각형과 그림의 색, 되살아나는지, 무엇을 남기는지.
     public float minX = -38, maxX = -13;
     public Color body = new Color(.65f,.35f,.22f), tint = Color.white;
     public bool river;
     public int coins = CoinsPerGhost;
     private bool wasInside;
     public const float FlySpeed = 2.2f, SightRange = 8f, StrikeRange = 1.3f, StrikeWindup = .55f, StrikeCooldown = .9f;
-    // How high they hover over the ground at rest, and the highest they fly.
+    // 쉴 때 땅 위로 떠 있는 높이와 가장 높이 나는 높이.
     public const float HoverY = .2f, CeilingY = 4.5f;
     public class Mob
     {
@@ -32,13 +32,14 @@ public class PrototypeCamp : MonoBehaviour
     private GameObject gate;
     public int Remaining { get { int n = 0; foreach (var m in mobs) if (m.hp > 0) n++; return n; } }
 
+    // 들판의 수호 유령들을 만든다.
     public void Initialize(PrototypeCombat owner, Sprite sprite)
     {
         combat = owner;
         Spawn(sprite, "일반 몬스터", new[] { -18f, -26f, -34f });
         gate = new GameObject("비석 길 봉인");
         gate.transform.SetParent(transform);
-        gate.transform.position = new Vector3(PrototypeWorld.GateX, 9.5f, 0);
+        gate.transform.position = new Vector3(WorldBuilder.GateX, 9.5f, 0);
         gate.transform.localScale = new Vector3(.8f, 20, 1);
         gate.layer = 8;
         var image = gate.AddComponent<SpriteRenderer>();
@@ -46,7 +47,7 @@ public class PrototypeCamp : MonoBehaviour
         image.color = new Color(.6f,.3f,.8f,.8f);
         image.enabled = false;
         gate.AddComponent<BoxCollider2D>();
-        // What is seen: a veil of light with charms on a rope, as tall as the wall it makes.
+        // 보이는 것: 줄에 매단 부적과 빛의 장막, 벽 높이만큼.
         var veil = new GameObject("봉인 장막").AddComponent<SpriteRenderer>();
         veil.transform.SetParent(gate.transform, false);
         veil.transform.localScale = new Vector3(1 / gate.transform.localScale.x, 1 / gate.transform.localScale.y, 1);
@@ -57,14 +58,16 @@ public class PrototypeCamp : MonoBehaviour
         veil.sortingOrder = 3;
         ResetCamp();
     }
+    // 나루터의 물귀신들을 만든다.
     public void InitializeRiver(PrototypeCombat owner, Sprite sprite)
     {
         combat = owner; river = true; coins = CoinsPerWaterGhost;
-        minX = PrototypeWorld.RiverLeft - 1; maxX = PrototypeWorld.RiverRight + 1;
+        minX = WorldBuilder.RiverLeft - 1; maxX = WorldBuilder.RiverRight + 1;
         body = new Color(.25f,.4f,.55f); tint = new Color(.62f,.82f,1f);
         Spawn(sprite, "물귀신", new[] { 84f, 90f, 96f });
         ResetCamp();
     }
+    // `homes` 자리마다 유령을 하나씩 만든다.
     void Spawn(Sprite sprite, string label, float[] homes)
     {
         foreach (float x in homes)
@@ -79,14 +82,15 @@ public class PrototypeCamp : MonoBehaviour
             mobs.Add(new Mob { art = art, visual = visual, home = x, phase = mobs.Count * 2.1f });
         }
     }
-    // Their stretch: the camp west of the village, or the ferry map for the river's ghosts.
-    public bool Inside(Vector3 p) => river ? p.x >= PrototypeWorld.FerryStart && p.x < PrototypeWorld.FerryEnd : p.x < PrototypeWorld.VillageLeft;
-    // The river's felled ghosts rise again (from where they first hovered) whenever he comes back.
+    // 구역: 마을 서쪽 들판, 또는 물귀신이면 나루터 맵.
+    public bool Inside(Vector3 p) => river ? p.x >= WorldBuilder.FerryStart && p.x < WorldBuilder.FerryEnd : p.x < WorldBuilder.VillageLeft;
+    // 쓰러진 물귀신은 선비가 돌아올 때마다(처음 떠 있던 자리에서) 되살아난다.
     public void Rise()
     {
         foreach (var m in mobs)
             if (m.hp <= 0) Revive(m);
     }
+    // 쓰러진 유령을 처음 자리에서 되살린다.
     void Revive(Mob m)
     {
         m.art.gameObject.SetActive(true);
@@ -97,12 +101,14 @@ public class PrototypeCamp : MonoBehaviour
         m.visual.Revive();
         m.art.color = body;
     }
+    // 재시작: 모든 유령을 처음 상태로.
     public void ResetCamp()
     {
         foreach (var m in mobs) Revive(m);
         wasInside = false;
         if (gate != null) gate.SetActive(true);
     }
+    // 유령 하나에 피해를 준다. 체력이 다하면 쓰러지고 동전·넋을 남긴다.
     public void Hit(Mob m, int damage = PrototypeCombat.ArrowDamage)
     {
         if (m == null || m.hp <= 0) return;
@@ -114,7 +120,7 @@ public class PrototypeCamp : MonoBehaviour
         JinaFx.Number(at + new Vector3(Random.Range(-.2f, .2f), .7f, 0), before - m.hp, Color.white);
         if (m.hp > 0)
         {
-            // It flinches back and loses a beat.
+            // 움찔 물러나 한 박자 늦어진다.
             m.visual.Hurt();
             m.art.transform.position = at + Vector3.right * away * .24f;
             m.windup = -1; m.visual.Winding = false; m.ready = Mathf.Max(m.ready, Time.time + .35f);
@@ -123,7 +129,7 @@ public class PrototypeCamp : MonoBehaviour
         {
             m.visual.Down(); m.windup = -1; m.visual.Winding = false;
             m.vanishAt = Time.time + 1.5f;
-            // The soul rises out of it; any coins it held catch the light.
+            // 넋이 빠져나오고, 갖고 있던 동전이 반짝인다.
             JinaFx.Rise(at, 12, river ? new Color(.7f, .9f, 1) : new Color(.86f, .72f, 1), .4f, 2.2f, 1.1f);
             JinaFx.Dots(at, 7, new Color(1, .84f, .4f), 2.6f, .55f, 0, 6);
             JinaFx.Stop(.08f);
@@ -178,6 +184,7 @@ public class PrototypeCamp : MonoBehaviour
         GUI.matrix = oldMatrix;
     }
 
+    // 유령마다 추격, 준비 동작, 공격을 돌린다.
     void Update()
     {
         if (combat == null || combat.PlayerHealth <= 0) return;
@@ -202,12 +209,12 @@ public class PrototypeCamp : MonoBehaviour
                 continue;
             }
             var pos = m.art.transform.position;
-            // They make for the seonbi's chest.
+            // 선비의 가슴을 노린다.
             var target = new Vector3(p.x, p.y + .2f, 0);
             var delta = target - pos;
             if (m.windup >= 0)
             {
-                // The strike stays where it was aimed, so moving or jumping can evade it.
+                // 공격은 노린 자리에 그대로 떨어진다. 움직이거나 뛰면 피할 수 있다.
                 if (Time.time >= m.windup)
                 {
                     if (new Bounds(m.strike, new Vector3(1.5f, 1.5f, 1)).Intersects(combat.player.GetComponent<SpriteRenderer>().bounds)) combat.HurtPlayer(PrototypeCombat.MonsterAttack);
@@ -223,12 +230,12 @@ public class PrototypeCamp : MonoBehaviour
             }
             else
             {
-                // Chase within sight, otherwise drift home; the camp's walls bound them.
+                // 보이면 쫓고, 아니면 제자리로 떠간다. 들판의 벽이 경계다.
                 var goal = inCamp && delta.magnitude < SightRange ? target : new Vector3(m.home, HoverY, 0);
                 var step = Vector3.MoveTowards(pos, goal, FlySpeed * Time.deltaTime * (goal == target ? 1 : .5f));
                 if (goal == target && delta.magnitude < StrikeRange * .8f) step = pos;
                 step.x = Mathf.Clamp(step.x, minX, maxX);
-                // A gentle bob keeps them from hanging still.
+                // 살짝 오르내려 멈춰 있지 않게 한다.
                 step.y = Mathf.Clamp(step.y + Mathf.Sin(Time.time * 2.4f + m.phase) * .25f * Time.deltaTime, HoverY, CeilingY);
                 m.art.transform.position = step;
             }

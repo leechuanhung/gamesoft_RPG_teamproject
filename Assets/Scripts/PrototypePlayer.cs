@@ -76,7 +76,7 @@ public class PrototypePlayer : MonoBehaviour
             if (groundHits[i].normal.y > 0.65f)
             {
                 grounded = true;
-                var boat = groundHits[i].collider.GetComponent<PrototypeBoat>();
+                var boat = groundHits[i].collider.GetComponent<FerryBoat>();
                 if (boat != null) carry = boat.Velocity.x;
             }
 
@@ -119,6 +119,13 @@ public class PrototypePlayer : MonoBehaviour
         Facing = 1;
         CanMove = true;
         Downed = false;
+    }
+
+    // Back on his feet somewhere other than the spawn (the back hill checkpoint).
+    public void RespawnAt(Vector2 position)
+    {
+        Respawn();
+        transform.position = position;
     }
 
     public void SetSpawn(Vector2 position)

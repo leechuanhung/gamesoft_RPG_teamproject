@@ -137,9 +137,125 @@ def namu():
     f.paint({5: (5, 9)}, 'hair')
     return f
 
+def hunjang():
+    """The village schoolmaster: a black gat, a long white beard, a pale robe to the ground, a closed fan in hand."""
+    f = Figure()
+    f.layer(skirt(16, 40, 4, 13, 2), 'cotton'); f.paint(skirt(16, 40, 11, 13, 2), 'cotton2')
+    f.paint(rect(8, 24, 8, 39), 'cotton2')
+    f.layer({41: [(3, 7), (10, 13)]}, 'navy')
+    f.layer(join({15: (6, 12), 16: (5, 13)}, rect(4, 17, 14, 22)), 'cotton')
+    f.paint(rect(12, 16, 14, 22), 'cotton2')
+    f.layer(rect(4, 23, 14, 23), 'red')                                             # the sash
+    f.layer(join(rect(1, 17, 6, 24)), 'cotton'); f.paint(rect(4, 17, 6, 24), 'cotton2')   # the wide sleeve
+    f.layer({25: (1, 3)}, 'skin')
+    f.layer(rect(0, 19, 1, 27), 'wood')                                             # the folded fan
+    f.layer(join({7: (5, 10)}, rect(4, 8, 11, 13), {14: (5, 10)}), 'skin')
+    f.paint(join(rect(9, 8, 11, 12), {8: (8, 8)}), 'hair2')
+    f.paint({10: (5, 5)}, 'k'); f.paint({9: (4, 6)}, 'cotton2')                     # eye under a white brow
+    f.layer(join({13: (3, 8)}, rect(3, 14, 7, 17), {18: (4, 6)}, {19: (5, 5)}), 'white')   # the beard
+    f.paint(join(rect(6, 15, 7, 17)), 'cotton2')
+    f.layer(join(rect(0, 6, 15, 6)), 'navy'); f.layer(rect(5, 2, 10, 5), 'navy')    # the gat: brim and crown
+    f.paint(rect(5, 5, 10, 5), 'k')
+    return f
+
+def yeot():
+    """The taffy seller: a headband, hemp clothes, a tray of taffy hung at his belly, the big taffy shears."""
+    f = Figure()
+    f.layer({30: (5, 14), 31: (5, 14), 32: [(5, 8), (10, 14)], 33: [(5, 8), (10, 14)], 34: [(5, 8), (10, 13)]}, 'hemp')
+    f.paint(join(rect(12, 30, 14, 34)), 'hemp2')
+    f.layer(join(rect(6, 35, 7, 39), rect(11, 35, 12, 39)), 'skin'); f.paint(join(rect(7, 35, 7, 39), rect(12, 35, 12, 39)), 'skin2')
+    f.layer({40: [(4, 8), (10, 13)], 41: [(3, 8), (10, 14)]}, 'shoe'); f.paint({41: [(3, 8), (10, 14)]}, 'shoe2')
+    f.layer(join({16: (6, 12), 17: (5, 13)}, rect(4, 18, 14, 29)), 'hemp')
+    f.paint(rect(12, 17, 14, 29), 'hemp2'); f.paint(rect(4, 28, 14, 29), 'brown2')
+    f.paint(join({17: (7, 7)}, {18: (8, 8)}, {19: (9, 9)}, {20: (10, 10)}), 'brown2')   # the tray's strap
+    f.layer(rect(-1, 23, 9, 25), 'wood'); f.paint(rect(-1, 25, 9, 25), 'wood2')     # the taffy tray
+    f.paint(join(*[rect(x, 22, x + 1, 22) for x in range(0, 9, 3)]), 'straw')
+    f.layer(join(*[rect(x, 21, x + 1, 22) for x in range(0, 9, 3)]), 'straw')
+    f.layer(join({18: (3, 5), 19: (2, 6)}, rect(2, 20, 5, 21)), 'hemp')
+    f.layer(join(rect(0, 13, 0, 20), rect(2, 14, 2, 20)), 'silver')                 # the shears
+    f.layer({21: (0, 2)}, 'skin')
+    f.layer(join({8: (4, 10)}, rect(3, 9, 10, 13), {14: (4, 10)}), 'skin')
+    f.paint(join(rect(9, 8, 10, 13), {9: (11, 11)}), 'hair'); f.paint({10: (4, 4)}, 'k')
+    f.paint({12: (4, 6)}, 'mouth')                                                  # a hawker's open grin
+    f.layer(rect(3, 7, 11, 8), 'red'); f.layer(rect(12, 7, 13, 10), 'red')          # the red headband and its tails
+    f.paint({6: (5, 9)}, 'hair')
+    return f
+
+def halmi():
+    """An old grandmother, bent over her stick: white hair in a bun, a white jacket and a grey skirt."""
+    f = Figure()
+    f.layer(skirt(25, 40, 5, 13, 2), 'grey'); f.paint(skirt(25, 40, 11, 13, 2), 'grey2')
+    f.layer({41: [(4, 7), (10, 13)]}, 'shoe')
+    f.layer(join({18: (7, 13)}, rect(5, 19, 14, 25), {17: (9, 13)}), 'cotton')     # a bent back
+    f.paint(rect(11, 17, 14, 25), 'cotton2')
+    f.layer(join(rect(0, 24, 1, 41)), 'wood')                                        # the stick
+    f.layer(join(rect(2, 20, 5, 25)), 'cotton'); f.layer({26: (1, 3)}, 'skin')
+    f.layer(join({13: (3, 8)}, rect(2, 14, 9, 19), {20: (3, 8)}), 'skin')
+    f.paint(join({13: (3, 9)}, {14: (6, 9)}, rect(7, 15, 9, 17)), 'cotton2')
+    f.layer(rect(9, 13, 12, 16), 'cotton2'); f.layer(rect(10, 12, 14, 12), 'silver')   # white bun and its pin
+    f.paint({16: (3, 3)}, 'k'); f.paint({18: (3, 4)}, 'skin2')
+    return f
+
+def girl_kneel(f, jacket, jacket2, cuff, chima, chima2, goreum, ribbon):
+    """A girl on her knees weeping, one sleeve raised so her hand hides her face; the skirt spread on the ground."""
+    t = 19
+    f.layer(join(skirt(t + 13, 40, 4, 13, 4), {41: (1, 17)}), chima)
+    f.paint(join(skirt(t + 13, 40, 11, 13, 4), {41: (14, 17)}), chima2)
+    for x in (6, 10): f.paint(rect(x, t + 17, x, 40), chima2)
+    f.layer(rect(11, t + 6, 12, t + 16), 'hair')
+    f.paint(join(*[rect(11, y, 11, y) for y in range(t + 7, t + 16, 2)]), 'hair2')
+    f.layer(join(rect(11, t + 17, 13, t + 18), rect(12, t + 19, 14, t + 21)), ribbon)
+    f.layer(join({t + 9: (6, 11)}, {t + 10: (5, 12)}, rect(4, t + 11, 13, t + 13)), jacket)
+    f.paint(rect(11, t + 10, 13, t + 13), jacket2)
+    f.paint({t + 9: (7, 7), t + 10: (7, 8), t + 11: (8, 9), t + 12: (9, 9)}, 'cotton')
+    f.layer(join(rect(9, t + 12, 9, t + 17)), goreum)
+    f.layer(join({t: (5, 10)}, {t + 1: (4, 11)}, rect(3, t + 2, 12, t + 7), {t + 8: (5, 10)}), 'skin')
+    f.paint(join({t: (5, 10)}, {t + 1: (4, 12)}, {t + 2: (4, 12)}, rect(9, t + 3, 12, t + 6), {t + 7: (10, 11)}), 'hair')
+    f.paint({t + 3: (4, 5)}, 'hair'); f.paint({t + 1: (7, 9)}, 'hair2')
+    f.paint(rect(10, t + 3, 10, t + 4), 'skin2')
+    f.paint({t + 5: (4, 6)}, 'k'); f.paint({t + 3: (6, 6)}, 'k')                    # a shut, crying eye, brow raised
+    f.paint({t + 7: (4, 5)}, 'mouth')
+    # the front arm bent up so the hand covers her eye and cheek
+    f.layer(join(rect(4, t + 8, 7, t + 12), rect(2, t + 6, 5, t + 8)), jacket); f.paint(rect(6, t + 9, 7, t + 12), jacket2)
+    f.layer(rect(1, t + 5, 4, t + 5), cuff)
+    f.layer(rect(1, t + 3, 3, t + 4), 'skin')
+
+def kongjwi_sad():
+    f = Figure(); girl(f, 11, 'yellow', 'yellow2', 'pink', 'red', 'red2', 'red2', 'pink', 'firm')
+    f.paint({15: (4, 6)}, 'skin'); f.paint({16: (4, 6)}, 'k'); f.paint({14: (6, 6)}, 'k')   # eyes cast down
+    f.paint({18: (4, 4)}, 'skin'); f.paint({18: (5, 5)}, 'mouth')
+    f.layer(rect(10, 10, 11, 11), 'pink'); f.paint({10: (10, 10)}, 'white')
+    return f
+def kongjwi_kneel():
+    f = Figure(); girl_kneel(f, 'yellow', 'yellow2', 'pink', 'red', 'red2', 'red2', 'pink')
+    f.layer(rect(10, 18, 11, 19), 'pink'); f.paint({18: (10, 10)}, 'white')
+    return f
+
+def figure_image(f):
+    img = np.zeros((ROWS, COLS, 4), np.uint8); img[..., :3] = f.grid; img[..., 3] = np.where(f.filled, 255, 0)
+    return Image.fromarray(img).resize((COLS * BLOCK, ROWS * BLOCK), Image.NEAREST)
+
+def bow(f):
+    """Bent over in grief: the kneeling picture with the body above the hips pushed forward and down."""
+    import framelib
+    a = np.array(figure_image(f))
+    hip = (30 + OY) * BLOCK
+    a = framelib.bend(a, -3 * BLOCK, (19 + OY) * BLOCK, hip, BLOCK, cut=(hip - 4 * BLOCK, hip))
+    im = Image.fromarray(a); box = im.getbbox()
+    return im.crop((0, box[1], im.width, box[3]))
+
+def corpse(f):
+    """Lying on the back where they fell: the standing picture turned a quarter clockwise, head to the right."""
+    im = figure_image(f).rotate(-90, expand=True)
+    return im.crop(im.getbbox())
+
 os.makedirs(f"{ROOT}/16_Kong", exist_ok=True)
-for name, draw in (("kongjwi", kongjwi), ("patjwi", patjwi), ("anak", anak), ("namu", namu)):
+people = (("kongjwi", kongjwi), ("patjwi", patjwi), ("anak", anak), ("namu", namu), ("hunjang", hunjang), ("yeot", yeot), ("halmi", halmi))
+for name, draw in people + (("kongjwi_sad", kongjwi_sad), ("kongjwi_kneel", kongjwi_kneel)):
     draw().save(f"{ROOT}/16_Kong/{name}.png")
+bow(kongjwi_kneel()).save(f"{ROOT}/16_Kong/kongjwi_bow.png")
+for name, draw in people[1:]:
+    corpse(draw()).save(f"{ROOT}/16_Kong/{name}_down.png")
 
 # ---- props ----
 STONE, STONE2, STONE3 = (150, 148, 160), (112, 110, 124), (184, 182, 192)

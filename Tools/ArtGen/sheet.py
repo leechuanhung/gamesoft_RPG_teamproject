@@ -30,6 +30,7 @@ def ppu(path):
     if folder == "13_Props": return 546 / 1.9 / 12
     if folder == "16_Kong": return ppu(ART + "12_Peddler/peddler_idle.png")       # same 12 px blocks
     if folder == "15_Ferryman": return ppu(ART + "12_Peddler/peddler_idle.png")   # same 12 px blocks
+    if folder == "21_KongBoss": return ppu(ART + "12_Peddler/peddler_idle.png")   # same 12 px blocks
     if "Player_Attack_Sword" in rel: return 450 / 1.9
     if "Player_Attack_Bow" in rel: return 510 / 1.9
     if "Player_Jump" in rel: return 535 / 1.9

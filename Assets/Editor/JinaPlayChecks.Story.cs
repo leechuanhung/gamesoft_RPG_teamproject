@@ -7,17 +7,17 @@ public static partial class JinaPlayChecks
     {
         var encounter=combat.Encounter; var bossVisual=boss.GetComponent<JinaActorVisual>();
         var view=Camera.main.GetComponent<PrototypeView>();
-        combat.player.transform.position=new Vector3(PrototypeWorld.ForestStart+1,combat.player.transform.position.y,0);
+        combat.player.transform.position=new Vector3(WorldBuilder.ForestStart+1,combat.player.transform.position.y,0);
         Call(encounter);
         Check(!encounter.Playing,"No encounter before the boss notices");
         Set(combat,"alerted",true); Call(encounter);
         Check(encounter.Playing && combat.Paused && !combat.player.CanMove,"The boss noticing starts the encounter and holds the game");
-        Set(encounter,"startAt",Time.time-PrototypeEncounter.RoarAt-.1f); Call(encounter); bossVisual.Refresh();
+        Set(encounter,"startAt",Time.time-BossEncounter.RoarAt-.1f); Call(encounter); bossVisual.Refresh();
         Check(encounter.Roaring && Picture(bossVisual).sprite.name.EndsWith("boss_attack_00"),"It roars with the club raised");
         Set(encounter,"startAt",Time.time-2f); Call(encounter); Call(view,"LateUpdate");
         Check(Mathf.Abs(Camera.main.transform.position.x-view.ViewX(boss.transform.position.x))<.3f,"The camera turns to the boss");
         Capture("encounter",Camera.main.transform.position,5);
-        Set(encounter,"startAt",Time.time-PrototypeEncounter.Length-.01f); Call(encounter); Call(view,"LateUpdate");
+        Set(encounter,"startAt",Time.time-BossEncounter.Length-.01f); Call(encounter); Call(view,"LateUpdate");
         Check(!encounter.Playing && !combat.Paused && combat.player.CanMove,"Play resumes after the encounter");
         Check(Mathf.Abs(Camera.main.transform.position.x-view.ViewX(combat.player.transform.position.x))<.3f,"The camera returns to the seonbi");
         Call(encounter);
@@ -34,7 +34,7 @@ public static partial class JinaPlayChecks
         var slain=new QuestProgress(); slain.Resolve(false);
         var purified=WithCharm(new QuestProgress()); purified.Resolve(true);
         var mourning=new QuestProgress(); mourning.SacrificeElder();
-        var topics=new[]{PrototypeChatter.Topics(new QuestProgress()),PrototypeChatter.Topics(slain),PrototypeChatter.Topics(purified),PrototypeChatter.Topics(mourning)};
+        var topics=new[]{ShopChatter.Topics(new QuestProgress()),ShopChatter.Topics(slain),ShopChatter.Topics(purified),ShopChatter.Topics(mourning)};
         for(int i=0;i<topics.Length;i++)
         {
             Check(topics[i].Length>0 && System.Array.TrueForAll(topics[i],pair=>pair.Length==2),"Each exchange is a line and an answer");
@@ -42,7 +42,7 @@ public static partial class JinaPlayChecks
         }
         player.position=new Vector3(0,player.position.y,0);
         Check(!chatter.CanChat,"They keep quiet when the seonbi is far");
-        player.position=new Vector3((PrototypeWorld.Tavern.x+PrototypeWorld.Peddler.x)/2,player.position.y,0);
+        player.position=new Vector3((WorldBuilder.Tavern.x+WorldBuilder.Peddler.x)/2,player.position.y,0);
         Check(chatter.CanChat,"They chat when he is nearby");
         Set(chatter,"nextAt",0f); Call(chatter);
         Check(chatter.Talking && Field<string[]>(chatter,"current")==topics[0][0],"The first exchange starts");
@@ -55,13 +55,13 @@ public static partial class JinaPlayChecks
         Check(!chatter.Talking,"Restart quiets them");
     }
 
-    static void BossTalk()
+    static void CheckBossTalk()
     {
         var talk=combat.BossTalk; var player=combat.player.transform;
         foreach(bool elderDead in new[]{false,true})
         {
-            if(elderDead) { boss.transform.position=new Vector3(PrototypeWorld.Elder.x+1.5f,boss.transform.position.y,0); combat.Quest.progress.SacrificeElder(); combat.Quest.ShowElderDeath(); }
-            boss.transform.position=new Vector3(PrototypeWorld.ForestStart+6,boss.transform.position.y,0);
+            if(elderDead) { boss.transform.position=new Vector3(WorldBuilder.Elder.x+1.5f,boss.transform.position.y,0); combat.Quest.progress.SacrificeElder(); combat.Quest.ShowElderDeath(); }
+            boss.transform.position=new Vector3(WorldBuilder.ForestStart+6,boss.transform.position.y,0);
             player.position=new Vector3(boss.transform.position.x-1.5f,player.position.y,0);
             WithCharm(combat.Quest.progress);
             Check(combat.TryPurifyBoss(),"Purified for the talk");

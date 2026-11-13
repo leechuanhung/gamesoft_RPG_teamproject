@@ -58,16 +58,17 @@ public static partial class JinaPlayChecks
                 Remorse();
                 Encounter();
                 Chatter();
-                BossTalk();
+                CheckBossTalk();
                 Terrain();
                 AimedArrows();
                 FlyingGhosts();
                 BossMoves();
                 Items();
                 Maps();
-                Ferry();
+                CheckFerry();
                 Pass();
-                KongVillage();
+                CheckKongVillage();
+                CheckKongBoss();
                 Polish();
                 PlayerFall();
                 Endings();
@@ -90,12 +91,12 @@ public static partial class JinaPlayChecks
         foreach(string p in new[]{JinaArt.Player,JinaArt.Boss,JinaArt.Purified,JinaArt.Ghost,JinaArt.Elder,JinaArt.Peddler,"04_Weapons/arrow","04_Weapons/bow","04_Weapons/hwando"}) Check(JinaArt.Load(p)!=null,"Load "+p);
         foreach(string prefix in new[]{"02_Player_Attack_Sword/sword_attack_","03_Player_Attack_Bow/bow_attack_","05_Boss_Brainwashed/boss_attack_","09_Player_Jump/jump_","10_Player_Walk/player_walk_","11_Player_Run/player_run_","05_Boss_Brainwashed/boss_walk_"}) Check(JinaArt.Frames(prefix).Length==4,"Animation frames");
         Capture("village",new Vector3(-1,1,-10),3);
-        Capture("elder-peddler",new Vector3(PrototypeWorld.Elder.x-2,1,-10),3);
+        Capture("elder-peddler",new Vector3(WorldBuilder.Elder.x-2,1,-10),3);
         Check(combat.Peddler!=null && combat.Arrows==ShopRules.MaxArrows,"Peddler placed and quiver full");
-        Capture("tavern-peddler",new Vector3(PrototypeWorld.Peddler.x-3,1,-10),3);
+        Capture("tavern-peddler",new Vector3(WorldBuilder.Peddler.x-3,1,-10),3);
         Capture("props-village",new Vector3(8,1.8f,-10),5);
         Capture("props-forest",new Vector3(42,2.6f,-10),5.5f);
-        Capture("props-stele",new Vector3(PrototypeWorld.Stone.x,1,-10),2.5f);
+        Capture("props-stele",new Vector3(WorldBuilder.Stone.x,1,-10),2.5f);
     }
 
     // Private state is reached by reflection; auto-properties are "<Name>k__BackingField".
