@@ -21,6 +21,7 @@ public class PrototypeMaps : MonoBehaviour
         new Map("나루터", "강 건너 한양으로 가는 길목", PrototypeWorld.FerryStart, PrototypeWorld.FerryEnd),
         new Map("콩밭 마을", "효녀 콩쥐와 못된 팥쥐가 산다는 부잣집 마을", PrototypeWorld.KongStart, PrototypeWorld.KongEnd),
         new Map("고개와 서낭당", "길손의 걱정이 돌무더기로 쌓인 고개", PrototypeWorld.PassStart, PrototypeWorld.PassEnd),
+        new Map("뒷산", "소리를 질러도 아무도 듣지 못한다는 고개 너머 뒷산", PrototypeWorld.HillStart, PrototypeWorld.HillEnd),
     };
     // How far past an edge he walks before the map changes; the black closing and opening; the name card.
     public const float Margin = .2f, FadeOut = .22f, FadeIn = .3f, CardLength = 2.4f;
@@ -39,6 +40,8 @@ public class PrototypeMaps : MonoBehaviour
     }
 
     public void ResetMaps() { Current = Index(PrototypeWorld.Spawn.x); LeftAt = EnteredAt = -1; }
+    // Put straight onto the map where he now stands, without a change of maps (the back hill checkpoint).
+    public void Jump() { LeftAt = EnteredAt = -1; if (combat != null) Current = Index(combat.player.transform.position.x); }
 
     // Put somewhere else without walking there (R, a test): no black, the map is simply where he is. A walk off
     // the edge is seen first by Update (before the camera's LateUpdate), so it still fades.

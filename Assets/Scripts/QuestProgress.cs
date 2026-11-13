@@ -9,6 +9,19 @@ public class QuestProgress
     public EncounterOutcome Outcome { get; private set; }
     public int Honor { get; private set; }
     public bool ElderDead { get; private set; }
+    // The Kongjwi demon on the back hill: slain +10, purified with the hairpin +50; each villager she kills −10.
+    public EncounterOutcome KongOutcome { get; private set; }
+    public int VillagersLost { get; private set; }
+    public bool ResolveKong(bool purify)
+    {
+        if (KongOutcome != EncounterOutcome.Unresolved) return false;
+        KongOutcome = purify ? EncounterOutcome.Purified : EncounterOutcome.Slain;
+        Honor += purify ? 50 : 10;
+        return true;
+    }
+    public void LoseVillager() { VillagersLost++; Honor -= 10; }
+    // Back to how things stood when he reached her on the hill (the checkpoint).
+    public void RewindKong(int honor, int lost) { Honor = honor; VillagersLost = lost; KongOutcome = EncounterOutcome.Unresolved; }
     public bool SacrificeElder()
     {
         if (ElderDead || Outcome != EncounterOutcome.Unresolved) return false;
@@ -42,5 +55,7 @@ public class QuestProgress
         Outcome = EncounterOutcome.Unresolved;
         Honor = 0;
         ElderDead = false;
+        KongOutcome = EncounterOutcome.Unresolved;
+        VillagersLost = 0;
     }
 }

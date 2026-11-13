@@ -68,6 +68,7 @@ public static partial class JinaPlayChecks
                 Ferry();
                 Pass();
                 KongVillage();
+                KongBoss();
                 Polish();
                 PlayerFall();
                 Endings();

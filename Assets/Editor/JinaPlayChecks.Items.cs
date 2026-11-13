@@ -48,7 +48,7 @@ public static partial class JinaPlayChecks
         var maps=combat.Maps; var view=Camera.main.GetComponent<PrototypeView>(); var player=combat.player.transform;
         var cam=Camera.main; float half=cam.orthographicSize*cam.aspect;
         PrototypeView.Shake(0,.01f);   // an earlier check's shake would push the camera off
-        Check(PrototypeMaps.All.Length==7 && PrototypeMaps.Index(PrototypeWorld.Spawn.x)==2 && PrototypeMaps.Index(-50)==0 && PrototypeMaps.Index(40)==3 && PrototypeMaps.Index(90)==4 && PrototypeMaps.Index(130)==5 && PrototypeMaps.Index(170)==6,"Seven maps, the village where he starts");
+        Check(PrototypeMaps.All.Length==8 && PrototypeMaps.Index(PrototypeWorld.Spawn.x)==2 && PrototypeMaps.Index(-50)==0 && PrototypeMaps.Index(40)==3 && PrototypeMaps.Index(90)==4 && PrototypeMaps.Index(130)==5 && PrototypeMaps.Index(170)==6 && PrototypeMaps.Index(220)==7,"Eight maps, the village where he starts");
         Check(maps.Current==2 && !maps.Travelling,"He starts in the village");
         Call(view,"LateUpdate");
         Check(cam.transform.position.x+half<=PrototypeWorld.ForestStart+.01f,"The camera stays inside the village");
@@ -335,7 +335,7 @@ public static partial class JinaPlayChecks
             string before=string.Join("",PrototypeKongVillage.Lines(who,false,false,false,false,false,false)), after=string.Join("",PrototypeKongVillage.Lines(who,false,false,false,false,false,true)), last=string.Join("",PrototypeKongVillage.Lines(who,true,true,true,true,false,true));
             Check(before!=after && after!=last,"The villagers' talk moves with the story");
         }
-        foreach(var spot in PrototypeLore.Spots) Check(spot.x>-70 && spot.x<PrototypeWorld.PassEnd && !string.IsNullOrEmpty(spot.said) && !string.IsNullOrEmpty(spot.prompt),"Lore spot "+spot.prompt);
+        foreach(var spot in PrototypeLore.Spots) Check(spot.x>-70 && spot.x<PrototypeWorld.HillEnd && !string.IsNullOrEmpty(spot.said) && !string.IsNullOrEmpty(spot.prompt),"Lore spot "+spot.prompt);
         var lore=combat.Lore; var p=combat.player.transform;
         p.position=new Vector3(PrototypeLore.Spots[0].x,p.position.y,0);
         Check(lore.Near()==0,"He can read what he stands by");

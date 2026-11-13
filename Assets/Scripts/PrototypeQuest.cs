@@ -98,7 +98,9 @@ public class PrototypeQuest : MonoBehaviour
         {
             shrineDialog = false;
             progress.HearClue();
-            pages = ElderPages(progress); pageAt = 0; message = pages[0];
+            pages = ElderPages(progress, combat.KongBoss != null && combat.KongBoss.Fighting,
+                JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0);
+            pageAt = 0; message = pages[0];
         }
         else if (Near(PrototypeWorld.Stone))
         {
@@ -115,8 +117,15 @@ public class PrototypeQuest : MonoBehaviour
         Player.CanMove = false;
     }
     // What the elder has to say, as the story stands. Each entry is one speech bubble.
-    public static string[] ElderPages(QuestProgress q)
+    // `fleeing`: he has come back across the river from the Kongjwi demon to rest and buy what he needs.
+    public static string[] ElderPages(QuestProgress q, bool fleeing = false, bool keepsake = false)
     {
+        if (fleeing && !q.ElderDead) return new[] {
+            "자네, 얼굴이 사색일세. 강 건너에서 무슨 일이 있었나?",
+            "독 속의 두꺼비라… 밑 빠진 독에 물을 붓던 처녀를 두꺼비가 도와준 옛이야기를 아는가? 이번엔 그 두꺼비가 처녀를 삼킨 게로군.",
+            keepsake ? "그 비녀… 그 집 안주인의 것이로군. 원한은 원한으로 풀리지 않는 법이네. 그 아이를 베기 전에 그것부터 써 보게."
+                : "그 아이를 칼로 베면 끝은 나겠지. 허나 강물이 품은 것이 있다면… 그것이 그 아이를 돌려줄지도 모르네.",
+            "주모에게 요기라도 하고, 보부상에게 화살도 넉넉히 사 가게. 서두르게. 그 마을엔 피할 데가 없다네." };
         if (q.ElderDead) return new[] { "노인은 마지막 힘을 다해 도깨비에게 맞섰으나 끝내 쓰러졌다.\n품에 남은 쪽지에는 ‘달, 강, 산’이라 적혀 있다. 비석으로 가려면 서쪽의 몬스터를 모두 물리쳐야 한다." };
         if (q.Outcome == EncounterOutcome.Purified) return new[] {
             "그 도깨비를 살려 주셨구려. 어젯밤엔 숲에서 울음소리 대신 솔바람 소리가 내려오더이다.",

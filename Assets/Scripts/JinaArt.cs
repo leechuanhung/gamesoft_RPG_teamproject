@@ -73,7 +73,11 @@ public static class JinaArt
         // The ferryman is drawn on the peddler's 12 px blocks (make_ferry.py), so he shares that scale.
         else if(path==Ferryman) { anchor.x=126; ppu=Load(Peddler).pixelsPerUnit; }
         // Kongbat's people (make_kong.py) keep the grid's full width, so their feet are always at x 138.
+        // Their corpses (the picture turned a quarter) are cropped, so they lie on the middle of their own box.
+        else if(path.StartsWith("16_Kong/") && path.EndsWith("_down")) { ppu=Load(Peddler).pixelsPerUnit; }
         else if(path.StartsWith("16_Kong/")) { anchor.x=138; ppu=Load(Peddler).pixelsPerUnit; }
+        // The Kongjwi demon (make_kong_boss.py): every frame on one canvas, feet at its bottom centre, the same blocks.
+        else if(path.StartsWith("21_KongBoss/")) { rect=canvas; anchor=new Vector2(t.width*.5f,0); ppu=Load(Peddler).pixelsPerUnit; }
         else if(path.StartsWith("04_Weapons"))
         {
             anchor=bounds.center; ppu=path.EndsWith("bow") ? bounds.height/BowHeight : bounds.width/(path.EndsWith("arrow") ? .7f : 1f);

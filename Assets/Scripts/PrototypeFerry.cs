@@ -69,9 +69,30 @@ public class PrototypeFerry : MonoBehaviour
 
     // What he says when the seonbi arrives, always with the forest already quiet: the elder's death first if it
     // happened, then what he makes of the forest, then the way across and the rumour about the river.
-    public static string[] Lines(QuestProgress q, bool again = false, bool keepsake = false, bool crossed = false)
+    // `fleeing`: he has come back over the river from the Kongjwi demon, who cannot follow him onto the boat.
+    public static string[] Lines(QuestProgress q, bool again = false, bool keepsake = false, bool crossed = false, bool fleeing = false)
     {
         var said = new System.Collections.Generic.List<string>();
+        if (fleeing)
+        {
+            said.Add("건너편에서 비명이 끊이질 않더니… 선비, 낯빛이 하얗구려. 무슨 일이오?");
+            said.Add("독을 뒤집어쓴 두꺼비라… 그 무거운 몸으로는 내 배에 못 오를 게요. 여기선 숨을 돌려도 되오.");
+            if (keepsake) said.Add("그 비녀는 강이 내어 준 것이오. 그 집 일은 그 비녀로 풀어야 할 게요.");
+            said.Add("허나 저 마을 사람들은 누가 지키오? 채비를 마치면 배에 오르시오. 바로 건네 드리리다.");
+            return said.ToArray();
+        }
+        if (q.KongOutcome == EncounterOutcome.Purified)
+        {
+            said.Add("강물 소리가 맑아졌소. 그 여인의 넋도 이제 편히 쉬겠구려.");
+            said.Add("칼 대신 비녀로 끝내셨다지. 사공 노릇 삼십 년에 이런 길손은 처음이오.");
+            return said.ToArray();
+        }
+        if (q.KongOutcome == EncounterOutcome.Slain)
+        {
+            said.Add("강 건너 괴물이 쓰러졌다는 소식이오. 수고하셨소.");
+            said.Add("…허나 그 집 큰딸도 함께 갔다지. 칼로 끝낸 일은 강물처럼 다시 돌아오기도 하오.");
+            return said.ToArray();
+        }
         // Coming back: he does not tell it all again.
         if (keepsake) { said.Add("그 비녀… 어디서 났소? 물귀신을 그리 베어 내더니, 강이 내어 준 것이로구려."); said.Add("부잣집 안주인이 꼭 그런 걸 꽂고 다녔소. 임자에게 돌려줄 날이 있을 게요."); return said.ToArray(); }
         if (again && crossed) { said.Add("강 건너는 어떻습디까? …말 안 해도 낯빛을 보니 알겠구려."); said.Add("콩밭 마을 사람들은 좋은 사람들이오. 그래서 더 걱정이오."); return said.ToArray(); }
@@ -117,7 +138,8 @@ public class PrototypeFerry : MonoBehaviour
 
     public void Open()
     {
-        lines = Lines(combat.Quest.progress, talked, JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0, combat.Kong != null && (combat.Kong.Invited || combat.Kong.Stayed));
+        lines = Lines(combat.Quest.progress, talked, JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0, combat.Kong != null && (combat.Kong.Invited || combat.Kong.Stayed),
+            combat.KongBoss != null && combat.KongBoss.Fighting);
         talked = true;
         Page = 0; IsOpen = true;
         combat.player.CanMove = false;

@@ -18,6 +18,7 @@ public class PrototypeAmbience : MonoBehaviour
         new Air { kind = Kind.Mist, a = new Color(.9f, .94f, .96f), b = new Color(.76f, .86f, .9f), count = 18, cloud = new Color(.94f, .96f, .98f, .85f), clouds = 5 },
         new Air { kind = Kind.Seed, a = new Color(1, .96f, .78f), b = new Color(1, .86f, .56f), count = 18, cloud = new Color(1, .96f, .86f, .92f), clouds = 5 },
         new Air { kind = Kind.Wind, a = new Color(1, .84f, .74f), b = new Color(.9f, .66f, .62f), count = 16, cloud = new Color(.9f, .56f, .5f, .75f), clouds = 5 },
+        new Air { kind = Kind.Ash, a = new Color(.62f, .5f, .7f), b = new Color(.36f, .3f, .4f), count = 22, cloud = new Color(.5f, .36f, .46f, .8f), clouds = 4 },
     };
     const float ViewHalfW = 11, ViewHalfH = 5.6f;
     const int MaxMotes = 30, MaxClouds = 5, SmokeBits = 10;

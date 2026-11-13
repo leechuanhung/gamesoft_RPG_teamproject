@@ -129,6 +129,13 @@ public class PrototypePlayer : MonoBehaviour
         Downed = false;
     }
 
+    // Back on his feet somewhere other than the spawn (the back hill checkpoint).
+    public void RespawnAt(Vector2 position)
+    {
+        Respawn();
+        transform.position = position;
+    }
+
     public void SetSpawn(Vector2 position)
     {
         spawn = position;

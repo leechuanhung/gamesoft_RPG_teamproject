@@ -91,6 +91,86 @@ public class UiShots : MonoBehaviour
     void Move(float x) { combat.player.transform.position = new Vector3(x, .3f, 0); combat.player.GetComponent<Rigidbody2D>().velocity = Vector2.zero; combat.Maps.Sync(); }
     void Solve() { combat.Quest.progress.Resolve(false); Set(combat, "EnemyHealth", 0); }
 
+    // Puts her straight into the fight at `x` (in the village the raid begins as soon as she moves).
+    void KongFighting(float x)
+    {
+        var boss = combat.KongBoss;
+        Set(boss, "Now", PrototypeKongBoss.Phase.Fighting);
+        boss.transform.position = new Vector3(x, PrototypeWorld.Top(x), 0);
+        var body = boss.GetComponent<Rigidbody2D>(); body.position = boss.transform.position; body.simulated = true;
+    }
+    IEnumerator Until(System.Func<bool> done, float limit = 8)
+    {
+        for (float t = 0; t < limit && !done(); t += Time.unscaledDeltaTime) yield return null;
+    }
+    // Skips the scene after the fight to the line that has `words`, then lets it be typed out.
+    IEnumerator CueWith(string words)
+    {
+        var after = combat.Aftermath;
+        while (after.Playing && !after.CurrentLine.Contains(words)) after.Advance();
+        yield return new WaitForSecondsRealtime(1.1f);
+    }
+    IEnumerator KongBoss()
+    {
+        var boss = combat.KongBoss; var kong = combat.Kong; var W = PrototypeKongVillage.Who.Kongjwi; var P = PrototypeKongVillage.Who.Patjwi;
+        Fresh(PrototypeWorld.KongLair - 5); Solve();
+        kong.WakeUp();
+        yield return Until(() => boss.Now == PrototypeKongBoss.Phase.Meeting);
+        yield return Shot("kongboss_meet0");
+        boss.NextLine();
+        yield return Shot("kongboss_meet1");
+        while (boss.Now == PrototypeKongBoss.Phase.Meeting) boss.NextLine();
+        Set(boss, "ChangedAt", Time.time - 1.3f);
+        yield return Shot("kongboss_change");
+        Set(boss, "ChangedAt", Time.time - 2.4f);
+        yield return Shot("kongboss_card");
+        Set(boss, "ChangedAt", Time.time - PrototypeKongBoss.ChangeLength - .01f);
+        yield return new WaitForSecondsRealtime(1.2f);
+        yield return Shot("kongboss_fight");
+
+        // The raid: everyone bound, one squeezed and crying out, a death told.
+        Fresh(PrototypeWorld.Hunjang.x - 3.5f); Solve();
+        KongFighting(PrototypeWorld.Hunjang.x + PrototypeKongBoss.KillReach);
+        kong.StartRaid(); kong.Kill(PrototypeKongVillage.Who.Yeot); kong.Threaten(PrototypeKongVillage.Who.Hunjang);
+        yield return Shot("kongboss_raid");
+
+        // Purified in the village with three dead: she weeps, two survivors come at her, Patjwi and he stop them.
+        Fresh(PrototypeWorld.Halmi.x + .3f); Solve();
+        KongFighting(PrototypeWorld.Halmi.x + 1.7f);
+        kong.StartRaid(); kong.Place(P, PrototypeWorld.PatjwiRaidX);
+        foreach (var w in new[] { PrototypeKongVillage.Who.Hunjang, PrototypeKongVillage.Who.Yeot, PrototypeKongVillage.Who.Namu }) kong.Kill(w);
+        JinaItems.Inventory.TryAdd(JinaItems.Keepsake); Set(boss, "Health", PrototypeKongBoss.MaxHealth / 2);
+        string why; boss.TryPurify(true, out why);
+        yield return new WaitForSecondsRealtime(.6f);
+        yield return Shot("kongboss_purify");
+        yield return Until(() => combat.Aftermath.Playing);
+        yield return CueWith("내가 그런");
+        yield return Shot("kongboss_weep");
+        yield return CueWith("요물");
+        yield return Until(() => combat.Aftermath.CurrentLine != null && !combat.Aftermath.CurrentLine.Contains("요물"));
+        yield return Until(() => kong.Arrived(P));
+        yield return CueWith("그만해요");
+        yield return Shot("kongboss_stop");
+        yield return CueWith("물러서시오");
+        yield return Shot("kongboss_seonbi");
+
+        // Patjwi dead: Kongjwi runs to her and wails.
+        Fresh(PrototypeWorld.PatjwiRaidX + 4); Solve();
+        KongFighting(PrototypeWorld.PatjwiRaidX + 6);
+        kong.StartRaid(); kong.Place(P, PrototypeWorld.PatjwiRaidX);
+        while (kong.NextVictim().HasValue) kong.Kill(kong.NextVictim().Value);
+        JinaItems.Inventory.TryAdd(JinaItems.Keepsake); Set(boss, "Health", PrototypeKongBoss.MaxHealth / 2);
+        boss.TryPurify(true, out why);
+        yield return Until(() => combat.Aftermath.Playing);
+        yield return CueWith("팥쥐야!!");
+        yield return Until(() => kong.Arrived(W));
+        yield return CueWith("안 돼");
+        yield return Shot("kongboss_bow");
+        yield return CueWith("아아");
+        yield return Shot("kongboss_wail");
+        Fresh(0);
+    }
+
     IEnumerator All()
     {
         var q = combat.Quest;
@@ -290,6 +370,9 @@ public class UiShots : MonoBehaviour
         yield return Shot("shrine_prompt");
         combat.Pass.UseShrine();
         yield return Shot("shrine_toast");
+
+        // The Kongjwi demon: her talk on the hill, the change and its card, the fight, the raid, and what follows.
+        yield return KongBoss();
 
         // The ending's title
         Fresh(0); Solve();

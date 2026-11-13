@@ -15,12 +15,30 @@ public class PrototypeWorld : MonoBehaviour
     // Kongbat village across the river, where Kongjwi and Patjwi live (PrototypeKongVillage).
     public const float KongStart = FerryEnd, KongEnd = 150f;
     public static readonly Vector2 Kongjwi = new Vector2(133f, .2f), Patjwi = new Vector2(135.2f, .2f),
-        Anak = new Vector2(116.5f, .2f), Namu = new Vector2(123f, .2f);
+        Anak = new Vector2(116.5f, .2f), Namu = new Vector2(123f, .2f),
+        Hunjang = new Vector2(140.4f, .2f), Yeot = new Vector2(130.2f, .2f), Halmi = new Vector2(121.3f, .2f);
+    // Where Patjwi runs when the demon comes into the village: the far left, so she is the last it reaches.
+    public const float PatjwiRaidX = 112.4f;
     public const float JangdokX = 146.5f, FeastListX = 143.9f, KongHouseX = 141.5f;
     public const float PassStart = KongEnd, PassEnd = 198f, ShrineX = 180.5f, RockStart = 185.5f;
     public static readonly (float left, float right, float top)[] PassSteps =
         { (150, 162, -.5f), (162, 168, 1f), (168, 186, 2.5f), (186, 190, 1f), (190, 198, -.5f) };
-    public const float GoalX = 195f;
+    // The back hill beyond the pass, where Kongjwi waits (PrototypeKongBoss): uneven ground, many ledges stacked high,
+    // and great crocks that stop what she throws. The road to Hanyang (the golden marker) is at its far end.
+    public const float HillStart = PassEnd, HillEnd = 246f, KongLair = 231f;
+    public static readonly (float left, float right, float top)[] HillSteps =
+        { (198, 204, -.5f), (204, 210, .7f), (210, 221, -.5f), (221, 225, 1.1f), (225, 232, -.5f), (232, 236, .6f), (236, 246, -.5f) };
+    // (centre x, top, art): three tiers, each about 1.7 above the one below, so they can be climbed one by one.
+    public static readonly (float x, float top, string art)[] HillLedges =
+    {
+        (201.5f, 1.4f, "ledge_stone"), (205.5f, 2.4f, "ledge_roof"), (209f, 4f, "ledge_log"),
+        (213f, 1.3f, "ledge_stone"), (216.5f, 2.9f, "ledge_roof"), (213.5f, 4.5f, "ledge_stone"),
+        (223f, 2.8f, "ledge_log"), (227.5f, 1.3f, "ledge_roof"), (231f, 2.9f, "ledge_stone"), (227.5f, 4.5f, "ledge_log"),
+        (239.5f, 1.3f, "ledge_roof"), (242.5f, 3f, "ledge_stone"),
+    };
+    // The crocks standing about the hill as cover.
+    public static readonly float[] HillCrocks = { 207.5f, 218.5f, 229.5f, 238f };
+    public const float GoalX = 243f;
     public static readonly Vector2 Ferryman = new Vector2(77f, .2f);
     // The water strip's bottom; its surface sits a little below the banks and the boat's deck.
     public const float WaterBottom = -1.5f;
@@ -37,13 +55,13 @@ public class PrototypeWorld : MonoBehaviour
     public static readonly Vector2[] ForestLedges = { new Vector2(35, 1.3f), new Vector2(41, 2.9f), new Vector2(47, 1.3f), new Vector2(53, 2.8f), new Vector2(58.5f, 1.4f) };
     public const float LedgeWidth = 3f;
     // Each area's centre and its background art, behind the props (far drifts with the camera, near stays).
-    static readonly (string art, float x)[] Backdrops = { ("stele", -55), ("camp", -26), ("village", 8), ("forest", 46), ("ferry", 87), ("kong", 130), ("pass", 174) };
+    static readonly (string art, float x)[] Backdrops = { ("stele", -55), ("camp", -26), ("village", 8), ("forest", 46), ("ferry", 87), ("kong", 130), ("pass", 174), ("pass", 222) };
     // What each map stands on and under: its name in the art, and its span.
-    static readonly (string art, float left, float right)[] Lands = { ("stele", -70.5f, GateX), ("camp", GateX, VillageLeft), ("village", VillageLeft, ForestStart), ("forest", ForestStart, FerryStart), ("ferry", FerryStart, FerryEnd), ("kong", KongStart, KongEnd), ("pass", PassStart, PassEnd + 1) };
+    static readonly (string art, float left, float right)[] Lands = { ("stele", -70.5f, GateX), ("camp", GateX, VillageLeft), ("village", VillageLeft, ForestStart), ("forest", ForestStart, FerryStart), ("ferry", FerryStart, FerryEnd), ("kong", KongStart, KongEnd), ("pass", PassStart, PassEnd), ("hill", HillStart, HillEnd + 1) };
     // The walking surface sits this many dots below the top of a ground strip (grass stands above it).
     const float GroundLip = 6;
 
-    public static string Area(float x) => x < GateX ? "옛 비석 터" : x < VillageLeft ? "일반 몬스터 지역" : x >= PassStart ? "고개와 서낭당" : x >= KongStart ? "콩밭 마을" : x >= FerryStart ? "나루터" : x >= ForestStart ? "보스 지역" : "리스폰 마을";
+    public static string Area(float x) => x < GateX ? "옛 비석 터" : x < VillageLeft ? "일반 몬스터 지역" : x >= HillStart ? "뒷산" : x >= PassStart ? "고개와 서낭당" : x >= KongStart ? "콩밭 마을" : x >= FerryStart ? "나루터" : x >= ForestStart ? "보스 지역" : "리스폰 마을";
     public static bool CanDetect(Vector2 player, Vector2 enemy) => player.x >= ForestStart && player.x < FerryStart
         && Mathf.Abs(player.x - enemy.x) <= DetectionRange && Mathf.Abs(player.y - enemy.y) < 4f;
 
@@ -69,9 +87,12 @@ public class PrototypeWorld : MonoBehaviour
         Tile("콩밭 마을 땅", (KongStart + KongEnd) / 2, -1, KongEnd - KongStart, 1, new Color(.48f,.4f,.28f), sprite, true);
         Tile("콩밭 마을 배경", (KongStart + KongEnd) / 2, 4, KongEnd - KongStart, 10, new Color(.24f,.3f,.34f), sprite, false, -22);
         Tile("고개 배경", (PassStart + PassEnd) / 2, 4, PassEnd - PassStart, 12, new Color(.27f,.26f,.34f), sprite, false, -22);
+        foreach (var (left, right, top) in HillSteps)
+            Tile("뒷산 땅", (left + right) / 2, (top - 1.5f) / 2, right - left, top + 1.5f, new Color(.4f,.36f,.36f), sprite, true);
+        Tile("뒷산 배경", (HillStart + HillEnd) / 2, 4, HillEnd - HillStart, 12, new Color(.25f,.22f,.3f), sprite, false, -22);
         Tile("나루터 배경", (FerryStart + FerryEnd) / 2, 3.5f, FerryEnd - FerryStart, 11, new Color(.23f,.3f,.37f), sprite, false, -22);
         Tile("왼쪽 끝", -70.5f, 3, 1, 8, new Color(.3f,.3f,.38f), sprite, true);
-        Tile("오른쪽 끝", PassEnd + .5f, 3, 1, 8, new Color(.4f,.38f,.3f), sprite, true);
+        Tile("오른쪽 끝", HillEnd + .5f, 3, 1, 8, new Color(.4f,.38f,.3f), sprite, true);
         Tile("한양으로 가는 길", GoalX, 1, .4f, 3, new Color(1,.75f,.2f), sprite, false);
         for (int i = 0; i < 5; i++) Prop("숲 소나무", "pine", 32 + i * 6, -10, i % 2 == 1);
         Prop("마을 기와집", "house", 4.5f, -10);
@@ -101,13 +122,16 @@ public class PrototypeWorld : MonoBehaviour
         }
         foreach (var (art, left, right) in Lands)
         {
-            Sky(art, left, right);
-            if (art == "pass") foreach (var (l, r, top) in PassSteps) Land(art, l, r == PassEnd ? r + 1 : r, top);
+            Sky(art == "hill" ? "pass" : art, left, right);
+            if (art == "pass") foreach (var (l, r, top) in PassSteps) Land(art, l, r, top);
+            else if (art == "hill") foreach (var (l, r, top) in HillSteps) Land("pass", l, r == HillEnd ? r + 1 : r, top);
             else if (art == "ferry") { Land(art, left, RiverLeft, -.5f); Land(art, RiverRight, right, -.5f); River(); }
             else Land(art, left, right, -.5f);
         }
         foreach (var ledge in CampLedges) Ledge("바위 발판", "ledge_stone", ledge);
         foreach (var ledge in ForestLedges) Ledge("통나무 발판", "ledge_log", ledge);
+        foreach (var (x, top, art) in HillLedges) Ledge("뒷산 발판", art, new Vector2(x, top));
+        foreach (var x in HillCrocks) Prop("뒷산 독", "crock", x, -4).transform.position = new Vector3(x, Top(x), 0);
     }
 
     // The ground's picture over its collider: earth down past the bottom of the screen, grass on top.
@@ -160,10 +184,11 @@ public class PrototypeWorld : MonoBehaviour
         effector.surfaceArc = 160;
     }
 
-    // The ground's top at x on the pass (the banks and the other maps are at -0.5).
+    // The ground's top at x on the pass and the back hill (the banks and the other maps are at -0.5).
     public static float Top(float x)
     {
         foreach (var (left, right, top) in PassSteps) if (x >= left && x < right) return top;
+        foreach (var (left, right, top) in HillSteps) if (x >= left && x < right) return top;
         return -.5f;
     }
 

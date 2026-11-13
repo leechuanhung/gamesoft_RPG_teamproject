@@ -96,7 +96,48 @@ public partial class PrototypeCombat : MonoBehaviour
     public PrototypeKongStay Stay { get; private set; }
     public PrototypeAmbience Ambience { get; private set; }
     public PrototypeLore Lore { get; private set; }
-    public bool Paused => (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || InventoryPauseActive;
+    // The Kongjwi demon on the back hill, and the scenes after her fight.
+    public PrototypeKongBoss KongBoss { get; private set; }
+    public PrototypeKongAftermath Aftermath { get; private set; }
+    public PrototypeCheats Cheats { get; private set; }
+    // The checkpoint at the foot of the back hill (뒷산 입구), saved when Kongjwi starts speaking. Until she is dealt
+    // with, R after a death starts him there with what he had then (honour, arrows, everyone in Kongbat alive) and her
+    // waiting on the hill again, instead of from the very beginning. The bag and the story so far are kept as they are.
+    public struct HillSave { public int honor, lost, arrows; }
+    public HillSave? Checkpoint { get; private set; }
+    public static readonly Vector2 HillEntrance = new Vector2(PrototypeWorld.HillStart + 1.5f, .3f);
+    public bool CanRetryAtHill => Checkpoint.HasValue && KongBoss != null && !KongBoss.Resolved;
+    public float RevivedAt { get; private set; } = -1;
+    public void SaveAtHill()
+    {
+        if (Quest == null) return;
+        Checkpoint = new HillSave { honor = Quest.progress.Honor, lost = Quest.progress.VillagersLost, arrows = Arrows };
+    }
+    public void RestartAtHill()
+    {
+        if (!Checkpoint.HasValue) { Restart(); return; }
+        var save = Checkpoint.Value;
+        PlayerHealth = MaxPlayerHealth;
+        nextAttack = slashUntil = invulnerableUntil = hitFlashUntil = 0;
+        playerImpactAt = -1;
+        PlayerDownAt = PlayerHurtAt = WardBrokeAt = CoinsFoundAt = -1;
+        comboStep = -1; comboUntil = 0; lastPlayerHit = -1;
+        JinaFx.Clear();
+        PrototypeView.Shake(0, .01f); PrototypeView.Focus(0, 0);
+        playerArt.color = playerColor;
+        player.RespawnAt(HillEntrance);
+        UsingBow = false; Arrows = save.arrows; noArrowsUntil = 0;
+        ClearArrows();
+        if (Quest != null) Quest.progress.RewindKong(save.honor, save.lost);
+        if (Kong != null) Kong.ResetRaid();
+        if (Pass != null) Pass.ClearRocks();
+        if (KongBoss != null) KongBoss.Retry();
+        if (Aftermath != null) Aftermath.ResetAftermath();
+        if (playerVisual != null) playerVisual.ResetPose();
+        if (Maps != null) Maps.Jump();
+        RevivedAt = Time.time;
+    }
+    public bool Paused => (KongBoss != null && KongBoss.Cutscene) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || InventoryPauseActive;
     public void RestoreHealth(int amount)
     {
         if (PlayerHealth <= 0) return;
@@ -154,6 +195,12 @@ public partial class PrototypeCombat : MonoBehaviour
         Ambience.combat = this;
         Lore = gameObject.AddComponent<PrototypeLore>();
         Lore.combat = this;
+        KongBoss = new GameObject("콩쥐 요괴").AddComponent<PrototypeKongBoss>();
+        KongBoss.combat = this;
+        Aftermath = gameObject.AddComponent<PrototypeKongAftermath>();
+        Aftermath.combat = this;
+        Cheats = gameObject.AddComponent<PrototypeCheats>();
+        Cheats.combat = this;
         Restart();
         Intro = gameObject.AddComponent<PrototypeIntro>();
         Intro.combat = this;
@@ -219,6 +266,9 @@ public partial class PrototypeCombat : MonoBehaviour
         if (Kong != null) Kong.ResetVillage();
         if (Stay != null) Stay.ResetStay();
         if (Lore != null) Lore.ResetLore();
+        if (KongBoss != null) KongBoss.ResetBoss();
+        if (Aftermath != null) Aftermath.ResetAftermath();
+        Checkpoint = null; RevivedAt = -1;
         Restarted?.Invoke();
     }
 
@@ -227,7 +277,7 @@ public partial class PrototypeCombat : MonoBehaviour
         if (player == null || enemy == null) return;
         // The intro plays once per launch; R does not replay or interrupt it.
         if (Intro != null && Intro.IsPlaying) return;
-        if (Input.GetKeyDown(KeyCode.R)) Restart();
+        if (Input.GetKeyDown(KeyCode.R)) { if (PlayerHealth <= 0 && CanRetryAtHill) RestartAtHill(); else Restart(); }
         if (PlayerHealth <= 0) return;
         if (Paused)
         {
@@ -277,6 +327,8 @@ public partial class PrototypeCombat : MonoBehaviour
                 var attackBounds = new Bounds(center, heavy ? new Vector3(1.75f, 1.15f, 1) : new Vector3(1.35f, .9f, 1));
                 bool landed = false;
                 if (!EnemyDefeated && attackBounds.Intersects(enemy.bounds)) { DamageEnemy(SwordDamage); landed = true; }
+                if (KongBoss != null && KongBoss.Fighting && attackBounds.Intersects(KongBoss.HurtBox) && KongBoss.Damage(SwordDamage, true)) landed = true;
+                if (KongBoss != null && KongBoss.BlowCrocks(attackBounds)) landed = true;
                 foreach (var camp in Camps) if (camp != null && camp.Slash(attackBounds)) landed = true;
                 SwordFeel(pendingStep, landed);
             }
@@ -412,6 +464,7 @@ public partial class PrototypeCombat : MonoBehaviour
         if (Time.time < noArrowsUntil) JinaUI.Toast("화살이 떨어졌습니다. 주막 옆 보부상에게서 사세요.");
         if (WardBrokeAt >= 0 && Time.time - WardBrokeAt < 1.6f) JinaUI.Toast("액막이 부적이 공격을 막고 재가 되었습니다.");
         if (KeepsakeFreedAt >= 0 && Time.time - KeepsakeFreedAt < 4f) JinaUI.Toast("흩어지는 물귀신 사이로 한 여인의 넋이 비쳤다가… 은비녀 하나가 남았습니다.");
+        if (RevivedAt >= 0 && Time.time - RevivedAt < 3.5f) JinaUI.Toast("뒷산 입구에서 다시 일어났습니다. 콩쥐가 다시 뒷산에서 기다립니다.");
         if (CoinsFoundAt >= 0 && Time.time - CoinsFoundAt < 1.6f) JinaUI.Toast("쓰러진 망령이 엽전 " + CoinsFound + "문을 떨어뜨렸습니다.");
     }
 
@@ -421,6 +474,7 @@ public partial class PrototypeCombat : MonoBehaviour
         if (slash != null) Destroy(slash.gameObject);
         if (Camp != null) Destroy(Camp.gameObject);
         if (River != null) Destroy(River.gameObject);
+        if (KongBoss != null) Destroy(KongBoss.gameObject);
         ClearArrows();
         if (player != null) player.CanMove = true;
     }

@@ -62,7 +62,8 @@ python Tools/ArtGen/sheet.py <scratchpad>/out.png 01_Player/player_idle 13_Props
 | `make_ground.py` | `13_Props/ground_<맵>` (옆으로 이어지는 땅, 320×150, 걷는 면은 위에서 6도트), `sky_<맵>`, `river_deep`, `cloud_0~2` | numpy |
 | `make_fx.py` | `20_Fx`: 칼빛 `arc`, 타격 `spark`, 먼지 `dust`, 충격파 `ring`, `glint`, 봉인 `seal`. 흰색으로 그리고 게임에서 색을 입힌다 | numpy |
 | `make_ui.py` | `19_UI`: 이어지는 결(`grain_paper·wood·night`), 놋쇠 모서리 `corner`, HUD 아이콘, `vignette` | numpy, pixlib |
-| `make_kong.py` | `16_Kong/kongjwi·patjwi·anak·namu` (보부상 12px 블록, 격자 전체 폭 유지라 발 x=138), `13_Props/jangdok·well·laundry·feast_list` | 블록 격자, pixlib |
+| `make_kong.py` | `16_Kong/kongjwi·patjwi·anak·namu·hunjang·yeot·halmi` (보부상 12px 블록, 격자 전체 폭 유지라 발 x=138), 콩쥐의 `kongjwi_sad·kneel·bow`(무릎 꿇고 울기, `bow`는 `framelib.bend`로 숙임), 시체 `<이름>_down`(서 있는 그림을 시계 방향 90° 회전, 잘라서 가운데 발), `13_Props/jangdok·well·laundry·feast_list` | 블록 격자, pixlib |
+| `make_kong_boss.py` | `21_KongBoss/kong_boss_<idle_00·idle_01·crouch·hop·open·tongue·cast·crack·death_00~02>`: 밑 빠진 독에 낀 두꺼비, 콩쥐의 노란 소매가 앞다리. 같은 12px 블록, 모든 프레임이 72×74 블록 캔버스(발은 맨 아래 가운데, 위 8칸은 눈이 넘치지 않게 비움). `13_Props/kong_spit·bean·salt·brine·tongue·tongue_tip·bind`, 뒷산의 `crock·crock_cracked·crock_broken·kong_honey·ledge_roof` | 블록 격자(pixlib), `framelib.scatter` |
 | `make_pass.py` | `13_Props/jangseung·seonang_tree·cairn·boulder` | pixlib |
 | `make_ferry.py` | `15_Ferryman/ferryman_idle` (보부상과 같은 12px 블록, 발 x=126), `13_Props/ferry_boat·ferry_hut·reeds·water·thorn_wall` | 블록 격자, pixlib |
 | `make_bow_aim.py` | `03_Player_Attack_Bow/bow_up_00~03`, `bow_down_00~03` | 팔·활·화살을 잘라 어깨 중심 30° 회전. 프레임마다 어깨 위치와 자르는 선이 다르다 |

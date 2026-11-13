@@ -21,9 +21,14 @@ public class PrototypePass : MonoBehaviour
 
     public void ResetPass()
     {
+        ClearRocks();
+        ShrineUsed = false; ShrineAt = -1; shrineSaid = "";
+    }
+    public void ClearRocks()
+    {
         foreach (var r in rocks) Destroy(r.art.gameObject);
         rocks.Clear();
-        ShrineUsed = false; ShrineAt = -1; nextRock = 0; shrineSaid = "";
+        nextRock = 0;
     }
 
     public Rock Spawn(float x)

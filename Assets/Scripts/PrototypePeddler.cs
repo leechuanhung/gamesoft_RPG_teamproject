@@ -25,16 +25,22 @@ public class PrototypePeddler : MonoBehaviour
         JinaActorVisual.Attach(marker, JinaArt.Peddler, combat);
     }
     public void ResetShop() { IsOpen = false; message = ""; }
-    string Greeting()
+    // The rumour he has heard (from what really happened, not from the honour score), then his price.
+    public static string Greeting(QuestProgress q)
     {
-        if (ShopRules.ElderDead(Progress))
+        if (ShopRules.ElderDead(q))
             return "노인장 일은 들었소. 흉한 일이 난 마을이라 짐을 다 풀 수가 없구려. 오늘은 낱개로만 파오.";
-        if (ShopRules.Honor(Progress) >= 30)
-            return "도깨비를 달래어 돌려보내셨다지요? 장터마다 소문이 자자하오. 값을 넉넉히 깎아 드리리다.";
-        if (ShopRules.Discount(Progress) > 0)
-            return "숲길이 트였다더니 선비 덕분이었구려. 길값 삼아 조금 덜 받겠소.";
-        return "등짐 진 보부상이오. 화살도 있고, 먼 길에 요긴한 것들도 챙겨 왔소.";
+        string deed = q == null ? null
+            : q.KongOutcome == EncounterOutcome.Purified ? "강 건너 콩밭 마을 요괴만 태워 내고 그 집 딸은 살려 내셨다지요? 장터마다 소문이 자자하오."
+            : q.KongOutcome == EncounterOutcome.Slain ? "강 건너 콩밭 마을 요괴를 베셨다는 소문이 장터마다 돌더이다."
+            : q.Outcome == EncounterOutcome.Purified ? "도깨비를 달래어 돌려보내셨다지요? 장터마다 소문이 자자하오."
+            : q.Outcome == EncounterOutcome.Slain ? "숲길이 트였다더니 선비 덕분이었구려." : null;
+        if (deed == null) return "등짐 진 보부상이오. 화살도 있고, 먼 길에 요긴한 것들도 챙겨 왔소.";
+        if (ShopRules.Honor(q) >= 30) return deed + " 값을 넉넉히 깎아 드리리다.";
+        if (ShopRules.Discount(q) > 0) return deed + " 길값 삼아 조금 덜 받겠소.";
+        return deed + " 필요한 것 있으면 골라 보시오.";
     }
+    string Greeting() => Greeting(Progress);
     void Close() { IsOpen = false; combat.player.CanMove = combat.PlayerHealth > 0; }
     void Update()
     {

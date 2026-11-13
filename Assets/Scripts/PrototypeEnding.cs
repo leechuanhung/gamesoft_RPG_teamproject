@@ -38,6 +38,15 @@ public class PrototypeEnding : PrototypeNarration
         if (stayed) return new[] { "그날 밤 문종이에 뚫린 구멍과", "뒷산으로 와 달라던 목소리를, 선비는 오래도록 잊지 못했다" };
         return new[] { "강 건너 콩밭 마을에서는 보름 잔치 준비가 한창이었다", "선비는 그 잔칫상이 무엇으로 차려지는지 알지 못했다" };
     }
+    // What he leaves behind in Kongbat once the demon on the hill is dealt with: `patjwi` lived, `lost` villagers died.
+    public static string[] KongCoda(EncounterOutcome kong, bool patjwi, int lost)
+    {
+        if (kong == EncounterOutcome.Purified && patjwi && lost == 0) return new[] { "보름날, 잔치 대신 제사가 열렸다", "팥쥐는 어머니의 비녀를 꽂고, 처음으로 마을 사람들 앞에서 울었다" };
+        if (kong == EncounterOutcome.Purified && patjwi) return new[] { "보름날, 잔치 대신 장례가 열렸다", "콩쥐와 팥쥐는 빈 집들을 하나씩 돌며 오래도록 절을 올렸다" };
+        if (kong == EncounterOutcome.Purified) return new[] { "두꺼비는 사라졌으나 팥쥐는 돌아오지 않았다", "콩쥐는 동생의 무덤 곁을 끝내 떠나지 못했다" };
+        if (lost > 0) return new[] { "사람들은 괴물이 죽었다고만 했다", "선비만이, 독 속에서 끝까지 울던 목소리와 비어 버린 집들을 기억했다" };
+        return new[] { "사람들은 괴물이 죽었다고만 했다", "선비만이, 독 속에서 끝까지 울던 목소리를 기억했다" };
+    }
     static string[][] WithCoda(string[][] story, string[] coda)
     {
         var pages = new string[story.Length + 1][];
@@ -61,8 +70,12 @@ public class PrototypeEnding : PrototypeNarration
         if (combat != null) combat.player.CanMove = false;
         bool remorse = combat != null && combat.Quest != null && combat.Quest.progress.Outcome == EncounterOutcome.Purified;
         var story = kind == Kind.Sacrifice ? (remorse ? RemorsePages : SacrificePages) : kind == Kind.Purified ? PurifiedPages : SlainPages;
-        Begin(WithCoda(story, Coda(combat != null && combat.Kong != null && combat.Kong.Revealed, combat != null && combat.Kong != null && combat.Kong.Stayed,
-            JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0)));
+        var q = combat != null && combat.Quest != null ? combat.Quest.progress : null;
+        var coda = q != null && q.KongOutcome != EncounterOutcome.Unresolved
+            ? KongCoda(q.KongOutcome, combat.Kong == null || combat.Kong.Alive(PrototypeKongVillage.Who.Patjwi), q.VillagersLost)
+            : Coda(combat != null && combat.Kong != null && combat.Kong.Revealed, combat != null && combat.Kong != null && combat.Kong.Stayed,
+                JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0);
+        Begin(WithCoda(story, coda));
     }
     public void ResetEnding() { Active = IsPlaying = false; titleTime = -1; }
     protected override float Lead => FadeToBlack;
@@ -74,7 +87,9 @@ public class PrototypeEnding : PrototypeNarration
         if (combat == null || combat.Quest == null) return;
         if (!Active)
         {
-            if (combat.EnemyDefeated && combat.PlayerHealth > 0 && combat.player.transform.position.x > PrototypeWorld.GoalX - 1)
+            // The road is past the back hill, so the Kongjwi demon must be dealt with too.
+            bool kongDone = combat.KongBoss == null || combat.KongBoss.Resolved;
+            if (combat.EnemyDefeated && kongDone && combat.PlayerHealth > 0 && combat.player.transform.position.x > PrototypeWorld.GoalX - 1)
                 Play(For(combat.Quest.progress));
             return;
         }

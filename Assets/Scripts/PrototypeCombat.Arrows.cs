@@ -60,6 +60,17 @@ public partial class PrototypeCombat
             var wall = Wall(origin, direction, step);
             float enemyDistance = float.PositiveInfinity;
             if (!EnemyDefeated) enemyDistance = ArrowHitDistance(enemy.bounds, origin, direction, step);
+            bool kong = false; int crock = -1;
+            if (KongBoss != null && KongBoss.Fighting)
+            {
+                float d = ArrowHitDistance(KongBoss.HurtBox, origin, direction, step);
+                if (d < enemyDistance) { enemyDistance = d; kong = true; }
+            }
+            if (KongBoss != null)
+            {
+                float d = KongBoss.CrockArrowDistance(origin, direction, step, out int index);
+                if (d < enemyDistance) { enemyDistance = d; kong = false; crock = index; }
+            }
             PrototypeCamp.Mob mob = null; PrototypeCamp mobCamp = null;
             foreach (var camp in Camps)
                 if (camp != null)
@@ -67,10 +78,17 @@ public partial class PrototypeCombat
                     {
                         if (candidate.hp <= 0) continue;
                         float distance = ArrowHitDistance(candidate.art.bounds, origin, direction, step);
-                        if (distance < enemyDistance) { enemyDistance = distance; mob = candidate; mobCamp = camp; }
+                        if (distance < enemyDistance) { enemyDistance = distance; mob = candidate; mobCamp = camp; kong = false; crock = -1; }
                     }
             bool hitsEnemy = enemyDistance <= step && (wall.collider == null || enemyDistance < wall.distance);
-            if (hitsEnemy) { if (mob != null) mobCamp.Hit(mob, ArrowDamage); else DamageEnemy(ArrowDamage); JinaFx.Stop(.03f); }
+            if (hitsEnemy)
+            {
+                if (mob != null) mobCamp.Hit(mob, ArrowDamage);
+                else if (crock >= 0) KongBoss.BlowCrock(crock);
+                else if (kong) KongBoss.Damage(ArrowDamage, false);
+                else DamageEnemy(ArrowDamage);
+                JinaFx.Stop(.03f);
+            }
             arrow.remaining -= step;
             // A pale streak behind it, and chips where it strikes the ground.
             if (Time.frameCount % 2 == 0) JinaFx.Rise(origin, 1, new Color(1, .96f, .84f, .7f), 0, 0, .14f);

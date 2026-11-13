@@ -17,6 +17,7 @@ JOBS = [
     ("make_fx.py", [f"{ART}/20_Fx"]),                            # crescents, sparks, dust, shock rings
     ("make_ui.py", [f"{ART}/19_UI"]),                            # grains, brass corners, HUD icons, vignette
     ("make_kong.py", [ART]),                                     # Kongbat village people and props
+    ("make_kong_boss.py", [ART]),                                # the Kongjwi demon, what she throws, hill crocks and roofs
     ("make_pass.py", [f"{ART}/13_Props"]),                       # jangseung, shrine tree, cairn, boulder
     ("make_ferry.py", [ART]),                                    # ferryman, boat, hut, reeds, water
     ("make_hwando_sheath.py", [f"{ART}/04_Weapons"]),

@@ -24,7 +24,8 @@ public class PrototypeHud : MonoBehaviour
     // Nothing over the intro, the ending, the encounter or the game-over screen.
     public bool Hidden => combat == null || combat.Quest == null || combat.PlayerHealth <= 0
         || (combat.Intro != null && combat.Intro.IsPlaying) || (combat.Ending != null && combat.Ending.Active)
-        || (combat.Encounter != null && combat.Encounter.Playing) || (combat.Stay != null && combat.Stay.Playing);
+        || (combat.Encounter != null && combat.Encounter.Playing) || (combat.Stay != null && combat.Stay.Playing)
+        || (combat.KongBoss != null && combat.KongBoss.Cutscene);
 
     void Update()
     {
@@ -46,8 +47,11 @@ public class PrototypeHud : MonoBehaviour
                 return "서쪽 유령을 물리치면 비석 터에서 정화 부적을 얻습니다. 도깨비를 칼로만 상대해도 됩니다.";
             return "숲의 도깨비를 토벌하거나, 비석 터의 부적으로 정화하세요. 해결하면 숲 끝 가시덤불이 걷힙니다.";
         }
+        var boss = combat.KongBoss;
+        if (boss != null && boss.Fighting) return KongGoal(x);
         if (x < PrototypeWorld.FerryStart) return "숲 동쪽 끝을 지나 나루터로 가세요.";
         if (x < PrototypeWorld.RiverRight) return "뱃사공과 이야기하고, 나룻배로 강을 건너세요.";
+        if (boss != null && boss.Resolved) return "뒷산 끝의 금빛 표식까지 가면 한양으로 가는 길입니다.";
         if (x < PrototypeWorld.KongEnd && combat.Kong != null && !combat.Kong.Revealed)
         {
             if (!combat.Kong.Stayed) return combat.Kong.ReadyForNight ? "마을 사람들과 모두 이야기했습니다. 콩쥐에게 다시 말을 걸어 보세요."
@@ -55,8 +59,20 @@ public class PrototypeHud : MonoBehaviour
             if (combat.Kong.Clues < 3) return Clue();
             return "모든 것을 알았습니다. 콩쥐와 마주하세요.";
         }
-        if (combat.Kong != null && combat.Kong.Revealed) return x < PrototypeWorld.PassStart ? "콩쥐가 뒷산에서 기다립니다. 먼저 팥쥐의 말을 들어 보세요." : "콩쥐가 말한 뒷산은 고개 너머입니다. 금빛 표식까지 가세요.";
-        return "고개를 넘어 한양으로 가는 금빛 표식까지 가세요.";
+        if (combat.Kong != null && combat.Kong.Revealed) return x < PrototypeWorld.PassStart ? "콩쥐가 뒷산에서 기다립니다. 먼저 팥쥐의 말을 들어 보세요." : "콩쥐가 말한 뒷산은 고개 너머입니다.";
+        return "고개를 넘어 뒷산을 지나면 한양으로 가는 금빛 표식이 있습니다.";
+    }
+    // During the fight with the Kongjwi demon: where she is and what can be done about her.
+    string KongGoal(float x)
+    {
+        var boss = combat.KongBoss; var kong = combat.Kong;
+        bool hairpin = JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0;
+        if (x < PrototypeWorld.RiverRight)
+            return kong != null && kong.AnyoneToTake ? "강 건너 마을에서 콩쥐 요괴가 사람들을 해치고 있습니다. 채비를 마치면 나룻배로 돌아가세요."
+                : "콩쥐 요괴는 강을 건너지 못합니다. 채비를 마치면 나룻배로 돌아가세요.";
+        if (kong != null && kong.Raided && kong.AnyoneToTake && x < PrototypeWorld.KongEnd) return "콩쥐 요괴가 묶인 마을 사람들을 하나씩 해치고 있습니다! 칼로 두 번 베면 멈칫합니다.";
+        if (hairpin) return boss.Weakened ? "지금입니다! 콩쥐 요괴 가까이에서 F로 은비녀를 쓰세요." : "콩쥐 요괴의 체력을 절반 아래로 깎은 뒤, 가까이에서 F로 은비녀를 쓰면 콩쥐를 되찾습니다.";
+        return "콩쥐 요괴를 쓰러뜨리세요. 은비녀가 있으면 정화할 수 있습니다. 강을 건너면 쫓아오지 못합니다.";
     }
     string Clue()
     {
@@ -204,7 +220,8 @@ public class PrototypeHud : MonoBehaviour
     {
         JinaUI.ToastTop = Margin + 2;
         // The bar itself is the teammate's, drawn by PrototypeCombat.DrawBossHealthBar; toasts go below it.
-        if (!combat.BossAlerted || combat.EnemyDefeated || combat.Paused) return;
+        bool kong = combat.KongBoss != null && combat.KongBoss.Fighting;
+        if ((!combat.BossAlerted || combat.EnemyDefeated) && !kong || combat.Paused) return;
         JinaUI.ToastTop = Margin + 56;
     }
 

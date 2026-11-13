@@ -8,12 +8,18 @@ using UnityEngine;
 // hill; only then can the crocks be opened and the paper beside them found. Three clues:
 //   Patjwi's words (her mother never came back from the river), the crocks (bones among the salted fish),
 //   and the feast's bill of fare (the villagers' names, and last of all "선비").
-// Caught with all three, Kongjwi drops her mask when he next speaks to her. The hill and the fight there come later.
+// Caught with all three, Kongjwi drops her mask when he next speaks to her. She waits on the back hill beyond the pass
+// (PrototypeKongBoss). Three more villagers (the schoolmaster, the taffy seller, the grandmother) only talk.
+// If the demon follows him down here, her curse binds everyone where they stand (Patjwi runs to the far left first)
+// and she kills them from the right, one by one (Raided, Kill: −10 each). Nobody here runs for shelter.
+// After the fight PrototypeKongAftermath moves the people and picks their poses through WalkTo, SetLook and Face.
 public class PrototypeKongVillage : MonoBehaviour
 {
     public PrototypeCombat combat;
-    public enum Who { Kongjwi, Patjwi, Anak, Namu }
-    public const string Kongjwi = "16_Kong/kongjwi", Patjwi = "16_Kong/patjwi", Anak = "16_Kong/anak", Namu = "16_Kong/namu";
+    public enum Who { Kongjwi, Patjwi, Anak, Namu, Hunjang, Yeot, Halmi }
+    public const int People = 7;
+    public const string Kongjwi = "16_Kong/kongjwi", Patjwi = "16_Kong/patjwi", Anak = "16_Kong/anak", Namu = "16_Kong/namu",
+        Hunjang = "16_Kong/hunjang", Yeot = "16_Kong/yeot", Halmi = "16_Kong/halmi";
     // The scene of Patjwi tormenting Kongjwi: how near he must be, each line's length, the wait between scenes.
     public const float SceneRange = 10f, LineLength = 3.2f, SceneGap = 9f, TalkRange = 1.6f, LookRange = 1.6f;
 
@@ -30,8 +36,8 @@ public class PrototypeKongVillage : MonoBehaviour
     private int met;
     public bool Met(Who who) => (met & 1 << (int)who) != 0;
     public bool KeepsakeTold { get; private set; }
-    // He has met everyone in the village: the next time he speaks to Kongjwi, she asks him to stay the night.
-    public bool ReadyForNight => met == 15 && !Stayed;
+    // He has met the four of the story: the next time he speaks to Kongjwi, she asks him to stay the night.
+    public bool ReadyForNight => (met & 15) == 15 && !Stayed;
     public int Clues => (HeardPatjwi ? 1 : 0) + (SawCrocks ? 1 : 0) + (ReadList ? 1 : 0);
 
     public bool IsOpen { get; private set; }
@@ -44,11 +50,42 @@ public class PrototypeKongVillage : MonoBehaviour
     private bool unmasking;
     // This talk ends in her asking him to stay the night.
     private bool inviting;
+    // This talk is after the fight on the hill.
+    private bool afterTalk;
     private string note = "";
     private int scene;
     private float nextScene = 4;
     private SpriteRenderer[] people;
     private GameObject feastList;
+
+    // The raid and what it leaves: who is bound or dead, where each stands now and is walking to, how each looks.
+    public enum Fate { Free, Bound, Dead }
+    private readonly Fate[] fates = new Fate[People];
+    private readonly float[] xs = new float[People], goals = new float[People], speeds = new float[People], deaths = new float[People];
+    private readonly VillagerVisual.Look[] looks = new VillagerVisual.Look[People];
+    private readonly bool[] crying = new bool[People];
+    private readonly int[] facings = new int[People];
+    public bool Raided { get; private set; }
+    public float RaidAt { get; private set; } = -1;
+    public float ReleasedAt { get; private set; } = -1;
+    // The one she is squeezing now (they cry out), and the last to die (a notice).
+    public Who Threatened { get; private set; }
+    public float ThreatAt { get; private set; } = -1;
+    public Who LastLost { get; private set; }
+    public float LostAt { get; private set; } = -1;
+    public Fate FateOf(Who who) => fates[(int)who];
+    public bool Alive(Who who) => fates[(int)who] != Fate.Dead;
+    public float DiedAt(Who who) => deaths[(int)who];
+    public int Lost { get { int n = 0; for (int i = 1; i < People; i++) if (fates[i] == Fate.Dead) n++; return n; } }
+    // Anyone left for her to take (Kongjwi herself is not among them).
+    public bool AnyoneToTake { get { for (int i = 1; i < People; i++) if (fates[i] != Fate.Dead) return true; return false; } }
+    public float PersonX(Who who) => xs[(int)who];
+    // What each cries out while she squeezes them.
+    public static string Cry(Who who) => who == Who.Hunjang ? "이, 이놈! 물러가라! 썩 물러가!" : who == Who.Yeot ? "사, 살려 줘! 엿 다 줄게, 엿 다!"
+        : who == Who.Namu ? "콩쥐야, 이게 무슨 짓이냐! 놔라, 놔!" : who == Who.Halmi ? "아이고, 아이고… 사람 살려…"
+        : who == Who.Anak ? "선비님! 선비님, 살려 줘요!" : "…콩쥐 언니. 언니, 제발… 정신 차려…";
+    // 이 or 가 after a name, by its last syllable.
+    public static string Subject(string name) { char c = name[name.Length - 1]; return c >= '\uac00' && c <= '\ud7a3' && (c - 0xac00) % 28 != 0 ? "이" : "가"; }
 
     // One scene: who speaks each line. Patjwi shoves on her first line. She plays the old tale's cruel sister, loudly.
     static readonly (Who who, string line)[][] Scenes =
@@ -78,17 +115,20 @@ public class PrototypeKongVillage : MonoBehaviour
     };
     (Who who, string line)[][] CurrentScenes => Stayed ? MorningScenes : Scenes;
 
-    public static string Name(Who who) => who == Who.Kongjwi ? "콩쥐" : who == Who.Patjwi ? "팥쥐" : who == Who.Anak ? "아낙" : "나무꾼";
+    public static string Name(Who who) => who == Who.Kongjwi ? "콩쥐" : who == Who.Patjwi ? "팥쥐" : who == Who.Anak ? "아낙" : who == Who.Namu ? "나무꾼"
+        : who == Who.Hunjang ? "훈장" : who == Who.Yeot ? "엿장수" : "할멈";
     public static Vector2 Spot(Who who) => who == Who.Kongjwi ? PrototypeWorld.Kongjwi : who == Who.Patjwi ? PrototypeWorld.Patjwi
-        : who == Who.Anak ? PrototypeWorld.Anak : PrototypeWorld.Namu;
-    static string Art(Who who) => who == Who.Kongjwi ? Kongjwi : who == Who.Patjwi ? Patjwi : who == Who.Anak ? Anak : Namu;
+        : who == Who.Anak ? PrototypeWorld.Anak : who == Who.Namu ? PrototypeWorld.Namu
+        : who == Who.Hunjang ? PrototypeWorld.Hunjang : who == Who.Yeot ? PrototypeWorld.Yeot : PrototypeWorld.Halmi;
+    public static string Art(Who who) => who == Who.Kongjwi ? Kongjwi : who == Who.Patjwi ? Patjwi : who == Who.Anak ? Anak : who == Who.Namu ? Namu
+        : who == Who.Hunjang ? Hunjang : who == Who.Yeot ? Yeot : Halmi;
 
     void Start()
     {
         feastList = GameObject.Find("잔치 명단");
         if (feastList != null) feastList.SetActive(Stayed);
-        people = new SpriteRenderer[4];
-        for (int i = 0; i < 4; i++)
+        people = new SpriteRenderer[People];
+        for (int i = 0; i < People; i++)
         {
             var who = (Who)i;
             var marker = new GameObject(Name(who)).AddComponent<SpriteRenderer>();
@@ -99,6 +139,7 @@ public class PrototypeKongVillage : MonoBehaviour
             JinaActorVisual.Attach(marker, Art(who), combat);
             people[i] = marker;
         }
+        ResetPeople();
     }
 
     public void ResetVillage()
@@ -106,7 +147,72 @@ public class PrototypeKongVillage : MonoBehaviour
         HeardPatjwi = SawCrocks = ReadList = Invited = Revealed = Stayed = Blunt = KeepsakeTold = false; met = 0;
         if (feastList != null) feastList.SetActive(false);
         IsOpen = false; Page = 0; SceneAt = NoteAt = -1; scene = 0; nextScene = Time.time + 4; note = "";
+        ResetPeople();
     }
+    // Everyone back where they stood before the fight (the checkpoint); what he has learned here is kept.
+    public void ResetRaid() { IsOpen = false; ResetPeople(); }
+    void ResetPeople()
+    {
+        Raided = false; RaidAt = ReleasedAt = ThreatAt = LostAt = -1;
+        for (int i = 0; i < People; i++)
+        {
+            fates[i] = Fate.Free; xs[i] = goals[i] = Spot((Who)i).x; speeds[i] = 0; deaths[i] = -1;
+            looks[i] = VillagerVisual.Look.Stand; crying[i] = false; facings[i] = 0;
+        }
+    }
+
+    // ---- the raid ----
+    // The curse: everyone left is bound where they stand, and Patjwi, who knows what is coming, runs to the far left.
+    public void StartRaid()
+    {
+        if (Raided) return;
+        Raided = true; RaidAt = Time.time; IsOpen = false; SceneAt = -1;
+        for (int i = 1; i < People; i++) if (fates[i] != Fate.Dead) fates[i] = Fate.Bound;
+        if (Alive(Who.Patjwi)) WalkTo(Who.Patjwi, PrototypeWorld.PatjwiRaidX, 3.4f);
+    }
+    // The rightmost one still bound; Patjwi, at the far left, comes last.
+    public Who? NextVictim()
+    {
+        Who? best = null;
+        for (int i = 1; i < People; i++)
+            if (fates[i] == Fate.Bound && (best == null || xs[i] > xs[(int)best.Value])) best = (Who)i;
+        return best;
+    }
+    public void Threaten(Who who) { Threatened = who; ThreatAt = Time.time; }
+    public void Spare(Who who) { if (Threatened == who) ThreatAt = -1; }
+    public void Kill(Who who)
+    {
+        int i = (int)who;
+        if (i == 0 || fates[i] == Fate.Dead) return;
+        fates[i] = Fate.Dead; deaths[i] = Time.time; speeds[i] = 0; goals[i] = xs[i];
+        LastLost = who; LostAt = Time.time; ThreatAt = -1;
+        if (combat.Quest != null) combat.Quest.progress.LoseVillager();
+        var chest = new Vector3(xs[i], .5f, 0);
+        JinaFx.Dots(chest, 14, new Color(.42f, .1f, .12f), 3, .5f, 0, 12);
+        JinaFx.Rise(chest, 8, new Color(.2f, .12f, .24f, .9f), .4f, 1.2f, .7f);
+    }
+    // The demon gone, the curse lets go of whoever is still alive.
+    public void Release()
+    {
+        ReleasedAt = Time.time; ThreatAt = -1;
+        for (int i = 1; i < People; i++) if (fates[i] == Fate.Bound) fates[i] = Fate.Free;
+    }
+    // For the scenes after the fight (PrototypeKongAftermath).
+    public void WalkTo(Who who, float x, float speed) { goals[(int)who] = x; speeds[(int)who] = speed; }
+    public void Place(Who who, float x) { xs[(int)who] = goals[(int)who] = x; speeds[(int)who] = 0; }
+    public bool Arrived(Who who) => Mathf.Abs(xs[(int)who] - goals[(int)who]) < .01f;
+    public void SetLook(Who who, VillagerVisual.Look look, bool tears = false) { looks[(int)who] = look; crying[(int)who] = tears; }
+    public void Face(Who who, int facing) { facings[(int)who] = facing; }
+    void Walk(float dt)
+    {
+        for (int i = 0; i < People; i++)
+            if (fates[i] != Fate.Dead && speeds[i] > 0) xs[i] = Mathf.MoveTowards(xs[i], goals[i], speeds[i] * dt);
+    }
+    // Kongjwi in the village: before the fight while he cannot see the hill, and home again after she is purified.
+    bool KongjwiHere => combat.KongBoss == null || combat.KongBoss.AtHome;
+    bool CanTalkTo(Who who) => fates[(int)who] == Fate.Free && (who != Who.Kongjwi || KongjwiHere)
+        && (combat.Aftermath == null || !combat.Aftermath.Playing);
+    bool FightOver => combat.KongBoss != null && combat.KongBoss.Resolved;
 
     float PlayerX => combat.player.transform.position.x;
     bool Near(float x, float range) => Mathf.Abs(PlayerX - x) < range && combat.player.transform.position.y < 2f;
@@ -120,10 +226,10 @@ public class PrototypeKongVillage : MonoBehaviour
     public Who? Nearest()
     {
         Who? best = null; float bestD = TalkRange;
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < People; i++)
         {
-            float d = Mathf.Abs(PlayerX - Spot((Who)i).x);
-            if (d < bestD) { bestD = d; best = (Who)i; }
+            float d = Mathf.Abs(PlayerX - xs[i]);
+            if (d < bestD && CanTalkTo((Who)i)) { bestD = d; best = (Who)i; }
         }
         return best;
     }
@@ -223,15 +329,65 @@ public class PrototypeKongVillage : MonoBehaviour
         }
     }
 
+    // The three who only talk: before the night, the morning after, and once he knows.
+    public static string[] TownLines(Who who, bool stayed, bool revealed)
+    {
+        switch (who)
+        {
+            case Who.Hunjang:
+                if (revealed) return new[] { "자네 낯빛이 왜 그런가? 보름 잔치 날 시라도 한 수 읊어 주게." };
+                if (stayed) return new[] { "간밤에 콩쥐네서 묵었다지? 그 집 젓갈 냄새가 서당까지 넘어오더군.", "보름 잔치에 서당 아이들까지 다 부르겠다니, 통도 크지." };
+                return new[] { "허허, 길손이로군. 과거 보러 가는 길인가?", "콩쥐 그 아이는 글은 몰라도 사람 도리는 아는 아이일세. 팥쥐는… 쯧." };
+            case Who.Yeot:
+                if (revealed) return new[] { "표정이 왜 그러슈? 엿이나 하나 물고 가슈. 단 게 들어가면 좀 낫지." };
+                if (stayed) return new[] { "잔치에 엿도 한 판 대 달라더라고요. 사람 수만큼, 딱 맞춰서.", "…근데 젓갈 독은 왜 그리 많이 비워 두는지 몰라." };
+                return new[] { "엿 사시오, 엿! 선비님, 과거 붙으려면 찹쌀엿이 최고요!", "콩쥐 아가씨는 엿을 사도 꼭 팥쥐 몫까지 사 가요. 근데 팥쥐는 입에도 안 댄다니까." };
+            default:
+                if (revealed) return new[] { "…눈빛을 보니 알았구먼. 그 애 잘못이 아니야.", "독 속의 그것이 그 애를 먹은 게지. 칼보다 먼저 그 애를 불러 줘요." };
+                if (stayed) return new[] { "간밤에 독 깨지는 소리 못 들었수? 이 늙은이는 잠귀가 밝아서…", "그 애 두꺼비가 많이 컸겠지. 독이 비좁을 만큼." };
+                return new[] { "아이고, 젊은 양반. 이 늙은 것 말동무나 좀 해 주구려.",
+                    "콩쥐가 어릴 적에 밑 빠진 독에 물을 붓다가 울고 있었지. 그때 두꺼비 한 마리가 독 밑을 막아 줬다더군.",
+                    "그 뒤로 그 애가 그 두꺼비를 독에 넣어 키운다던데… 요새는 통 안 보여." };
+        }
+    }
+
+    // After the fight on the hill: `purified` (Kongjwi came back) or slain; `patjwi`: Patjwi lived.
+    public static string[] AfterLines(Who who, bool purified, bool patjwi)
+    {
+        if (purified) switch (who)
+        {
+            case Who.Kongjwi: return patjwi ? new[] { "…다 기억나요. 제가 한 일, 전부요.", "팥쥐한테도, 마을 분들한테도… 평생 갚을게요. 선비님, 고맙습니다." }
+                : new[] { "……", "팥쥐 곁에 있을게요. 이번엔… 제가 지킬 차례예요." };
+            case Who.Patjwi: return new[] { "…언니가 돌아왔어요. 어머니 비녀 덕분이에요.", "고마워요, 선비님. 이제… 큰 소리로 말해도 되겠죠." };
+            case Who.Anak: return new[] { "콩쥐 속에 그런 게 있었다니… 우리가 팥쥐를 얼마나 욕했는지.", "팥쥐야, 미안하다. 이 아줌마가 미안해." };
+            case Who.Namu: return new[] { "그 집 젓갈을 제일 많이 얻어먹은 게 나요. …한동안 산에도 못 가겠구먼." };
+            case Who.Hunjang: return new[] { "글 읽는 사람이 눈 뜬 장님이었구먼. 팥쥐에게 사과부터 하겠네." };
+            case Who.Yeot: return new[] { "보름에 잔치 대신 제사를 지낸다더군. 엿은… 제사상에 올려야지." };
+            default: return new[] { "두꺼비가 떠났으니 그 애도 이제 사람으로 살겠지. 고맙수, 젊은 양반." };
+        }
+        switch (who)
+        {
+            case Who.Patjwi: return new[] { "…고마워요. 그래도… 저 안에는 언니가 있었어요.", "어머니도, 언니도… 이제 저 혼자네요." };
+            case Who.Anak: return new[] { "그게 콩쥐였다니… 아니, 콩쥐 안에 있던 무언가였다니." };
+            case Who.Namu: return new[] { "괴물은 죽었소. 허나 콩쥐도 함께 갔으니, 이걸 잘됐다고 해야 할지." };
+            case Who.Hunjang: return new[] { "칼로 끝낼 수밖에 없었겠지. 자네를 탓하진 않겠네." };
+            case Who.Yeot: return new[] { "엿판도 다 엎어졌소. …그래도 살았으니 됐지." };
+            default: return new[] { "불쌍한 것. 독 속에서 얼마나 울었을꼬." };
+        }
+    }
+
     public void Open(Who who)
     {
         Speaker = who; Page = 0; IsOpen = true;
-        unmasking = who == Who.Kongjwi && (Revealed || Clues == 3);
-        lines = Lines(who, HeardPatjwi, SawCrocks, ReadList, Revealed, HasKeepsake, Stayed, Blunt, Met(who), KeepsakeTold, ReadyForNight);
+        afterTalk = FightOver;
+        unmasking = !afterTalk && who == Who.Kongjwi && (Revealed || Clues == 3);
+        lines = afterTalk ? AfterLines(who, combat.KongBoss.Now == PrototypeKongBoss.Phase.Purified, Alive(Who.Patjwi))
+            : who >= Who.Hunjang ? TownLines(who, Stayed, Revealed)
+            : Lines(who, HeardPatjwi, SawCrocks, ReadList, Revealed, HasKeepsake, Stayed, Blunt, Met(who), KeepsakeTold, ReadyForNight);
         // Whatever she has said of the hairpin before he knew everything, she will not say twice.
         if (who == Who.Patjwi && !Revealed && System.Array.Exists(lines, l => l.Contains("비녀"))) KeepsakeTold = true;
         // Asked to stay if he has met everyone, and has spoken to her before (she never asks a stranger at once).
-        inviting = who == Who.Kongjwi && !Revealed && Clues < 3 && !Stayed && Met(who) && ReadyForNight;
+        inviting = !afterTalk && who == Who.Kongjwi && !Revealed && Clues < 3 && !Stayed && Met(who) && ReadyForNight;
         met |= 1 << (int)who;
         combat.player.CanMove = false;
         SceneAt = -1;
@@ -241,6 +397,7 @@ public class PrototypeKongVillage : MonoBehaviour
         if (++Page < lines.Length) return;
         IsOpen = false; combat.player.CanMove = combat.PlayerHealth > 0;
         // She only lets anything slip the morning after, when she sees he came through the night.
+        if (afterTalk) return;
         if (Speaker == Who.Patjwi && !Revealed && Stayed) HeardPatjwi = true;
         if (Speaker == Who.Kongjwi && !Revealed && Clues == 3) Revealed = true;
         else if (inviting)
@@ -265,6 +422,7 @@ public class PrototypeKongVillage : MonoBehaviour
     void Update()
     {
         if (combat == null || combat.PlayerHealth <= 0) { IsOpen = false; return; }
+        if (!combat.Paused) Walk(Time.deltaTime);
         if (IsOpen)
         {
             if (Input.GetKeyDown(KeyCode.Escape)) { Page = lines.Length - 1; Next(); }
@@ -279,8 +437,9 @@ public class PrototypeKongVillage : MonoBehaviour
             else if (OnPaper) ReadFeastList();
             else if (Near(PrototypeWorld.JangdokX, LookRange)) ExamineCrocks();
         }
-        // The scene plays over and over while he is nearby, until Kongjwi is unmasked.
-        if (!Revealed && SceneAt < 0 && Time.time >= nextScene && Mathf.Abs(PlayerX - PrototypeWorld.Kongjwi.x) < SceneRange) SceneAt = Time.time;
+        // The scene plays over and over while he is nearby, until Kongjwi is unmasked or has gone up the hill.
+        bool quiet = Revealed || (combat.KongBoss != null && (combat.KongBoss.Started || !combat.KongBoss.AtHome));
+        if (!quiet && SceneAt < 0 && Time.time >= nextScene && Mathf.Abs(PlayerX - PrototypeWorld.Kongjwi.x) < SceneRange) SceneAt = Time.time;
         if (SceneAt >= 0 && Time.time - SceneAt >= LineLength * 4) { SceneAt = -1; scene = (scene + 1) % CurrentScenes.Length; nextScene = Time.time + SceneGap; }
     }
 
@@ -292,20 +451,29 @@ public class PrototypeKongVillage : MonoBehaviour
     void LateUpdate()
     {
         if (people == null) return;
-        // Kongjwi pushed back toward the well during a scene; unmasked, she darkens.
-        people[(int)Who.Kongjwi].transform.position = (Vector3)PrototypeWorld.Kongjwi + Vector3.left * .35f * Shove;
-        people[(int)Who.Kongjwi].GetComponent<VillagerVisual>().dark = Revealed;
         var stay = combat.Stay;
         bool evening = stay != null && stay.Now == PrototypeKongStay.Phase.Evening;
-        people[(int)Who.Patjwi].transform.position = (Vector3)PrototypeWorld.Patjwi + Vector3.right * .3f * (evening ? stay.Flinch : 0);
-        for (int i = 0; i < 4; i++)
+        var boss = combat.KongBoss;
+        for (int i = 0; i < People; i++)
         {
-            var v = people[i].GetComponent<VillagerVisual>();
             var who = (Who)i;
-            // Facing: the one speaking with him turns to him; in a scene Patjwi and Kongjwi face each other.
-            v.lookAt = IsOpen && Speaker == who ? (PlayerX >= Spot(who).x ? 1 : -1)
+            // Kongjwi pushed back toward the well during a scene; Patjwi flinching from her stare in the evening.
+            float x = xs[i] + (who == Who.Kongjwi ? -.35f * Shove : who == Who.Patjwi && evening ? .3f * stay.Flinch : 0);
+            people[i].transform.position = new Vector3(x, Spot(who).y, 0);
+            var v = people[i].GetComponent<VillagerVisual>();
+            // Facing: as a scene after the fight says; the one speaking with him turns to him; the bound watch the demon;
+            // in a scene Patjwi and Kongjwi face each other.
+            v.lookAt = facings[i] != 0 ? facings[i] : IsOpen && Speaker == who ? (PlayerX >= x ? 1 : -1)
+                : fates[i] == Fate.Bound && boss != null && boss.Fighting ? (boss.Feet.x >= x ? 1 : -1)
                 : (SceneAt >= 0 || evening) && who == Who.Patjwi ? -1 : (SceneAt >= 0 || evening) && who == Who.Kongjwi ? 1 : 0;
+            v.look = fates[i] == Fate.Dead ? VillagerVisual.Look.Dead : fates[i] == Fate.Bound ? VillagerVisual.Look.Bound : looks[i];
+            v.tears = crying[i];
+            v.trembling = fates[i] == Fate.Bound && ThreatAt >= 0 && Threatened == who;
+            v.running = speeds[i] > 0 && !Arrived(who) && fates[i] != Fate.Dead;
         }
+        // Unmasked, she darkens; she is not in the village while she waits on the hill or fights.
+        people[0].GetComponent<VillagerVisual>().dark = Revealed && !FightOver;
+        people[0].enabled = KongjwiHere;
     }
 
     void OnGUI()
@@ -315,17 +483,22 @@ public class PrototypeKongVillage : MonoBehaviour
         if (IsOpen && Portrait != null) { DrawTalk(); return; }
         if (IsOpen)
         {
-            var at = new Vector3(Spot(Speaker).x, Speaker == Who.Kongjwi || Speaker == Who.Patjwi ? 1.1f : 1.55f, 0);
+            var at = Head(Speaker);
             if (SpeechBubble.OnScreen(at)) SpeechBubble.Draw(at, Name(Speaker), lines[Page]);
             JinaUI.Prompt("E: 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc: 그만 듣기");
             return;
         }
-        if (combat.Paused || !InVillage) return;
+        if (combat.Paused) return;
+        // A death is told wherever he is: he may have left them to her.
+        if (LostAt >= 0 && Time.time - LostAt < 4f) JinaUI.Toast(Name(LastLost) + Subject(Name(LastLost)) + " 콩쥐 요괴에게 목숨을 잃었습니다. (선악 −10)");
+        if (!InVillage) return;
+        if (RaidAt >= 0 && Time.time - RaidAt > 1.4f && Time.time - RaidAt < 4.6f && Alive(Who.Patjwi))
+            Say(Who.Patjwi, "다들 도망쳐요! …안 돼, 발이… 발이 안 움직여…!");
+        if (ThreatAt >= 0 && Time.time - ThreatAt < PrototypeKongBoss.KillWindup && Alive(Threatened)) Say(Threatened, Cry(Threatened));
         if (SceneLine >= 0)
         {
             var (who, line) = CurrentScenes[scene % CurrentScenes.Length][SceneLine];
-            var at = new Vector3(Spot(who).x, who == Who.Kongjwi || who == Who.Patjwi ? 1.1f : 1.55f, 0);
-            if (SpeechBubble.OnScreen(at)) SpeechBubble.Draw(at, Name(who), line);
+            Say(who, line);
         }
         if (NoteAt >= 0 && Time.time - NoteAt < 4.5f)
             JinaUI.Toast(note);
@@ -336,9 +509,13 @@ public class PrototypeKongVillage : MonoBehaviour
         if (prompt != null) JinaUI.Prompt(prompt);
     }
 
-    // Kongjwi and Patjwi speak in a window with their portrait (17_Portraits); the others in speech bubbles.
+    // Above someone's head, wherever they stand now (the girls are a head shorter).
+    public Vector3 Head(Who who) => new Vector3(xs[(int)who], who == Who.Kongjwi || who == Who.Patjwi ? 1.1f : who == Who.Halmi ? 1.2f : 1.55f, 0);
+    public void Say(Who who, string line) { var at = Head(who); if (SpeechBubble.OnScreen(at)) SpeechBubble.Draw(at, Name(who), line); }
+    // Kongjwi and Patjwi speak in a window with their portrait (17_Portraits); the others in speech bubbles. Once she is
+    // herself again Kongjwi has her own face back (the sweet one: there is no sorrowful portrait yet).
     public string Portrait => !IsOpen ? null : Speaker == Who.Patjwi ? "patjwi"
-        : Speaker == Who.Kongjwi ? (unmasking && Page >= 1 ? "kongjwi_true" : "kongjwi") : null;
+        : Speaker == Who.Kongjwi ? (!afterTalk && unmasking && Page >= 1 ? "kongjwi_true" : "kongjwi") : null;
     void DrawTalk() => TalkWindow(Speaker, Portrait, lines[Page], "E 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc 그만 듣기", unmasking && Page >= 1);
     // The window, with the portrait inside its left end; returns the window's rectangle.
     public static Rect TalkWindow(Who who, string portrait, string line, string hint, bool menacing, float since = -1, bool toLeft = false)

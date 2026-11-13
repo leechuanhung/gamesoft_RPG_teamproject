@@ -37,7 +37,10 @@ public class PrototypeLore : MonoBehaviour
         // The pass.
         new Spot(154f, "장승 살펴보기", "천하대장군, 지하여장군. 발치에 누가 숯으로 적어 놓았다. '이 고개는 해 지기 전에.'"),
         new Spot(176.5f, "서낭나무 살펴보기", "오색 천이 빽빽하다. 그중 하나에 삐뚤빼뚤한 글씨가 있다. '아버지 급제하게 해 주십시오.'"),
-        new Spot(192.5f, "한양 쪽 바라보기", "구름 너머로 도성이 있을 터다. 아직 며칠 길이 남았지만, 발걸음이 처음으로 가볍다."),
+        new Spot(192.5f, "한양 쪽 바라보기", "구름 너머로 도성이 있을 터다. 길은 어둑한 뒷산 너머로 이어진다."),
+        // The back hill, before he meets her.
+        new Spot(202.5f, "깨진 독 조각 살펴보기", "깨진 독 조각이 비탈에 흩어져 있다. 안쪽에 비늘 같은 것이 말라붙어 있다."),
+        new Spot(211.5f, "발자국 살펴보기", "작은 맨발 자국이 비탈 위로 이어지다가… 어느 순간부터 물갈퀴 자국으로 바뀐다."),
     };
 
     public int Near()
@@ -58,6 +61,7 @@ public class PrototypeLore : MonoBehaviour
         var p = (Vector2)combat.player.transform.position;
         // Nor in the middle of a fight.
         if (combat.BossAlerted && !combat.EnemyDefeated) return true;
+        if (combat.KongBoss != null && combat.KongBoss.Fighting) return true;
         foreach (var camp in combat.Camps)
             if (camp != null)
                 foreach (var m in camp.mobs)

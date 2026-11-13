@@ -15,16 +15,22 @@ public class PrototypeTavern : MonoBehaviour
         wallet.Reset(); IsOpen = false;
         message = "어서 오시오. 먼 길에 시장하실 터이니 한술 들고 가시오.";
     }
-    string Greeting()
+    // What she has heard he did (from what really happened, not from his honour), then what that earns him here.
+    public static string Greeting(QuestProgress q)
     {
-        if (ShopRules.ElderDead(Progress))
+        if (ShopRules.ElderDead(q))
             return "노인장께서 그리 가셨다니… 마을이 상중이라 오늘은 장국밥 솥을 걸지 않았소.";
-        if (ShopRules.Honor(Progress) >= 30)
-            return "도깨비의 저주를 풀어 주신 선비시구려! 값은 덜 받고, 아껴 둔 삼계탕도 내어 드리리다.";
-        if (ShopRules.Discount(Progress) > 0)
-            return "도깨비를 물리치셨다지요? 고마운 마음에 음식값을 조금 덜 받겠소.";
-        return "어서 오시오. 먼 길에 시장하실 터이니 한술 들고 가시오.";
+        string deed = q == null ? null
+            : q.KongOutcome == EncounterOutcome.Purified ? "강 건너 콩밭 마을 요괴에게서 그 집 딸을 살려 내셨다지요?"
+            : q.KongOutcome == EncounterOutcome.Slain ? "강 건너 콩밭 마을 요괴까지 물리치셨다지요?"
+            : q.Outcome == EncounterOutcome.Purified ? "도깨비의 저주를 풀어 주신 선비시구려!"
+            : q.Outcome == EncounterOutcome.Slain ? "도깨비를 물리치셨다지요?" : null;
+        if (deed == null) return "어서 오시오. 먼 길에 시장하실 터이니 한술 들고 가시오.";
+        if (ShopRules.Honor(q) >= 30) return deed + " 값은 덜 받고, 아껴 둔 삼계탕도 내어 드리리다.";
+        if (ShopRules.Discount(q) > 0) return deed + " 고마운 마음에 음식값을 조금 덜 받겠소.";
+        return deed + " 어서 한술 들고 가시오.";
     }
+    string Greeting() => Greeting(Progress);
     void Close() { IsOpen = false; combat.player.CanMove = combat.PlayerHealth > 0; }
     void Update()
     {
