@@ -34,10 +34,11 @@ public static class JinaArt
         Rect rect=bounds; Vector2 anchor=new Vector2(bounds.center.x,bounds.y); float ppu=bounds.height/1.9f;
         var canvas=new Rect(0,0,t.width,t.height);
         // Animation frames on one shared canvas per animation, feet 8 px above the bottom.
-        if(path.Contains("Player_Attack") || path.Contains("Player_Jump") || path.Contains("Player_Walk") || path.Contains("Player_Run") || path.Contains("boss_attack") || path.Contains("boss_walk"))
+        if(path.Contains("Player_Attack") || path.Contains("Player_Jump") || path.Contains("Player_Walk") || path.Contains("Player_Run") || path.Contains("boss_attack") || path.Contains("boss_walk") || path.StartsWith("21_Dash_Slash/"))
         {
             rect=canvas; anchor=new Vector2(t.width*.5f,8);
-            if(path.Contains("Player_Attack_Sword")) { anchor.x=270; ppu=450f/1.9f; }
+            if(path.StartsWith("21_Dash_Slash/")) { anchor=new Vector2(t.width*.5f,48); ppu=170f; }
+            else if(path.Contains("Player_Attack_Sword")) { anchor.x=270; ppu=450f/1.9f; }
             else if(path.Contains("Player_Attack_Bow")) { anchor.x=300; ppu=510f/1.9f; }
             else if(path.Contains("Player_Jump")) ppu=535f/1.9f;
             // Run frames are built from the walk frames, so they share its scale and feet line.

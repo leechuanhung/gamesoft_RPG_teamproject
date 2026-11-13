@@ -5,7 +5,7 @@ public class SeonbiVisual : MonoBehaviour
     private PrototypeCombat combat;
     private SpriteRenderer source,body,weapon,gripFingers;
     private Sprite fingerSprite;
-    private Sprite[] swordFrames,bowFrames,bowUpFrames,bowDownFrames,jumpFrames,walkFrames,runFrames,hitFrames;
+    private Sprite[] swordFrames,bowFrames,bowUpFrames,bowDownFrames,jumpFrames,walkFrames,runFrames,hitFrames,dashFrames;
     private bool wasAirborne;
     private float airTime,landingTime,walkTime;
     private float attackTime=10;
@@ -54,6 +54,7 @@ public class SeonbiVisual : MonoBehaviour
         v.walkFrames=JinaArt.Frames("10_Player_Walk/player_walk_");
         v.runFrames=JinaArt.Frames("11_Player_Run/player_run_");
         v.hitFrames=JinaArt.Frames("01_Player/player_hit_",2);
+        v.dashFrames=JinaArt.Frames("21_Dash_Slash/dash_slash_",8);
         v.source.forceRenderingOff=true; v.LateUpdate(); return v;
     }
     SpriteRenderer MakePart(string name,int order)
@@ -96,9 +97,10 @@ public class SeonbiVisual : MonoBehaviour
         if(combat.PlayerHealth<=0 && combat.PlayerDownAt>=0) { Fall(feet,facing,Time.time-combat.PlayerDownAt); return; }
         bool hurt=combat.PlayerHurtAt>=0 && Time.time-combat.PlayerHurtAt<HurtLength && !attacking;
         bool dodging=player.Dodging && combat.PlayerHealth>0;
+        bool dashSlashing=dodging && player.DashSlashing;
         var shot=attackAim>0 ? bowUpFrames : attackAim<0 ? bowDownFrames : bowFrames;
         int strideFrame=(int)(walkTime/(running ? .08f : .12f))%4;
-        body.sprite=dodging ? JinaArt.Load("01_Player/player_dodge") : hurt ? hitFrames[0] : attacking ? (bowAttack ? shot[Mathf.Min(3,(int)(attackTime/(duration/4)))] : swordFrames[SwordFrame(attackTime)]) : jumping ? jumpFrames[jumpFrame] : running ? runFrames[strideFrame] : walking ? walkFrames[strideFrame] : LoadSprite();
+        body.sprite=dashSlashing ? dashFrames[Mathf.Clamp((int)((1f-Mathf.Clamp01(player.DashRemaining / PrototypePlayer.DodgeLength))*8f),0,7)] : dodging ? JinaArt.Load("01_Player/player_dodge") : hurt ? hitFrames[0] : attacking ? (bowAttack ? shot[Mathf.Min(3,(int)(attackTime/(duration/4)))] : swordFrames[SwordFrame(attackTime)]) : jumping ? jumpFrames[jumpFrame] : running ? runFrames[strideFrame] : walking ? walkFrames[strideFrame] : LoadSprite();
         JinaArt.Place(body,feet,facing<0);
         body.transform.rotation=Quaternion.identity; weapon.transform.rotation=Quaternion.identity; weapon.color=Color.white;
         // Standing still, his chest rises and falls by one art pixel.
