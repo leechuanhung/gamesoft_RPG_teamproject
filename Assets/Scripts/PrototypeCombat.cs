@@ -138,6 +138,7 @@ public partial class PrototypeCombat : MonoBehaviour
         BossTalk = gameObject.AddComponent<PrototypeBossTalk>();
         BossTalk.combat = this;
         playerVisual = SeonbiVisual.Attach(player, this);
+        player.gameObject.AddComponent<DashSlashAttack>().Initialize(this);
         Maps = gameObject.AddComponent<PrototypeMaps>();
         Maps.combat = this;
         Hud = gameObject.AddComponent<PrototypeHud>();

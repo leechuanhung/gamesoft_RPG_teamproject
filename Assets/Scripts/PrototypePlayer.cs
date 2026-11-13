@@ -10,6 +10,7 @@ public class PrototypePlayer : MonoBehaviour
     public const float DodgeLength = .3f, DodgeSpeed = 9f, DodgeCooldown = .7f;
     private float dodgeUntil, nextDodge;
     public bool Dodging => Time.time < dodgeUntil;
+    public float DashRemaining => Mathf.Max(0f, dodgeUntil - Time.time);
     // A swing: he steps forward with the blow, and his feet are slowed while the sword is moving.
     private float lungeUntil, lungeSpeed;
     public float SlowUntil { get; set; }
@@ -19,6 +20,9 @@ public class PrototypePlayer : MonoBehaviour
     public const float DoubleTapWindow = .25f;
     private float lastLeftTap = -1, lastRightTap = -1;
     private int dodgeDir = 1;
+    private bool backstepDodge;
+    // Distinguishes double-tap forward dash from K backstep (both use Dodging).
+    public bool DashSlashing => Dodging && !backstepDodge;
     // Light straw sandals (JinaItems) quicken his walk and run until then.
     public const float HasteBoost = 1.35f;
     public float HasteUntil { get; set; }
@@ -67,6 +71,7 @@ public class PrototypePlayer : MonoBehaviour
         bool stepBack = tapDir == 0 && Input.GetKeyDown(KeyCode.K);
         if ((tapDir != 0 || stepBack) && IsGrounded && Time.time >= nextDodge)
         {
+            backstepDodge = stepBack;
             dodgeDir = stepBack ? -Facing : tapDir;
             if (!stepBack) Facing = tapDir;
             dodgeUntil = Time.time + DodgeLength;
@@ -120,6 +125,7 @@ public class PrototypePlayer : MonoBehaviour
         body.velocity = Vector2.zero;
         jumpRequestedUntil = 0f;
         dodgeUntil = nextDodge = lungeUntil = 0f; SlowUntil = 0f;
+        backstepDodge = false;
         lastLeftTap = lastRightTap = -1;
         HasteUntil = 0f;
         IsGrounded = true;
