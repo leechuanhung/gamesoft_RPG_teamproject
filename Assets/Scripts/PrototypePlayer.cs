@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class PrototypePlayer : MonoBehaviour
 {
@@ -96,9 +96,10 @@ public class PrototypePlayer : MonoBehaviour
     public void Face(int dir) { if (dir != 0) Facing = dir > 0 ? 1 : -1; }
 
     // 스킬용 이동: dir 방향으로 length초 동안 speed 속도로 이동 (이동 중엔 Dodging = true)
-    public void StartDash(int dir, float length, float speed)
+    public void StartDash(int dir, float length, float speed, bool slashAttack = true)
     {
-        backstepDodge = false; // 스킬 대시임을 명시
+        // 물러서기는 기존 회피 모션을 사용하고 대시 참격 판정을 발생시키지 않는다.
+        backstepDodge = !slashAttack;
         dodgeDir = dir > 0 ? 1 : -1;
         dashSpeed = speed;
         dodgeUntil = Time.time + length;
