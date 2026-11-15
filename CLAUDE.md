@@ -6,7 +6,7 @@
 
 ## 작업 방식
 
-- 스크립트는 역할별로 한 파일에 여러 클래스를 둔다(예: `ActorVisuals.cs`, `RoadEvents.cs`). 모두 실행 중에 `AddComponent`로 붙으므로 파일 이름과 클래스 이름이 달라도 된다. 장면에 직접 붙은 `PrototypeView`·`PrototypePlayer`와 팀원 파일은 이름을 바꾸지 않는다. 팀원 코드가 부르는 `PrototypeCombat`·`PrototypeHud`·`PrototypeKoreanUI`·`PrototypeCamp`·`PrototypePlayer`·`PrototypeView`와 `PrototypeMaps`만 `Prototype` 이름이 남아 있다. 주석은 한글로 쓴다.
+- 스크립트는 역할별로 한 파일에 여러 클래스를 둔다(예: `ActorVisuals.cs`, `RoadEvents.cs`, NPC는 `MainNpcs.cs`·`Townsfolk.cs`·`Shops.cs`). 모두 실행 중에 `AddComponent`로 붙으므로 파일 이름과 클래스 이름이 달라도 된다. 장면에 직접 붙은 `PrototypeView`·`PrototypePlayer`와 팀원 파일은 이름을 바꾸지 않는다. 팀원 코드가 부르는 `PrototypeCombat`·`PrototypeHud`·`PrototypeKoreanUI`·`PrototypeCamp`·`PrototypePlayer`·`PrototypeView`와 `PrototypeMaps`만 `Prototype` 이름이 남아 있다. 주석은 한글로 쓴다.
 
 - 게임 속 캐릭터와 기물은 기존 디자인, 화풍, 크기를 반드시 유지한다. 새 그림은 `Tools/ArtGen/sheet.py`로 기존 캐릭터 옆에 놓고 확인한 뒤 넣는다.
 - 플레이하지 않는 연출(콩밭 마을의 하룻밤)과 대화 초상화는 예외다. 화풍을 맞추지 않는다. 하룻밤 연출 그림은 사용자가 GPT로 만든 것을 잘라 쓴다(`make_night.py`, `source/night/`). 콩쥐·팥쥐·노인 초상화는 사용자가 직접 만든 그림을 잘라 쓴다(`make_portraits.py`, `source/kongpat_portraits.webp`, `source/elder_portrait.webp`). 새로 그리지 않는다.
@@ -23,13 +23,15 @@
 | `PrototypeCombat.cs` | 능력치 상수(선비 체력 100·공격력 10, 도깨비 200·20, 일반 몬스터 30·10, 피해=공격력−방어력, 최소 1), 선비 체력·공격·피격(`PlayerHurtAt`), 재시작(`Restart`, 콩쥐를 만난 뒤 죽으면 뒷산 입구 체크포인트 `RestartAtHill`·`Checkpoint`), `Paused`, 아래 관리 컴포넌트를 붙인다 (모두 같은 오브젝트) |
 | `PrototypeCombat.Boss.cs` | 보스 상태·추격·근접 공격·돌진·도약(`BossMove`), 토벌(`DamageEnemy`)·정화(`TryPurifyBoss`) |
 | `PrototypeCombat.Arrows.cs` | 활 조준(`AimAngle` 30°, `ArrowLaunch`, `ArrowDirection`), 발사(`Shoot`), 비행·명중, 발판 통과(`Wall`) |
-| `ElderQuest.cs` / `QuestProgress.cs` | 노인 대화(초상화 창 `TalkWindow`, 콩쥐와 싸우다 돌아오면 `ElderPages(fleeing)`)·비석, 부적 퍼즐 / 선악·퀘스트 상태(Unity 무관). 토벌 +10, 정화 +30, 노인 사망 −40, 콩쥐 토벌 +10·정화 +50(`KongOutcome`), 콩밭 마을 사람 사망 −10(`VillagersLost`) |
+| `MainNpcs.cs`의 `NpcTalk` | NPC 대화 공통 바탕: 가까이(`Within`), 열기(`Begin`, 선비 멈춤), 엔터로 넘기기·Esc로 닫기(`TalkKeys`, `Next`, `Close`), 말풍선 안내(`PageHint`), 대사 `lines`·`Page`·`IsOpen`. 노인·콩밭 마을·정화된 도깨비·뱃사공·주막·보부상이 이 위에 있다. 닫을 때 할 일은 `Close`를 덮어 쓴다 |
+| `MainNpcs.cs`의 `ElderQuest` / `QuestProgress.cs` | 노인 대화(초상화 창 `TalkWindow`, 콩쥐와 싸우다 돌아오면 `ElderPages(fleeing)`)·비석, 부적 퍼즐 / 선악·퀘스트 상태(Unity 무관). 토벌 +10, 정화 +30, 노인 사망 −40, 콩쥐 토벌 +10·정화 +50(`KongOutcome`), 콩밭 마을 사람 사망 −10(`VillagersLost`) |
 | `PrototypeCamp.cs` | 유령: 2차원 비행 추격(`GhostHealth` 4, `FlySpeed`). 들판 유령(`Initialize`)은 전부 쓰러지면 봉인 해제, 나루터 물귀신(`InitializeRiver`, `combat.River`)은 맵에 들어올 때마다 되살아나고 10마리째에 은비녀 |
-| `VillageAlarm.cs` | 보스가 마을에 들면 경보(`Alarmed`), 주모·보부상 대피, 보스가 쓰러지면 귀가(노인이 죽었으면 먼저 애도) |
-| `Shops.cs` | 주막(`TavernShop`)·보부상 상점(`PeddlerShop`), 돈과 가격 규칙(`TavernWallet`, `ShopRules`), 주모·보부상 잡담(`ShopChatter`) |
+| `Townsfolk.cs`의 `VillageAlarm` | 보스가 마을에 들면 경보(`Alarmed`), 주모·보부상 대피, 보스가 쓰러지면 귀가(노인이 죽었으면 먼저 애도) |
+| `Shops.cs` | 주막(`TavernShop`)·보부상 상점(`PeddlerShop`), 돈과 가격 규칙(`TavernWallet`, `ShopRules`) |
+| `Townsfolk.cs`의 `ShopChatter` | 주모·보부상 잡담 |
 | `Narration.cs` (`IntroNarration`, `EndingNarration` ← `Narration`) | 인트로·결말 낭독(검은 화면에 한 줄씩, 스페이스 길게 눌러 건너뛰기) |
 | `PrototypeMaps.cs` | 맵 일곱 개, 카메라 가두기(`ClampView`), 경계에서 어둠 전환과 맵 이름 |
-| `KongVillage.cs` (그림은 `ActorVisuals.cs`의 `VillagerVisual`) | 콩밭 마을: 콩쥐·팥쥐·아낙·나무꾼, 괴롭힘 장면(`Scenes`, 아침 뒤 `MorningScenes`), 대화(`Lines`, 콩쥐·팥쥐는 창 안 왼쪽에 초상화가 들어가는 `TalkWindow`), 넷을 모두 만난 뒤(`Met`, `ReadyForNight`) 다시 말을 걸면 콩쥐가 하룻밤을 청함, 팥쥐의 은비녀 이야기는 두 번째 만남부터 한 번만(`KeepsakeTold`), 하룻밤 뒤(`Stayed`)에 열리는 단서 3개와 정체 드러남(`Revealed`). 팥쥐는 콩쥐의 강요로 남들 앞에서 반말과 막말을 한다. 말만 하는 훈장·엿장수·할멈(`TownLines`). 요괴가 마을에 들면 모두 묶이고(`StartRaid`, `Fate`) 팥쥐는 맨 왼쪽으로 달아나며, 오른쪽부터 죽는다(`NextVictim`, `Kill`). 싸움 뒤 대사 `AfterLines`. 콩쥐는 싸우기 전 선비가 고개에 있으면 마을에 없다(`KongBoss.AtHome`) |
+| `MainNpcs.cs`의 `KongVillage` (그림은 `ActorVisuals.cs`의 `VillagerVisual`) | 콩밭 마을: 콩쥐·팥쥐·아낙·나무꾼, 괴롭힘 장면(`Scenes`, 아침 뒤 `MorningScenes`), 대화(`Lines`, 콩쥐·팥쥐는 창 안 왼쪽에 초상화가 들어가는 `TalkWindow`), 넷을 모두 만난 뒤(`Met`, `ReadyForNight`) 다시 말을 걸면 콩쥐가 하룻밤을 청함, 팥쥐의 은비녀 이야기는 두 번째 만남부터 한 번만(`KeepsakeTold`), 하룻밤 뒤(`Stayed`)에 열리는 단서 3개와 정체 드러남(`Revealed`). 팥쥐는 콩쥐의 강요로 남들 앞에서 반말과 막말을 한다. 말만 하는 훈장·엿장수·할멈(`TownLines`). 요괴가 마을에 들면 모두 묶이고(`StartRaid`, `Fate`) 팥쥐는 맨 왼쪽으로 달아나며, 오른쪽부터 죽는다(`NextVictim`, `Kill`). 싸움 뒤 대사 `AfterLines`. 콩쥐는 싸우기 전 선비가 고개에 있으면 마을에 없다(`KongBoss.AtHome`) |
 | `KongBoss.cs`, `.Fight.cs` | 콩쥐 요괴: 뒷산에서 기다림 → 초상화 대화(`MeetingLines`, 마지막 `LastLine` "젓갈로 담가 주마!") → 변신(`Changing`, 띠·카메라·검은 형체·번쩍·이름 카드) → 싸움(`Fighting`). 체력 260, 뛰어서 이동(동적 `Rigidbody2D`, 선비와 충돌 무시, 강 건너 못 감 `MinX`), 젓갈 침·콩알 산탄·소금 비(절반 아래)·혀 채찍(근접 하나), 높은 곳·벽 앞·제자리면 높이 뛰기(`HighHop`). 마을에서는 묶인 사람을 오른쪽부터 죽이고 칼 두 번에 멈칫(`Stagger`). 토벌(`Slain`), 체력 절반 아래에서 은비녀로 정화(`TryPurify`, F 또는 보따리) |
 | `KongBoss.Crocks.cs` | 뒷산 큰 독: 요괴 탄 3번(`CrockShots`) 또는 선비의 칼·화살 2번(`CrockBlows`)에 깨지고 꿀단지를 떨굼, 닿으면 체력 +20(`HoneyHeal`, 인벤토리 아님) |
 | `DevCheats.cs` | 개발자 치트(안내에 없음). F9: 도깨비 정화 루트 결과(유령 전멸, 노인 이야기, 비석, 부적 정화 +30) 후 나루터 뱃사공 옆으로 이동 |
@@ -41,7 +43,7 @@
 | `JinaUI.cs` (`JinaUI`, 말풍선 `SpeechBubble`, 배율·글꼴 `PrototypeKoreanUI`) | UI 공통 모양(한지 창 `Window`, HUD 판 `HudPanel`, 글자 `Text`·`Height`, 타자 효과 `Visible`·`VisibleAuto`·`FinishTyping`, `Button`, 판매 칸 `Good`, 초상화 대화창 `TalkWindow`, 쌓이는 알림 `Toast`, 행동 안내 `Prompt`). UI 좌표는 화면 높이 720 기준의 레이아웃 단위다(`Scale`, `W`, `H`, `FromWorld`). `Screen.width` 대신 `JinaUI.W`를 쓰고, `GUI.Label` 대신 `JinaUI.Text`를 쓴다(그래야 글자가 또렷하다). 새 UI는 고정 높이 대신 `Height`로 재서 쌓고, 알림은 `GUI.Box` 대신 `Toast`·`Prompt`를 쓴다 |
 | `PrototypeHud.cs` | 상시 화면: 상태·할 일(`Goal`)·조작 안내(H), 선악, 보스 막대, 길 안내. 연출 중에는 숨는다 |
 | `RoadEvents.cs`의 `MountainPass` | 고개: 굴러오는 바위(`Step`), 서낭당 회복(`UseShrine`). 지형 높이는 `WorldBuilder.Top` |
-| `RoadEvents.cs`의 `Ferry` | 숲 끝 가시덤불(도깨비 해결 전까지 나루터를 막음, `ThornsShut`), 뱃사공 대화(`Lines`), 나룻배(`FerryBoat`), 강에 빠짐(`Splash`) |
+| `Townsfolk.cs`의 `Ferry` | 숲 끝 가시덤불(도깨비 해결 전까지 나루터를 막음, `ThornsShut`), 뱃사공 대화(`Lines`), 나룻배(`FerryBoat`), 강에 빠짐(`Splash`) |
 | `JinaItems.cs`, `InventoryUI.cs` | 인벤토리 아이템(`JinaItem.Use`: 회복·화살·액막이·짚신), 아이콘 칸 인벤토리 화면(인벤토리 본체는 팀원 담당) |
 | `GameOver.cs` | 게임 오버: 검은 화면 위 선비 혼자 무너지는 연출(`player_ko_*`, `player_facedown`), 문구 |
 | `BossStory.cs`의 `BossEncounter` | 보스 첫 조우 연출(띠, 카메라 `PrototypeView.Focus`, 포효, 이름 카드) |

@@ -234,17 +234,17 @@ public class UiShots : MonoBehaviour
 
         // 대화와 읽기
         Fresh(WorldBuilder.Elder.x - 1);
-        Set(q, "IsDialogOpen", true); Set(q, "shrineDialog", false);
+        Set(q, "IsOpen", true); Set(q, "shrineDialog", false);
         Set(q, "message", "숲의 도깨비는 본디 산을 지키던 주인이었소. 망한 나라의 원한이 씌어 저리 되었으니, 서쪽 비석 터의 옛 비석을 찾아가 보시오. 달이 먼저요, 그다음이 강, 마지막이 산이라오.");
         yield return Shot("elder_talk");
         Fresh(WorldBuilder.Stone.x + 1);
         q.progress.HearClue();
-        Set(q, "IsDialogOpen", true); Set(q, "shrineDialog", true);
+        Set(q, "IsOpen", true); Set(q, "shrineDialog", true);
         Set(q, "message", "이끼 낀 비석에 세 개의 문양이 새겨져 있다. 달은 강을 비추고, 강은 산을 돌아 흐른다.\n노인의 말대로 차례를 맞추면 무언가 드러날 것 같다.\n비문의 나머지는 닳아 읽을 수 없다. 오래전 이 땅을 다스리던 왕의 이름이 있던 자리인 듯하다.");
         yield return Shot("stele_puzzle");
         Fresh(WorldBuilder.Elder.x - 1);
         q.progress.SacrificeElder();
-        Set(q, "IsDialogOpen", true); Set(q, "shrineDialog", false);
+        Set(q, "IsOpen", true); Set(q, "shrineDialog", false);
         Set(q, "message", "피 묻은 쪽지가 떨어져 있다.\n선비에게. 서쪽 비석에 달, 강, 산의 차례로 손을 얹으면 부적이 나올 것이오. 부디 그 아이를 베지 말고 풀어 주시오.");
         yield return Shot("elder_note");
 

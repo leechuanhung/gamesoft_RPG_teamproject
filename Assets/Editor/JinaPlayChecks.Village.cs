@@ -107,9 +107,9 @@ public static partial class JinaPlayChecks
         foreach(float side in new[]{-1.2f,1.2f})
         {
             player.position=new Vector3(WorldBuilder.Elder.x+side,player.position.y,0);
-            Set(combat.Quest,"<IsDialogOpen>k__BackingField",true); Set(combat.Quest,"shrineDialog",false); elderVisual.Refresh();
+            Set(combat.Quest,"<IsOpen>k__BackingField",true); Set(combat.Quest,"shrineDialog",false); elderVisual.Refresh();
             Check(Picture(elderVisual).flipX==(side<0),"Elder turns to the player on his "+(side<0 ? "left" : "right"));
-            Set(combat.Quest,"<IsDialogOpen>k__BackingField",false);
+            Set(combat.Quest,"<IsOpen>k__BackingField",false);
             player.position=new Vector3(WorldBuilder.Peddler.x+side,player.position.y,0);
             Set(combat.Peddler,"<IsOpen>k__BackingField",true); peddlerVisual.Refresh();
             Check(Picture(peddlerVisual).flipX==(side>0),"Peddler turns to the player");
