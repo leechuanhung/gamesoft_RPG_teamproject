@@ -1,7 +1,7 @@
 using UnityEngine;
 using Who = KongVillage.Who;
 
-// 팥쥐네 집의 하룻밤. 콩쥐와 대화를 처음 마쳤을 때 연출로 재생된다(조작 불가, E로 저녁 대사를
+// 팥쥐네 집의 하룻밤. 콩쥐와 대화를 처음 마쳤을 때 연출로 재생된다(조작 불가, 엔터로 저녁 대사를
 // 넘기고, 스페이스로 밤과 아침을 건너뜀). 플레이가 아니라 그림이다: 사용자의 GPT 그림
 // (18_Night, Tools/ArtGen/make_night.py로 자름)을 검은 띠 사이 2.4:1 화면에 겹쳐 쌓아 움직인다.
 //   저녁: 노을 속 집, 길 위의 세 사람. 콩쥐가 묵어 가라고 청한다. 콩쥐의 정체를 알지만 말 못 하는
@@ -185,7 +185,7 @@ public class KongNightStay : MonoBehaviour
         if (Now == Phase.Parting) { UpdateParting(); return; }
         if (Now == Phase.Evening)
         {
-            bool next = Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Space);
+            bool next = JinaUI.Interact || Input.GetKeyDown(KeyCode.Space);
             // 글자가 나타나는 중에 누르면 전체를 보여 주고, 다음에 누르면 넘어간다.
             if (next && line < Evening.Length && !typedAll && JinaUI.Visible(Evening[line].line, Elapsed) < Evening[line].line.Length) { typedAll = true; next = false; }
             if (line < Evening.Length && (next || Elapsed >= Evening[line].seconds)) NextLine();
@@ -243,7 +243,7 @@ public class KongNightStay : MonoBehaviour
         }
         // 콩쥐 눈으로 넘어간 컷은 잠시 저절로 머물고, 서둘러 넘길 수 없다.
         if (CurrentPart.portrait == "stare") { if (Elapsed >= StareCut) NextPart(); return; }
-        if (!Input.GetKeyDown(KeyCode.E) && !Input.GetKeyDown(KeyCode.Space)) return;
+        if (!JinaUI.Interact && !Input.GetKeyDown(KeyCode.Space)) return;
         if (!typedAll && JinaUI.Visible(CurrentPart.line, Elapsed) < CurrentPart.line.Length) typedAll = true;
         else NextPart();
     }
@@ -468,7 +468,7 @@ public class KongNightStay : MonoBehaviour
             {
                 var (who, portrait, words, _) = Evening[line];
                 // 노려보는 컷에는 창이 없다: 눈과 침묵뿐.
-                if (line != StareLine) KongVillage.TalkWindow(who, portrait, words, "E 다음", false, typedAll ? 1000 : t, true);
+                if (line != StareLine) KongVillage.TalkWindow(who, portrait, words, "Enter 다음", false, typedAll ? 1000 : t, true);
                 if (line == 0) Black(1 - t / FadeLength);
             }
             else Black(t / FadeLength);
@@ -501,8 +501,8 @@ public class KongNightStay : MonoBehaviour
         var (portrait, words) = CurrentPart;
         float since = typedAll ? 1000 : t;
         if (portrait == "stare") return;   // 콩쥐의 눈, 아무 말 없이
-        if (portrait == null) { SpeechBubble.Draw(HeadAbove, "선비", words, null, since); JinaUI.Prompt("E: 다음"); return; }
-        var box = KongVillage.TalkWindow(Who.Kongjwi, portrait, words, Choosing ? "" : "E 다음", false, since);
+        if (portrait == null) { SpeechBubble.Draw(HeadAbove, "선비", words, null, since); JinaUI.Prompt("Enter: 다음"); return; }
+        var box = KongVillage.TalkWindow(Who.Kongjwi, portrait, words, Choosing ? "" : "Enter 다음", false, since);
         if (!Choosing || since < 1000 && JinaUI.Visible(words, since) < words.Length) return;
         // 콩쥐가 부탁을 마치면 선비의 대답: 창 위, 초상화 오른쪽의 버튼 두 개.
         float bx = box.x + 280, bw = box.xMax - bx - 14, bh = 44;

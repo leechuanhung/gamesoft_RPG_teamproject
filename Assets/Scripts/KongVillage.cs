@@ -433,7 +433,7 @@ public class KongVillage : MonoBehaviour
         note = "항아리 곁에 떨어진 종이. 보름 잔칫상 차림표다. '젓갈 여섯 독' 아래로 마을 사람 이름이 하나씩 적혀 있다. 맨 끝에는… '선비'.";
     }
 
-    // E 입력, 괴롭힘 장면, 걷기를 처리한다.
+    // 엔터 입력, 괴롭힘 장면, 걷기를 처리한다.
     void Update()
     {
         if (combat == null || combat.PlayerHealth <= 0) { IsOpen = false; return; }
@@ -441,11 +441,11 @@ public class KongVillage : MonoBehaviour
         if (IsOpen)
         {
             if (Input.GetKeyDown(KeyCode.Escape)) { Page = lines.Length - 1; Next(); }
-            else if (Input.GetKeyDown(KeyCode.E) && !JinaUI.FinishTyping(lines[Page])) Next();
+            else if (JinaUI.Interact && !JinaUI.FinishTyping(lines[Page])) Next();
             return;
         }
         if (combat.Paused || !InVillage) return;
-        if (Input.GetKeyDown(KeyCode.E))
+        if (JinaUI.Interact)
         {
             var who = Nearest();
             if (who.HasValue) Open(who.Value);
@@ -502,7 +502,7 @@ public class KongVillage : MonoBehaviour
         {
             var at = Head(Speaker);
             if (SpeechBubble.OnScreen(at)) SpeechBubble.Draw(at, Name(Speaker), lines[Page]);
-            JinaUI.Prompt("E: 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc: 그만 듣기");
+            JinaUI.Prompt("Enter: 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc: 그만 듣기");
             return;
         }
         if (combat.Paused) return;
@@ -520,9 +520,9 @@ public class KongVillage : MonoBehaviour
         if (NoteAt >= 0 && Time.time - NoteAt < 4.5f)
             JinaUI.Toast(note);
         var near = Nearest();
-        string prompt = near.HasValue ? "E: " + Name(near.Value) + "와(과) 이야기하기"
-            : OnPaper ? "E: 항아리 곁의 종이 읽기"
-            : Near(WorldBuilder.JangdokX, LookRange) ? "E: 장독대 살펴보기" : null;
+        string prompt = near.HasValue ? "Enter: " + Name(near.Value) + "와(과) 이야기하기"
+            : OnPaper ? "Enter: 항아리 곁의 종이 읽기"
+            : Near(WorldBuilder.JangdokX, LookRange) ? "Enter: 장독대 살펴보기" : null;
         if (prompt != null) JinaUI.Prompt(prompt);
     }
 
@@ -533,7 +533,7 @@ public class KongVillage : MonoBehaviour
     // 본래 모습으로 돌아온 콩쥐는 제 얼굴을 되찾는다(상냥한 얼굴: 슬픈 초상화는 아직 없음).
     public string Portrait => !IsOpen ? null : Speaker == Who.Patjwi ? "patjwi"
         : Speaker == Who.Kongjwi ? (!afterTalk && unmasking && Page >= 1 ? "kongjwi_true" : "kongjwi") : null;
-    void DrawTalk() => TalkWindow(Speaker, Portrait, lines[Page], "E 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc 그만 듣기", unmasking && Page >= 1);
+    void DrawTalk() => TalkWindow(Speaker, Portrait, lines[Page], "Enter 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc 그만 듣기", unmasking && Page >= 1);
     // 왼쪽 끝 안에 초상화가 들어간 창. 창의 사각형을 돌려준다.
     public static Rect TalkWindow(Who who, string portrait, string line, string hint, bool menacing, float since = -1, bool toLeft = false)
         => JinaUI.TalkWindow(Name(who), portrait, line, hint, menacing, since, toLeft);

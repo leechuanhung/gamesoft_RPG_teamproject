@@ -35,7 +35,7 @@
 | `DevCheats.cs` | 개발자 치트(안내에 없음). F9: 도깨비 정화 루트 결과(유령 전멸, 노인 이야기, 비석, 부적 정화 +30) 후 나루터 뱃사공 옆으로 이동 |
 | `KongAftermath.cs` | 싸움 뒤 장면(말풍선 큐): 뒷산에서 정화하면 깨어난 콩쥐와 선비(`field`), 마을에서는 오열·팥쥐 시체로 달려가 크게 오열(`wail`)·살아남은 사람들이 콩쥐를 죽이려다 팥쥐와 선비가 말림·자매의 재회(`village`), 토벌 뒤 한마디(`slain`) |
 | `KongNightStay.cs` | 저녁·밤·아침 자동 연출(`Now`, `Show`). 세계 밖 x=400에 1280×533(2.4:1, 위아래 검은 띠) 그림(`18_Night`, 128px=1칸)을 겹쳐 쌓아(`Put`, 그림자는 `Shade`) 움직이고, 컷마다 천천히 당겨 찍는다(`View`). 노을 외경 → 콩쥐 눈 클로즈업(`stare`, 사용자 그림 `source/kongjwi_stare_cut.webp`) → 달빛 외경 → 손님방 → 문 클로즈업(구멍과 눈) → 새벽 외경 → 아침 방 → 콩쥐의 만류와 선택지(`Parting`, `Choose`: 정중히 거절/대놓고 의심) → 뒷산 부탁. 카메라 `PrototypeView.FixedX`, `FitSize`. 끝나면 `Kong.WakeUp(Blunt)` |
-| `RoadEvents.cs`의 `RoadsideLore` | 길가의 조사 지점(`Spots`, E). 콩밭 마을의 것은 마을 사람들 말과 어긋나는 단서다. 전투 중에는 나오지 않는다 |
+| `RoadEvents.cs`의 `RoadsideLore` | 길가의 조사 지점(`Spots`, 엔터). 콩밭 마을의 것은 마을 사람들 말과 어긋나는 단서다. 전투 중에는 나오지 않는다 |
 | `JinaFx.cs` | 초승달 칼빛(`Arc`), 타격 별(`Hit`), 먼지(`Dust`), 충격파(`Shock`), 잔상(`AfterImage`), 숫자(`Number`), 히트스톱(`Stop`). 게임 상태와 무관한 풀링 스프라이트 |
 | `WorldBuilder.cs`의 `MapAmbience` | 맵별 구름·먼지·반딧불·연기·강 물빛, 화면 비네트 |
 | `JinaUI.cs` (`JinaUI`, 말풍선 `SpeechBubble`, 배율·글꼴 `PrototypeKoreanUI`) | UI 공통 모양(한지 창 `Window`, HUD 판 `HudPanel`, 글자 `Text`·`Height`, 타자 효과 `Visible`·`VisibleAuto`·`FinishTyping`, `Button`, 판매 칸 `Good`, 초상화 대화창 `TalkWindow`, 쌓이는 알림 `Toast`, 행동 안내 `Prompt`). UI 좌표는 화면 높이 720 기준의 레이아웃 단위다(`Scale`, `W`, `H`, `FromWorld`). `Screen.width` 대신 `JinaUI.W`를 쓰고, `GUI.Label` 대신 `JinaUI.Text`를 쓴다(그래야 글자가 또렷하다). 새 UI는 고정 높이 대신 `Height`로 재서 쌓고, 알림은 `GUI.Box` 대신 `Toast`·`Prompt`를 쓴다 |
@@ -45,7 +45,7 @@
 | `JinaItems.cs`, `InventoryUI.cs` | 인벤토리 아이템(`JinaItem.Use`: 회복·화살·액막이·짚신), 아이콘 칸 인벤토리 화면(인벤토리 본체는 팀원 담당) |
 | `GameOver.cs` | 게임 오버: 검은 화면 위 선비 혼자 무너지는 연출(`player_ko_*`, `player_facedown`), 문구 |
 | `BossStory.cs`의 `BossEncounter` | 보스 첫 조우 연출(띠, 카메라 `PrototypeView.Focus`, 포효, 이름 카드) |
-| `BossStory.cs`의 `BossTalk`, `BossRemorse` | 정화된 도깨비의 사연(E), 노인을 해친 도깨비의 죄책감 |
+| `BossStory.cs`의 `BossTalk`, `BossRemorse` | 정화된 도깨비의 사연(엔터), 노인을 해친 도깨비의 죄책감 |
 | `WorldBuilder.cs` (`WorldBuilder`, `ParallaxLayer`) | 땅·기물·배경 배치, 발판(`CampLedges`·`ForestLedges`, 한 방향 `PlatformEffector2D`, 레이어 8), 원경 패럴랙스(±2칸) |
 | `JinaArt.cs` | 그림 로딩. `Load`(캐릭터, 경로별 발 위치·배율), `CutFrom`(대기 그림에서 잘라 낸 프레임), `Prop`(기물) |
 | `ActorVisuals.cs`의 `GhostVisual` | 유령·물귀신(색만 다름) 공격(`Winding`, `Strike`)·쓰러짐 프레임 |

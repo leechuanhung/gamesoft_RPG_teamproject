@@ -69,7 +69,7 @@ public class ElderQuest : MonoBehaviour
         IsDialogOpen = false;
         Player.CanMove = combat.PlayerHealth > 0;
     }
-    // E로 노인·비석·쪽지와 상호작용하고, 부적 퍼즐을 처리한다.
+    // 엔터로 노인·비석·쪽지와 상호작용하고, 부적 퍼즐을 처리한다.
     void Update()
     {
         if (combat != null && ((combat.Tavern != null && combat.Tavern.IsOpen) || (combat.Peddler != null && combat.Peddler.IsOpen))) return;
@@ -83,9 +83,9 @@ public class ElderQuest : MonoBehaviour
         }
         if (IsDialogOpen)
         {
-            if (Input.GetKeyDown(KeyCode.E) && !shrineDialog && !progress.ElderDead && JinaUI.FinishTyping(message)) return;
-            if (Input.GetKeyDown(KeyCode.E) && pages != null && pageAt + 1 < pages.Length) { message = pages[++pageAt]; return; }
-            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.E)) { Close(); return; }
+            if (JinaUI.Interact && !shrineDialog && !progress.ElderDead && JinaUI.FinishTyping(message)) return;
+            if (JinaUI.Interact && pages != null && pageAt + 1 < pages.Length) { message = pages[++pageAt]; return; }
+            if (Input.GetKeyDown(KeyCode.Escape) || JinaUI.Interact) { Close(); return; }
             if (shrineDialog && progress.HeardClue && !progress.HasCharm && progress.Outcome == EncounterOutcome.Unresolved)
             {
                 int symbol = Input.GetKeyDown(KeyCode.Alpha1) ? 1 : Input.GetKeyDown(KeyCode.Alpha2) ? 2 : Input.GetKeyDown(KeyCode.Alpha3) ? 3 : 0;
@@ -99,7 +99,7 @@ public class ElderQuest : MonoBehaviour
             }
             return;
         }
-        if (!Input.GetKeyDown(KeyCode.E) || (combat.BossTalk != null && combat.BossTalk.IsOpen)) return;
+        if (!JinaUI.Interact || combat.InventoryPauseActive || (combat.BossTalk != null && combat.BossTalk.IsOpen)) return;
         if (Near(WorldBuilder.Elder))
         {
             shrineDialog = false;
@@ -156,15 +156,15 @@ public class ElderQuest : MonoBehaviour
         PrototypeKoreanUI.Apply();
         if (!IsDialogOpen && combat.PlayerHealth > 0 && !combat.Paused)
         {
-            if (Near(WorldBuilder.Elder)) JinaUI.Prompt(progress.ElderDead ? "E: 노인이 남긴 쪽지 살펴보기" : "E: 마을 노인과 대화");
-            else if (Near(WorldBuilder.Stone)) JinaUI.Prompt("E: 비석 살펴보기");
+            if (Near(WorldBuilder.Elder)) JinaUI.Prompt(progress.ElderDead ? "Enter: 노인이 남긴 쪽지 살펴보기" : "Enter: 마을 노인과 대화");
+            else if (Near(WorldBuilder.Stone)) JinaUI.Prompt("Enter: 비석 살펴보기");
         }
         if (!IsDialogOpen) return;
         if (!shrineDialog && !progress.ElderDead)
         {
             // 노인은 초상화 창에서 말하고, 비석과 쪽지는 내레이션 상자로 남는다.
             bool more = pages != null && pageAt + 1 < pages.Length;
-            JinaUI.TalkWindow("마을 노인", "elder", message, more ? "E 다음 (" + (pageAt + 1) + "/" + pages.Length + ")   ·   Esc 닫기" : "E / Esc 닫기", false);
+            JinaUI.TalkWindow("마을 노인", "elder", message, more ? "Enter 다음 (" + (pageAt + 1) + "/" + pages.Length + ")   ·   Esc 닫기" : "Enter / Esc 닫기", false);
             return;
         }
         // 비석과 쪽지: 글 높이만큼의 한지 창.
@@ -173,7 +173,7 @@ public class ElderQuest : MonoBehaviour
         bool puzzle = shrineDialog && progress.HeardClue;
         float height = JinaUI.TitleHeight + 12 + textHeight + (puzzle ? 34 : 0) + 30 + JinaUI.WindowPad;
         var box = new Rect((JinaUI.W - width) / 2, JinaUI.H - height - 14, width, height);
-        var inside = JinaUI.Window(box, shrineDialog ? "오래된 비석" : "노인이 남긴 흔적", "E / Esc 닫기");
+        var inside = JinaUI.Window(box, shrineDialog ? "오래된 비석" : "노인이 남긴 흔적", "Enter / Esc 닫기");
         JinaUI.Text(new Rect(inside.x, inside.y, inner, textHeight), message, 17, JinaUI.TextDark);
         if (puzzle)
             JinaUI.Text(new Rect(inside.x, inside.y + textHeight + 8, inner, 24), "1: 강     2: 달     3: 산          맞춘 문양: " + progress.PuzzleStep + " / 3", 16, JinaUI.Red, TextAnchor.MiddleLeft, true);

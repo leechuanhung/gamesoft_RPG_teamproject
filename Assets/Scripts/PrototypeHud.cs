@@ -14,9 +14,9 @@ public class PrototypeHud : MonoBehaviour
     static readonly string[] Guide =
     {
         "이동 A·D / ←→     달리기 Shift",
-        "도약 스페이스     대시 A·D 두 번     물러서기 K",
-        "공격 J·클릭(연달아 3연격)     무기 Q",
-        "대화·조사 E     정화 F     보따리 I",
+        "도약 스페이스     물러서기 Q     돌진베기 W",
+        "공격 J·클릭(연달아 3연격)     무기 S",
+        "대화·조사 Enter     정화 F     보따리 I",
         "다시 시작 R",
         "주황빛은 공격 예고입니다",
     };
@@ -138,7 +138,7 @@ public class PrototypeHud : MonoBehaviour
         var frame = new Rect(x + 8, y + 8, 40, 40);
         JinaUI.Box(frame, new Color(.2f, .16f, .14f), JinaUI.WoodLight, 1);
         JinaUI.Icon(combat.UsingBow ? "icon_bow" : "icon_sword", frame.x + 4, frame.y + 4, 2);
-        JinaUI.Text(new Rect(x + 8, y + 49, 40, 16), "Q", 11, JinaUI.Faint, TextAnchor.MiddleCenter);
+        JinaUI.Text(new Rect(x + 8, y + 49, 40, 16), "S", 11, JinaUI.Faint, TextAnchor.MiddleCenter);
         float left = x + 56, width = w - 56 - 10;
         JinaUI.Text(new Rect(left, y + 7, width, 18), "선비", 15, JinaUI.Gold, TextAnchor.MiddleLeft, true);
         // 칼이 다음 타격으로 이어질 수 있는 동안 연격 점 세 개.

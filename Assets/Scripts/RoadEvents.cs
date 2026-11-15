@@ -135,9 +135,9 @@ public class Ferry : MonoBehaviour
         if (IsOpen)
         {
             if (Input.GetKeyDown(KeyCode.Escape)) Close();
-            else if (Input.GetKeyDown(KeyCode.E) && !JinaUI.FinishTyping(lines[Page])) { Next(); }
+            else if (JinaUI.Interact && !JinaUI.FinishTyping(lines[Page])) { Next(); }
         }
-        else if (Near && Input.GetKeyDown(KeyCode.E) && !combat.Paused) Open();
+        else if (Near && JinaUI.Interact && !combat.Paused) Open();
         Splash();
     }
 
@@ -172,14 +172,14 @@ public class Ferry : MonoBehaviour
     {
         if (combat == null || combat.PlayerHealth <= 0) return;
         PrototypeKoreanUI.Apply();
-        if (Near && !IsOpen && !combat.Paused) JinaUI.Prompt("E: 뱃사공과 이야기하기");
+        if (Near && !IsOpen && !combat.Paused) JinaUI.Prompt("Enter: 뱃사공과 이야기하기");
         if (AtThorns && !combat.Paused) JinaUI.Prompt("가시덤불이 길을 막았습니다. 숲의 도깨비를 해결해야 지나갈 수 있습니다.");
         if (ClearedAt >= 0 && Time.time - ClearedAt < ClearedNotice && !combat.Paused && combat.Encounter != null && !combat.Encounter.Playing)
             JinaUI.Toast("숲 끝을 막던 가시덤불이 시들었습니다. 나루터로 가는 길이 열렸습니다.");
         if (IsOpen && SpeechBubble.OnScreen(WorldBuilder.Ferryman))
         {
             SpeechBubble.Draw(new Vector3(WorldBuilder.Ferryman.x, 1.6f, 0), "뱃사공", lines[Page]);
-            JinaUI.Prompt("E: 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc: 그만 듣기");
+            JinaUI.Prompt("Enter: 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc: 그만 듣기");
         }
         if (SplashAt >= 0 && Time.time - SplashAt < 1.6f)
             JinaUI.Toast("풍덩! 차가운 강물에 빠졌다가 겨우 기슭으로 올라왔습니다.");
@@ -230,7 +230,7 @@ public class FerryBoat : MonoBehaviour
 // ===== 고개: 굴러오는 바위·서낭당 (MountainPass) =====
 // 나루터 너머 고개(WorldBuilder.PassStart..PassEnd). 선비가 꼭대기 아래를 오르는 동안
 // 몇 초마다 바위가 계단을 굴러 내려온다: 뛰어넘거나 백스텝(K)으로 통과한다.
-// 고원의 서낭당에서 한 판에 한 번 돌탑에 돌을 얹으면(E) 체력이 다 찬다.
+// 고원의 서낭당에서 한 판에 한 번 돌탑에 돌을 얹으면(엔터) 체력이 다 찬다.
 public class MountainPass : MonoBehaviour
 {
     public PrototypeCombat combat;
@@ -301,11 +301,11 @@ public class MountainPass : MonoBehaviour
         return true;
     }
 
-    // 때가 되면 바위를 굴리고, 서낭당에서 E를 받는다.
+    // 때가 되면 바위를 굴리고, 서낭당에서 엔터를 받는다.
     void Update()
     {
         if (combat == null || combat.PlayerHealth <= 0 || combat.Paused) return;
-        if (NearShrine && Input.GetKeyDown(KeyCode.E)) UseShrine();
+        if (NearShrine && JinaUI.Interact) UseShrine();
         // 선비가 고개에서 비탈 꼭대기 아래에 있을 때만 바위가 굴러온다.
         if (OnPass && combat.player.transform.position.x < WorldBuilder.RockStart - 1 && Time.time >= nextRock)
         {
@@ -322,7 +322,7 @@ public class MountainPass : MonoBehaviour
         PrototypeKoreanUI.Apply();
         if (ShrineAt >= 0 && Time.time - ShrineAt < 3f)
             JinaUI.Toast(shrineSaid);
-        if (NearShrine && !ShrineUsed) JinaUI.Prompt("E: 서낭당 돌무더기에 돌 얹기");
+        if (NearShrine && !ShrineUsed) JinaUI.Prompt("Enter: 서낭당 돌무더기에 돌 얹기");
     }
 
     void OnDestroy() { foreach (var r in rocks) if (r.art != null) Destroy(r.art.gameObject); }
@@ -409,11 +409,11 @@ public class RoadsideLore : MonoBehaviour
     private string said = "";
     public void ResetLore() { saidAt = -1; said = ""; }
 
-    // E로 조사 지점을 읽는다.
+    // 엔터로 조사 지점을 읽는다.
     void Update()
     {
         if (combat == null || combat.Paused || combat.PlayerHealth <= 0) return;
-        if (!Input.GetKeyDown(KeyCode.E) || SomeoneElseHere()) return;
+        if (!JinaUI.Interact || SomeoneElseHere()) return;
         int i = Near();
         if (i < 0) return;
         Read(i);
@@ -433,6 +433,6 @@ public class RoadsideLore : MonoBehaviour
         PrototypeKoreanUI.Apply();
         if (saidAt >= 0 && Time.time - saidAt < ShowFor) JinaUI.Toast(said);
         int i = Near();
-        if (i >= 0 && !SomeoneElseHere()) JinaUI.Prompt("E: " + Spots[i].prompt);
+        if (i >= 0 && !SomeoneElseHere()) JinaUI.Prompt("Enter: " + Spots[i].prompt);
     }
 }

@@ -34,18 +34,18 @@ public class TavernShop : MonoBehaviour
     }
     string Greeting() => Greeting(Progress);
     void Close() { IsOpen = false; combat.player.CanMove = combat.PlayerHealth > 0; }
-    // E로 주막 창을 열고 닫는다.
+    // 엔터로 주막 창을 열고 닫는다.
     void Update()
     {
         if (combat == null || combat.PlayerHealth <= 0) return;
         if (IsOpen)
         {
-            if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Escape)) { Close(); return; }
+            if (JinaUI.Interact || Input.GetKeyDown(KeyCode.Escape)) { Close(); return; }
             if (Input.GetKeyDown(KeyCode.Alpha1)) Purchase(0);
             if (Input.GetKeyDown(KeyCode.Alpha2)) Purchase(1);
             if (Input.GetKeyDown(KeyCode.Alpha3)) Purchase(2);
         }
-        else if (Near && Input.GetKeyDown(KeyCode.E) && !combat.Paused)
+        else if (Near && JinaUI.Interact && !combat.Paused)
         {
             IsOpen = true;
             message = Greeting();
@@ -73,7 +73,7 @@ public class TavernShop : MonoBehaviour
     {
         if (combat == null) return;
         PrototypeKoreanUI.Apply();
-        if (Near && !IsOpen && combat.PlayerHealth > 0 && !combat.Paused) JinaUI.Prompt("E: 주막에서 음식 사 먹기");
+        if (Near && !IsOpen && combat.PlayerHealth > 0 && !combat.Paused) JinaUI.Prompt("Enter: 주막에서 음식 사 먹기");
         if (!IsOpen) return;
         bool special = ShopRules.MenuOpen(ShopRules.SpecialMenu, Progress);
         int rows = special ? 3 : 2, discount = ShopRules.Discount(Progress);
@@ -82,7 +82,7 @@ public class TavernShop : MonoBehaviour
         float say = JinaUI.SayHeight("주모:  " + message, w - JinaUI.WindowPad * 2);
         float h = JinaUI.TitleHeight + 12 + say + gap + rows * (JinaUI.GoodHeight + gap) + 28 + JinaUI.WindowPad;
         var box = new Rect((JinaUI.W - w) / 2, JinaUI.H - h - 14, w, h);
-        var inside = JinaUI.Window(box, "길손 주막", "엽전 " + wallet.Coins + "문" + (discount > 0 ? "   ·   선행 덕에 " + discount + "% 할인" : "") + "   ·   E / Esc 나가기");
+        var inside = JinaUI.Window(box, "길손 주막", "엽전 " + wallet.Coins + "문" + (discount > 0 ? "   ·   선행 덕에 " + discount + "% 할인" : "") + "   ·   Enter / Esc 나가기");
         JinaUI.Say(new Rect(inside.x, inside.y, inside.width, say), "주모", message);
         for (int menu = 0; menu < rows; menu++)
         {
@@ -141,19 +141,19 @@ public class PeddlerShop : MonoBehaviour
     }
     string Greeting() => Greeting(Progress);
     void Close() { IsOpen = false; combat.player.CanMove = combat.PlayerHealth > 0; }
-    // E로 보부상 창을 열고 닫는다.
+    // 엔터로 보부상 창을 열고 닫는다.
     void Update()
     {
         if (combat == null || combat.PlayerHealth <= 0) return;
         if (IsOpen)
         {
-            if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Escape)) { Close(); return; }
+            if (JinaUI.Interact || Input.GetKeyDown(KeyCode.Escape)) { Close(); return; }
             if (Input.GetKeyDown(KeyCode.Alpha1)) Purchase(false);
             if (Input.GetKeyDown(KeyCode.Alpha2)) Purchase(true);
             for (int i = 0; i < JinaItems.All.Length; i++)
                 if (Input.GetKeyDown(KeyCode.Alpha3 + i)) Purchase(JinaItems.All[i]);
         }
-        else if (Near && Input.GetKeyDown(KeyCode.E) && !combat.Paused)
+        else if (Near && JinaUI.Interact && !combat.Paused)
         {
             IsOpen = true;
             message = Greeting();
@@ -203,7 +203,7 @@ public class PeddlerShop : MonoBehaviour
     {
         if (combat == null) return;
         PrototypeKoreanUI.Apply();
-        if (Near && !IsOpen && combat.PlayerHealth > 0 && !combat.Paused) JinaUI.Prompt("E: 보부상 등짐 보기");
+        if (Near && !IsOpen && combat.PlayerHealth > 0 && !combat.Paused) JinaUI.Prompt("Enter: 보부상 등짐 보기");
         if (!IsOpen) return;
         // 화살, 그다음 한 줄에 둘씩 물건: 아이콘, 이름, 가격, 효과.
         const float gap = 8;
@@ -212,7 +212,7 @@ public class PeddlerShop : MonoBehaviour
         float say = JinaUI.SayHeight("보부상:  " + message, w - JinaUI.WindowPad * 2);
         float h = JinaUI.TitleHeight + 12 + say + gap + rows * (JinaUI.GoodHeight + gap) + 28 + JinaUI.WindowPad;
         var box = new Rect((JinaUI.W - w) / 2, JinaUI.H - h - 14, w, h);
-        var inside = JinaUI.Window(box, "보부상 등짐", "엽전 " + Wallet.Coins + "문   ·   화살 " + combat.Arrows + "/" + ShopRules.MaxArrows + (discount > 0 ? "   ·   " + discount + "% 할인" : "") + "   ·   E / Esc 나가기");
+        var inside = JinaUI.Window(box, "보부상 등짐", "엽전 " + Wallet.Coins + "문   ·   화살 " + combat.Arrows + "/" + ShopRules.MaxArrows + (discount > 0 ? "   ·   " + discount + "% 할인" : "") + "   ·   Enter / Esc 나가기");
         JinaUI.Say(new Rect(inside.x, inside.y, inside.width, say), "보부상", message);
         float top = inside.y + say + gap;
         bool bundle = ShopRules.BundleOpen(Progress);

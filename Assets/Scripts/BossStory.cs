@@ -76,8 +76,8 @@ public class BossEncounter : MonoBehaviour
 }
 
 // ===== 정화된 도깨비의 사연 (BossTalk) =====
-// 정화된 도깨비에게 말을 걸 수 있다(E): 망한 나라의 망령들이 어떻게 저주했는지 이야기한다.
-// 노인을 죽였다면 그 곁에 있게 해 달라고만 한다. E로 넘기고 Esc로 닫는다.
+// 정화된 도깨비에게 말을 걸 수 있다(엔터): 망한 나라의 망령들이 어떻게 저주했는지 이야기한다.
+// 노인을 죽였다면 그 곁에 있게 해 달라고만 한다. 엔터로 넘기고 Esc로 닫는다.
 public class BossTalk : MonoBehaviour
 {
     public PrototypeCombat combat;
@@ -110,16 +110,16 @@ public class BossTalk : MonoBehaviour
     }
     void Close() { IsOpen = false; combat.player.CanMove = combat.PlayerHealth > 0; }
 
-    // 정화된 도깨비 곁에서 E를 누르면 대화를 열거나 넘긴다.
+    // 정화된 도깨비 곁에서 엔터를 누르면 대화를 열거나 넘긴다.
     void Update()
     {
         if (combat == null) return;
         if (IsOpen)
         {
             if (Input.GetKeyDown(KeyCode.Escape)) Close();
-            else if (Input.GetKeyDown(KeyCode.E)) Talk();
+            else if (JinaUI.Interact) Talk();
         }
-        else if (Near && !combat.Paused && Input.GetKeyDown(KeyCode.E)) Talk();
+        else if (Near && !combat.Paused && JinaUI.Interact) Talk();
     }
 
     // 도깨비 사연 창과 E 안내를 그린다.
@@ -130,11 +130,11 @@ public class BossTalk : MonoBehaviour
         if (!IsOpen)
         {
             if (Near && !combat.Paused)
-                JinaUI.Prompt("E: 도깨비와 이야기하기");
+                JinaUI.Prompt("Enter: 도깨비와 이야기하기");
             return;
         }
         var pages = Pages;
-        string hint = (Page + 1) + " / " + pages.Length + "   ·   E: " + (Page + 1 < pages.Length ? "다음" : "닫기") + "   Esc: 닫기";
+        string hint = (Page + 1) + " / " + pages.Length + "   ·   Enter: " + (Page + 1 < pages.Length ? "다음" : "닫기") + "   Esc: 닫기";
         SpeechBubble.Draw(new Vector3(combat.BossPosition.x, 2.3f, 0), "도깨비", pages[Page], hint);
     }
 }

@@ -171,7 +171,7 @@ public partial class KongBoss : MonoBehaviour
         Facing = PlayerX >= Feet.x ? 1 : -1;
         Look(Mathf.Clamp01((Time.time - MetAt) / .5f));
         if (Input.GetKeyDown(KeyCode.Escape)) page = lines.Length - 1;
-        else if (Input.GetKeyDown(KeyCode.E) && !JinaUI.FinishTyping(lines[page])) NextLine();
+        else if (JinaUI.Interact && !JinaUI.FinishTyping(lines[page])) NextLine();
     }
     // 대화를 다음 줄로 넘기고, 마지막 줄 뒤에 변신을 시작한다.
     public void NextLine()
@@ -384,7 +384,7 @@ public partial class KongBoss : MonoBehaviour
             DrawBars(Mathf.Clamp01((Time.time - MetAt) / .4f));
             bool revealed = combat.Kong != null && combat.Kong.Revealed;
             KongVillage.TalkWindow(KongVillage.Who.Kongjwi, MeetingPortrait(page, revealed || Retries > 0), lines[page],
-                "E 다음 (" + (page + 1) + "/" + lines.Length + ")   ·   Esc 넘기기", page > 0 || revealed);
+                "Enter 다음 (" + (page + 1) + "/" + lines.Length + ")   ·   Esc 넘기기", page > 0 || revealed);
             return;
         }
         if (Now == Phase.Changing) { DrawChangeCard(Time.time - ChangedAt); return; }
