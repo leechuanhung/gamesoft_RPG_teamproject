@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class PrototypePlayer : MonoBehaviour
 {
@@ -20,11 +20,28 @@ public class PrototypePlayer : MonoBehaviour
     private bool backstepDodge;
     // W 돌진베기(지나가는 적을 벰, DashSlashAttack)와 Q 물러서기(베지 않음)를 가른다. 둘 다 Dodging이다.
     public bool DashSlashing => Dodging && !backstepDodge;
+    // 스킬(Q·W) 이동인지: 그림은 대시 베기 모션 그대로, 피해는 PrototypeSkills가 따로 줌
+    private bool skillMove;
+    public bool DashSlashDamage => DashSlashing && !skillMove;
     private float dashSpeed = DodgeSpeed;   // 대시 속도 (스킬마다 다르게 쓰기 위해)
     // Light straw sandals (JinaItems) quicken his walk and run until then.
     public const float HasteBoost = 1.35f;
     public float HasteUntil { get; set; }
     public bool Hasted => Time.time < HasteUntil;
+    // ── 스테미너 ──
+    public const int MaxStamina = 100;
+    public const int StaminaPerSecond = 5;    // 초당 회복량 (0.2초마다 1씩)
+    public int Stamina { get; private set; } = MaxStamina;
+    private float staminaTimer;
+    // 스테미너가 충분하면 amount만큼 깎고 true, 모자라면 깎지 않고 false
+    public bool UseStamina(int amount)
+    {
+        if (Stamina < amount) return false;
+        Stamina -= amount;
+        return true;
+    }
+    // 달리기 속도 배율 (걷기 속도의 60%)
+    public const float RunSpeedRate = 1.6f;
     private Rigidbody2D body;
     private BoxCollider2D hitbox;
     private float horizontal;
@@ -51,6 +68,16 @@ public class PrototypePlayer : MonoBehaviour
     {
         horizontal = Input.GetAxisRaw("Horizontal");
         if (!CanMove) { horizontal = 0; IsRunning = false; return; }
+        if (!CanMove) { horizontal = 0; IsRunning = false; return; }
+        // 0.2초마다 1씩 회복 (초당 5)
+        if (Stamina < MaxStamina)
+        {
+            staminaTimer += Time.deltaTime;
+            float step = 1f / StaminaPerSecond;
+            while (staminaTimer >= step && Stamina < MaxStamina) { staminaTimer -= step; Stamina++; }
+        }
+        else staminaTimer = 0;
+        if (Dodging) { IsRunning = false; return; }
         if (Dodging) { IsRunning = false; return; }
         if (horizontal != 0) Facing = horizontal > 0 ? 1 : -1;
         IsRunning = horizontal != 0 && (Input.GetKey(runKey) || Input.GetKey(KeyCode.RightShift));
@@ -81,7 +108,7 @@ public class PrototypePlayer : MonoBehaviour
             }
 
         IsGrounded = grounded && body.velocity.y <= 0.1f;
-        float walk = horizontal * (IsRunning ? runSpeed : moveSpeed) * (Hasted ? HasteBoost : 1) * (grounded && Time.time < SlowUntil ? SwingSlow : 1);
+        float walk = horizontal * (IsRunning ? moveSpeed * RunSpeedRate : moveSpeed) * (Hasted ? HasteBoost : 1) * (grounded && Time.time < SlowUntil ? SwingSlow : 1);
         if (Time.time < lungeUntil && grounded) walk += lungeSpeed;
         body.velocity = new Vector2(Dodging ? dodgeDir * dashSpeed : walk + carry, body.velocity.y);
         if (jumpRequestedUntil > Time.time && grounded && body.velocity.y <= 0.1f)
@@ -96,10 +123,10 @@ public class PrototypePlayer : MonoBehaviour
     public void Face(int dir) { if (dir != 0) Facing = dir > 0 ? 1 : -1; }
 
     // 스킬용 이동: dir 방향으로 length초 동안 speed 속도로 이동 (이동 중엔 Dodging = true)
-    // `slash`: 지나가는 적을 베는 돌진인지(W). 물러서기(Q)는 false라 베지 않고 뒷걸음 그림이 나온다.
-    public void StartDash(int dir, float length, float speed, bool slash)
+    public void StartDash(int dir, float length, float speed, bool slashAttack = true)
     {
-        backstepDodge = !slash;
+        // 물러서기는 기존 회피 모션을 사용하고 대시 참격 판정을 발생시키지 않는다.
+        backstepDodge = !slashAttack;
         dodgeDir = dir > 0 ? 1 : -1;
         dashSpeed = speed;
         dodgeUntil = Time.time + length;
@@ -116,8 +143,11 @@ public class PrototypePlayer : MonoBehaviour
         lungeUntil = 0f;
         SlowUntil = 0f;
         HasteUntil = 0f;
+        Stamina = MaxStamina;
+        staminaTimer = 0;
 
         backstepDodge = false;
+        skillMove = false;
 
         IsGrounded = true;
         IsRunning = false;

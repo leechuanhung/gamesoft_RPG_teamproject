@@ -12,13 +12,20 @@ public class PrototypeSkills : MonoBehaviour
     // ── Q 물러서기 ──
     public const float RetreatCooldown = 4f, RetreatInvulnerable = 1.5f, RetreatLength = .25f, RetreatSpeed = 10f;
     // ── W 돌진베기 ──
-    public const float RushCooldown = 5f, RushLength = .3f, RushSpeed = 14f;
+    public const float RushCooldown = 5f, RushLength = .3f, RushSpeed = 18f;
     public const int RushDamage = 20;
 
+// ── 스테미너 소모량 ──
+    public const int AttackStamina = 10;    // 기본 공격 (PrototypeCombat에서 사용)
+    public const int RetreatStamina = 10;   // Q 물러서기
+    public const int RushStamina = 20;      // W 돌진베기
+    
     public class Slot
     {
         public string key, name;
+        public string skillId; // 장착된 스킬의 고유 ID (보관함에서 설정)
         public float cooldown, readyAt;
+        public int stamina;
         public bool empty;
     }
     public Slot[] slots;
@@ -27,8 +34,8 @@ public class PrototypeSkills : MonoBehaviour
     {
         slots = new[]
         {
-            new Slot { key = "Q", name = "물러서기", cooldown = RetreatCooldown },
-            new Slot { key = "W", name = "돌진베기", cooldown = RushCooldown },
+            new Slot { key = "Q", name = "물러서기", skillId = "retreat", cooldown = RetreatCooldown },
+            new Slot { key = "W", name = "돌진베기", skillId = "rush_slash", cooldown = RushCooldown },
             new Slot { key = "E", name = "", empty = true },
         };
     }
@@ -54,15 +61,19 @@ public class PrototypeSkills : MonoBehaviour
     {
         var s = slots[index];
         if (s.empty || Time.time < s.readyAt) return;
+        // 활을 들고 있으면 W(돌진베기)는 못 씀 (스테미너·쿨타임도 안 씀)
+        if (index == 1 && combat.UsingBow) return;
         var p = combat.player;
-        switch (index)
+        switch (s.skillId)
         {
-            case 0:   // Q 물러서기: 베지 않는다
+            case "retreat":   // 물러서기 (Q/W/E 어느 칸에서도 사용)
                 p.StartDash(-p.Facing, RetreatLength, RetreatSpeed, false);
                 combat.GrantSkillInvulnerable(RetreatInvulnerable);
                 break;
-            case 1:   // W 돌진베기: 피해는 돌진하는 동안 DashSlashAttack이 준다(적마다 한 번)
-                p.StartDash(p.Facing, RushLength, RushSpeed, true);
+            case "rush_slash":   // 돌진베기 (Q/W/E 어느 칸에서도 사용)
+                rushStartX = p.transform.position.x;
+                p.StartDash(p.Facing, RushLength, RushSpeed);
+                rushEndsAt = Time.time + RushLength;
                 break;
         }
         s.readyAt = Time.time + s.cooldown;
@@ -108,6 +119,20 @@ public class PrototypeSkills : MonoBehaviour
             GUI.color = Color.white;
             GUI.Label(new Rect(r.x + 5, r.y + 3, r.width, 18), s.key, keyStyle);
             GUI.Label(new Rect(r.x, r.y, r.width, r.height - 4), s.empty ? "비어 있음" : s.name, nameStyle);
+
+            // 활을 들고 있으면 W 칸을 어둡게 덮고 빨간 X
+            if (i == 1 && combat.UsingBow)
+            {
+                GUI.color = new Color(0, 0, 0, .55f);
+                GUI.DrawTexture(r, Texture2D.whiteTexture);
+                var xStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.MiddleCenter, fontSize = 44, fontStyle = FontStyle.Bold,
+                    padding = new RectOffset(0, 0, 0, 0), clipping = TextClipping.Overflow
+                };
+                GUI.color = new Color(1f, .25f, .25f);
+                GUI.Label(new Rect(r.x, r.y - 10, r.width, r.height + 20), "X", xStyle);
+            }
         }
 
         GUI.color = oldColor;

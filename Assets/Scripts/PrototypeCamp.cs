@@ -113,7 +113,7 @@ public class PrototypeCamp : MonoBehaviour
     {
         if (m == null || m.hp <= 0) return;
         int before = m.hp;
-        m.hp = Mathf.Max(0, m.hp - PrototypeCombat.CalcDamage(damage, PrototypeCombat.MonsterDefense));
+        m.hp -= PrototypeCombat.CalcDamage(damage, PrototypeCombat.MonsterDefense);
         var at = m.art.transform.position;
         int away = combat != null && combat.player.transform.position.x < at.x ? 1 : -1;
         JinaFx.Hit(at + Vector3.up * .1f, away, river ? new Color(.74f, .92f, 1) : new Color(1, .92f, .72f));
@@ -125,7 +125,7 @@ public class PrototypeCamp : MonoBehaviour
             m.art.transform.position = at + Vector3.right * away * .24f;
             m.windup = -1; m.visual.Winding = false; m.ready = Mathf.Max(m.ready, Time.time + .35f);
         }
-        if (m.hp == 0)
+        if (m.hp <= 0)
         {
             m.visual.Down(); m.windup = -1; m.visual.Winding = false;
             m.vanishAt = Time.time + 1.5f;
@@ -146,12 +146,11 @@ public class PrototypeCamp : MonoBehaviour
         return landed;
     }
 
-    // 몬스터 머리 위 체력바
+    // 몬스터 머리 위 체력바 (숫자는 막대 안쪽)
     void OnGUI()
     {
         if (combat == null || combat.PlayerHealth <= 0 || combat.Paused || Camera.main == null) return;
         var oldMatrix = GUI.matrix;
-        var oldColor = GUI.color;
         GUI.matrix = Matrix4x4.identity;
         foreach (var m in mobs)
         {
@@ -160,27 +159,11 @@ public class PrototypeCamp : MonoBehaviour
             Vector3 head = new Vector3(m.art.transform.position.x, m.art.bounds.max.y + .3f, 0);
             Vector3 screen = Camera.main.WorldToScreenPoint(head);
             // 화면 밖에 있는 몬스터는 그리지 않음
-            if (screen.z < 0 || screen.x < -50 || screen.x > Screen.width + 50) continue;
-            float width = 40, height = 6;
-            float x = screen.x - width / 2;
-            float y = Screen.height - screen.y - height;
-            float ratio = (float)m.hp / GhostHealth;
-            // 검은 테두리
-            GUI.color = new Color(0, 0, 0, .7f);
-            GUI.DrawTexture(new Rect(x - 1, y - 1, width + 2, height + 2), Texture2D.whiteTexture);
-            // 남은 체력만큼 빨간색으로 채우기
-            GUI.color = new Color(.9f, .2f, .2f);
-            GUI.DrawTexture(new Rect(x, y, width * ratio, height), Texture2D.whiteTexture);
-            // 막대 위에 체력 숫자 (검은 그림자 + 흰 글씨)
-            var numStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.LowerCenter, fontSize = 11, fontStyle = FontStyle.Bold };
-            var numRect = new Rect(x - 20, y - 16, width + 40, 14);
-            string numText = m.hp + " / " + GhostHealth;
-            GUI.color = Color.black;
-            GUI.Label(new Rect(numRect.x + 1, numRect.y + 1, numRect.width, numRect.height), numText, numStyle);
-            GUI.color = Color.white;
-            GUI.Label(numRect, numText, numStyle);
+            if (screen.z < 0 || screen.x < -80 || screen.x > Screen.width + 80) continue;
+            float width = 100, height = 20;
+            var r = new Rect(screen.x - width / 2, Screen.height - screen.y - height, width, height);
+            PrototypeCombat.DrawBar(r, (float)m.hp / GhostHealth, new Color(.9f, .2f, .2f), m.hp + " / " + GhostHealth, 17);
         }
-        GUI.color = oldColor;
         GUI.matrix = oldMatrix;
     }
 

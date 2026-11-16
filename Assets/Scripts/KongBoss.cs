@@ -209,7 +209,7 @@ public partial class KongBoss : MonoBehaviour
     {
         if (!Fighting) return false;
         int before = Health;
-        Health = Mathf.Max(0, Health - PrototypeCombat.CalcDamage(amount, 0));
+        Health -= PrototypeCombat.CalcDamage(amount, 0);
         HitAt = Time.time;
         if (sword) Stagger(amount);
         var at = Feet + new Vector3(0, 1.4f, 0);

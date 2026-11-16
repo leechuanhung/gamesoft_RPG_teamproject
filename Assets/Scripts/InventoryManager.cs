@@ -5,13 +5,13 @@ using UnityEngine;
 
 public class InventoryManager : MonoBehaviour
 {
-    [SerializeField, Min(1)] private int maxSlots = 20;
+    public const int OrdinarySlotCapacity = 60;
 
     private readonly List<InventorySlot> slots =
         new List<InventorySlot>();
 
     public IReadOnlyList<InventorySlot> Slots => slots;
-    public int MaxSlots => Mathf.Max(1, maxSlots);
+    public int MaxSlots => OrdinarySlotCapacity;
 
     public event Action OnInventoryChanged;
 
@@ -33,9 +33,13 @@ public class InventoryManager : MonoBehaviour
         }
 
         // 빈 슬롯에 보관할 수 있는 수량
-        capacity += (long)Math.Max(
-            0, MaxSlots - slots.Count
-        ) * maxStack;
+        // 은비녀처럼 보관함에서 별도로 표시하는 중요 아이템은
+        // 일반 아이템 60칸을 차지하지 않는다.
+        bool keyItem = item is JinaItem special && special.effect == JinaItem.Effect.Keepsake;
+        int ordinaryCount = 0;
+        foreach (var existing in slots)
+            if (!(existing.Item is JinaItem entry && entry.effect == JinaItem.Effect.Keepsake)) ordinaryCount++;
+        capacity += (long)Math.Max(0, keyItem ? 1 : MaxSlots - ordinaryCount) * maxStack;
 
         // 전부 들어가지 않으면 아무것도 추가하지 않음
         if (capacity < amount)
