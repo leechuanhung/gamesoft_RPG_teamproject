@@ -100,8 +100,18 @@ public static partial class JinaPlayChecks
     }
 
     // Private state is reached by reflection; auto-properties are "<Name>k__BackingField".
-    static T Field<T>(object obj,string name) => (T)obj.GetType().GetField(name,BindingFlags.NonPublic|BindingFlags.Instance).GetValue(obj);
-    static void Set(object obj,string name,object value) => obj.GetType().GetField(name,BindingFlags.NonPublic|BindingFlags.Instance).SetValue(obj,value);
+    // 비공개 필드는 부모 클래스(예: NpcTalk의 lines, IsOpen)까지 거슬러 찾는다.
+    static FieldInfo FindField(object obj,string name)
+    {
+        for(var t=obj.GetType();t!=null;t=t.BaseType)
+        {
+            var f=t.GetField(name,BindingFlags.NonPublic|BindingFlags.Instance|BindingFlags.DeclaredOnly);
+            if(f!=null) return f;
+        }
+        return null;
+    }
+    static T Field<T>(object obj,string name) => (T)FindField(obj,name).GetValue(obj);
+    static void Set(object obj,string name,object value) => FindField(obj,name).SetValue(obj,value);
     static SpriteRenderer Picture(JinaActorVisual v) => Field<SpriteRenderer>(v,"picture");
     // Purifying takes the charm: hear the clue and read the stele (moon, river, mountain).
     static QuestProgress WithCharm(QuestProgress q) { q.HearClue(); q.ChooseSymbol(2); q.ChooseSymbol(1); q.ChooseSymbol(3); return q; }

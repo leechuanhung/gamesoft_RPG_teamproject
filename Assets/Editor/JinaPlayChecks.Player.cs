@@ -106,7 +106,7 @@ public static partial class JinaPlayChecks
         visual.SendMessage("LateUpdate");
         Capture("player-bow",new Vector3(0,1,-10),2);
 
-        // A hit he survives: he reels back, then stands again. The backstep (K) ducks away and cannot be hit.
+        // A hit he survives: he reels back, then stands again. The retreat skill (Q) ducks away and cannot be hit.
         visual.ResetPose(); Set(combat,"<PlayerHurtAt>k__BackingField",Time.time); visual.SendMessage("LateUpdate");
         Check(body().EndsWith("player_hit_00"),"Survived hit shows the recoil");
         Check(!Field<SpriteRenderer>(visual,"weapon").enabled,"No carried weapon while reeling");
@@ -114,14 +114,37 @@ public static partial class JinaPlayChecks
         Set(combat,"<PlayerHurtAt>k__BackingField",Time.time-SeonbiVisual.HurtLength-.01f); visual.SendMessage("LateUpdate");
         Check(body()==JinaArt.Player,"Recoil ends in idle");
         Set(combat,"<PlayerHurtAt>k__BackingField",-1f);
+        // 물러서기는 이제 Q 스킬이다(PrototypeSkills 0번 칸): 보는 반대쪽으로 빠르게 물러나고 잠시 무적.
+        combat.Skills.ResetSkills();
+        typeof(PrototypeSkills).GetMethod("TryUse",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(combat.Skills,new object[]{0});
+        Check(combat.player.Dodging,"Retreat skill starts the dash");
         Set(combat.player,"dodgeUntil",Time.time+1); visual.SendMessage("LateUpdate");
-        Check(body().EndsWith("player_dodge"),"Backstep frame");
+        Check(!combat.player.DashSlashing && body().EndsWith("player_dodge"),"Retreat is a backstep, not the rush's slash");
         Capture("player-dodge",new Vector3(0,1,-10),2);
-        Set(combat.player,"dodgeDir",-combat.player.Facing);   // K sets the hop backward; a double-tap dash sets it forward
         combat.player.SendMessage("FixedUpdate");
-        Check(rb.velocity.x*combat.player.Facing<0,"Backstep moves away from where he faces");
+        Check(rb.velocity.x*combat.player.Facing<0,"Retreat moves away from where he faces");
         int health=combat.PlayerHealth; Set(combat,"invulnerableUntil",0f); combat.HurtPlayer();
-        Check(combat.PlayerHealth==health && combat.PlayerHurtAt<0,"Backstep avoids the hit");
-        Set(combat.player,"dodgeUntil",0f); rb.velocity=Vector2.zero; visual.ResetPose(); visual.SendMessage("LateUpdate");
+        Check(combat.PlayerHealth==health && combat.PlayerHurtAt<0,"Retreat avoids the hit");
+        Check(combat.Skills.slots[0].readyAt>Time.time,"Retreat goes on cooldown");
+        // 물러서기는 지나가는 유령을 베지 않는다.
+        var dash=combat.player.GetComponent<DashSlashAttack>(); var ghost=combat.Camp.mobs[0];
+        int ghostHp=ghost.hp;
+        ghost.art.transform.position=combat.player.transform.position+Vector3.right*combat.player.Facing*.8f;
+        Call(dash,"FixedUpdate"); Call(dash,"FixedUpdate");
+        Check(ghost.hp==ghostHp,"Retreat cuts nothing");
+        Set(combat.player,"dodgeUntil",0f); Set(combat,"skillInvulnerableUntil",0f); combat.Skills.ResetSkills();
+        Call(dash,"FixedUpdate");
+        // W 돌진베기: 돌진 그림, 지나가는 유령을 한 번만 벤다(돌진이 끝난 뒤에도 더 맞지 않는다).
+        typeof(PrototypeSkills).GetMethod("TryUse",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(combat.Skills,new object[]{1});
+        Set(combat.player,"dodgeUntil",Time.time+1); visual.SendMessage("LateUpdate");
+        Check(combat.player.DashSlashing && body().Contains("dash_slash_"),"Rush shows the dash slash");
+        Call(dash,"FixedUpdate"); Call(dash,"FixedUpdate");
+        int rushCut=ghostHp-PrototypeCombat.CalcDamage(PrototypeCombat.DashSlashDamage,PrototypeCombat.MonsterDefense);
+        Check(ghost.hp==rushCut,"Rush cuts a ghost once: "+ghost.hp);
+        Set(combat.player,"dodgeUntil",0f); Call(dash,"FixedUpdate"); Call(combat.Skills);
+        Check(ghost.hp==rushCut,"No second cut when the rush ends");
+        combat.Camp.ResetCamp();
+        Set(combat,"skillInvulnerableUntil",0f); combat.Skills.ResetSkills();
+        rb.velocity=Vector2.zero; visual.ResetPose(); visual.SendMessage("LateUpdate");
     }
 }

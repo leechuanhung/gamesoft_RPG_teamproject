@@ -18,7 +18,7 @@ public class PrototypePlayer : MonoBehaviour
     public void Lunge(int direction, float speed, float length) { lungeSpeed = direction * speed; lungeUntil = Time.time + length; }
     private int dodgeDir = 1;
     private bool backstepDodge;
-    // Distinguishes double-tap forward dash from K backstep (both use Dodging).
+    // W 돌진베기(지나가는 적을 벰, DashSlashAttack)와 Q 물러서기(베지 않음)를 가른다. 둘 다 Dodging이다.
     public bool DashSlashing => Dodging && !backstepDodge;
     // 스킬(Q·W) 이동인지: 그림은 대시 베기 모션 그대로, 피해는 PrototypeSkills가 따로 줌
     private bool skillMove;

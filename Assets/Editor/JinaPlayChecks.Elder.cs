@@ -22,9 +22,9 @@ public static partial class JinaPlayChecks
         bool flipped=body.flipX; var lying=body.transform.position;
         boss.transform.position=new Vector3(WorldBuilder.Elder.x+(flipped ? 3 : -3),boss.transform.position.y,0);
         combat.player.transform.position=new Vector3(WorldBuilder.Elder.x+(flipped ? 1.2f : -1.2f),combat.player.transform.position.y,0);
-        Set(combat.Quest,"<IsDialogOpen>k__BackingField",true); Set(combat.Quest,"shrineDialog",false); elderVisual.Refresh();
+        Set(combat.Quest,"<IsOpen>k__BackingField",true); Set(combat.Quest,"shrineDialog",false); elderVisual.Refresh();
         Check(body.flipX==flipped && body.transform.position==lying,"Corpse does not turn when the note is read or the boss passes");
         Capture("elder-corpse",new Vector3(WorldBuilder.Elder.x,1,-10),2.5f);
-        Set(combat.Quest,"<IsDialogOpen>k__BackingField",false);
+        Set(combat.Quest,"<IsOpen>k__BackingField",false);
     }
 }

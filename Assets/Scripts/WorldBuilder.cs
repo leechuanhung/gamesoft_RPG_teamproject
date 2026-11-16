@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // ===== 땅·기물·배경·발판 배치 (WorldBuilder) =====
@@ -99,6 +100,7 @@ public class WorldBuilder : MonoBehaviour
         Tile("왼쪽 끝", -70.5f, 3, 1, 8, new Color(.3f,.3f,.38f), sprite, true);
         Tile("오른쪽 끝", HillEnd + .5f, 3, 1, 8, new Color(.4f,.38f,.3f), sprite, true);
         Tile("한양으로 가는 길", GoalX, 1, .4f, 3, new Color(1,.75f,.2f), sprite, false);
+        Solids();
         for (int i = 0; i < 5; i++) Prop("숲 소나무", "pine", 32 + i * 6, -10, i % 2 == 1);
         Prop("마을 기와집", "house", 4.5f, -10);
         // 주막 문은 건물 중심에서 왼쪽으로 약 1칸, 주모 뒤.
@@ -221,8 +223,31 @@ public class WorldBuilder : MonoBehaviour
         art.sprite = sprite;
         art.color = color;
         art.sortingOrder = order;
-        if (solid) { tile.layer = 8; tile.AddComponent<BoxCollider2D>(); }
+        if (solid) { tile.layer = 8; solids.Add(new Rect(x - width / 2, y - height / 2, width, height)); }
     }
+
+    // 단단한 땅과 벽의 범위. 충돌체는 Build 끝에 Solids가 붙인다.
+    readonly List<Rect> solids = new List<Rect>();
+
+    // 땅의 충돌체: 윗면과 바닥이 같은 조각이 맞닿으면 상자 하나로 합친다. 조각마다 상자를 따로 두면
+    // 이음매에서 옆 상자의 모서리가 걷는 선비의 상자를 가로막아, 맵 경계(땅 조각이 바뀌는 곳)를
+    // 걸어서는 못 지나가고 뛰어야 넘을 때가 있었다.
+    void Solids()
+    {
+        solids.Sort((a, b) => a.xMin.CompareTo(b.xMin));
+        for (int i = 0; i < solids.Count; i++)
+        {
+            var run = solids[i];
+            while (i + 1 < solids.Count && Joins(run, solids[i + 1])) run.xMax = solids[++i].xMax;
+            var box = new GameObject("땅 충돌체");
+            box.transform.SetParent(transform);
+            box.transform.position = run.center;
+            box.layer = 8;
+            box.AddComponent<BoxCollider2D>().size = run.size;
+        }
+        solids.Clear();
+    }
+    static bool Joins(Rect a, Rect b) => Mathf.Abs(a.xMax - b.xMin) < .01f && Mathf.Abs(a.yMin - b.yMin) < .01f && Mathf.Abs(a.yMax - b.yMax) < .01f;
 }
 
 // ===== 원경 패럴랙스 (ParallaxLayer) =====

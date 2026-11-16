@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// 뒷산 곳곳의 큰 독. 콩쥐 요괴가 던지는 것을 막는다. 요괴 탄 세 번이나
-// 선비의 타격(칼이나 화살) 두 번에 깨진다. 깨진 독에서 꿀단지가 튀어나와 땅에 떨어지고,
+// 뒷산 곳곳의 큰 독. 콩쥐 요괴가 던지는 것을 막는다. 요괴 탄 세 번이나 선비의 타격 두 번에
+// 깨진다. 독은 체력이 아니라 기믹이라, 선비의 타격은 무엇이든(칼, 화살, 돌진베기) 피해와 상관없이
+// 한 대로 센다. 깨진 독에서 꿀단지가 튀어나와 땅에 떨어지고,
 // 닿으면 바로 회복된다(인벤토리 물건이 아니고, 체력이 가득하면 기다린다).
 public partial class KongBoss
 {
@@ -45,12 +46,13 @@ public partial class KongBoss
         }
         return false;
     }
-    // 선비의 칼(PrototypeCombat): 베는 범위의 서 있는 독이 모두 한 번 맞는다. 하나라도 맞으면 true.
-    public bool BlowCrocks(Bounds blow)
+    // 선비의 칼과 돌진베기(PrototypeCombat): 범위 안의 서 있는 독이 모두 한 대씩 맞는다. 하나라도 맞으면 true.
+    // `once`: 돌진베기처럼 여러 프레임에 걸친 타격이 이미 친 것. 여기 있는 독은 다시 맞지 않는다.
+    public bool BlowCrocks(Bounds blow, HashSet<object> once = null)
     {
         bool any = false;
         foreach (var c in crocks)
-            if (!c.Broken && c.art.bounds.Intersects(blow)) { c.blows++; Struck(c, true); any = true; }
+            if (!c.Broken && c.art.bounds.Intersects(blow) && (once == null || once.Add(c))) { c.blows++; Struck(c, true); any = true; }
         return any;
     }
     public void BlowCrock(int index) { var c = crocks[index]; if (!c.Broken) { c.blows++; Struck(c, true); } }

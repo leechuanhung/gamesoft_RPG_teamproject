@@ -212,7 +212,9 @@ public static class JinaUI
         return Visible(s, now - seen.first);
     }
 
-    // 타자 중인 줄에서 E를 누를 때: 타자 중이었으면 true를 돌려주고 전체를 보여 준다.
+    // 타자 중인 줄에서 엔터를 누를 때: 타자 중이었으면 true를 돌려주고 전체를 보여 준다.
+    // 대화·조사·다음 넘기기 키(엔터). 숫자판 엔터도 받는다.
+    public static bool Interact => Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter);
     public static bool FinishTyping(string s)
     {
         if (string.IsNullOrEmpty(s) || !typing.TryGetValue(s, out var seen)) return false;
@@ -291,7 +293,7 @@ public static class JinaUI
         toastY += h + 6;
     }
     // 지금 여기서 할 수 있는 행동, 아래 가운데. 한 프레임에 두 스크립트가 부르면 먼저 부른 쪽이 이긴다.
-    // "E: 말 걸기"는 키를 작은 키캡으로 글 앞에 그린다.
+    // "Enter: 말 걸기"는 키를 작은 키캡으로 글 앞에 그린다.
     public const float PromptBottom = 44;
     // 화면 아래 가운데에 행동 안내를 띄운다.
     public static void Prompt(string s)
@@ -300,7 +302,7 @@ public static class JinaUI
         promptFrame = Time.frameCount;
         string key = null, words = s;
         int colon = s.IndexOf(": ");
-        if (colon > 0 && colon <= 2) { key = s.Substring(0, colon); words = s.Substring(colon + 2); }
+        if (colon > 0 && colon <= 5) { key = s.Substring(0, colon); words = s.Substring(colon + 2); }
         float keyWidth = key == null ? 0 : Mathf.Max(24, Width(key, 14, true) + 12) + 10;
         float w = Mathf.Min(Width(words, 15) + keyWidth + 36, W - 40), h = Height(words, 15, w - 28 - keyWidth) + 16;
         h = Mathf.Max(h, 36);
