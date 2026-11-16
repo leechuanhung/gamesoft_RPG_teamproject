@@ -312,7 +312,8 @@ public partial class PrototypeCombat : MonoBehaviour
 
         if ((Input.GetKeyDown(KeyCode.J) || Input.GetMouseButtonDown(0)) && Time.time >= nextAttack && UsingBow && Arrows <= 0)
             noArrowsUntil = Time.time + 1.5f;
-        else if ((Input.GetKeyDown(KeyCode.J) || Input.GetMouseButtonDown(0)) && Time.time >= nextAttack && !player.Dodging)
+        else if ((Input.GetKeyDown(KeyCode.J) || Input.GetMouseButtonDown(0)) && Time.time >= nextAttack && !player.Dodging
+            && player.UseStamina(PrototypeSkills.AttackStamina))
         {
             // Another swing soon enough after the last goes on to the next step; otherwise it starts over.
             pendingStep = UsingBow ? 0 : Time.time <= comboUntil ? (comboStep + 1) % 3 : 0;
@@ -399,6 +400,7 @@ public partial class PrototypeCombat : MonoBehaviour
     public void SkillHit(Bounds area, int damage)
     {
         if (!EnemyDefeated && area.Intersects(enemy.bounds)) DamageEnemy(damage);
+        if (KongBoss != null && KongBoss.Fighting && area.Intersects(KongBoss.HurtBox)) KongBoss.Damage(damage, true);
         foreach (var camp in Camps) if (camp != null) camp.Slash(area, damage);
     }
 
@@ -432,71 +434,72 @@ public partial class PrototypeCombat : MonoBehaviour
         ClearArrows();
     }
 
-    // 선비 머리 위 체력바
-    void DrawPlayerHealthBar()
+    // 막대 하나 그리기: 검은 테두리 + 어두운 바탕 + 비율만큼 채우기 + 가운데 글씨(그림자)
+    // 다른 파일에서도 PrototypeCombat.DrawBar(...)로 씀. GUI.matrix는 부르는 쪽에서 맞춤.
+    public static void DrawBar(Rect r, float ratio, Color fill, string text, int fontSize)
     {
-        if (PlayerHealth <= 0 || Paused || Camera.main == null) return;
-        // 머리 위 지점(월드 좌표)을 화면 좌표로 바꿈
-        Vector3 head = new Vector3(player.transform.position.x, playerArt.bounds.max.y + .8f, 0);
-        Vector3 screen = Camera.main.WorldToScreenPoint(head);
-        if (screen.z < 0) return;
-        float width = 60, height = 8;
-        float x = screen.x - width / 2;
-        float y = Screen.height - screen.y - height;   // GUI는 y축이 위에서 아래로
-        float ratio = (float)PlayerHealth / MaxPlayerHealth;
-
-        var oldMatrix = GUI.matrix;
-        var oldColor = GUI.color;
-        GUI.matrix = Matrix4x4.identity;
-        // 검은 테두리
-        GUI.color = new Color(0, 0, 0, .7f);
-        GUI.DrawTexture(new Rect(x - 1, y - 1, width + 2, height + 2), Texture2D.whiteTexture);
-        // 체력 비율만큼 채우기: 50% 초과 초록, 25% 초과 노랑, 그 이하 빨강
-        GUI.color = ratio > .5f ? new Color(.3f, .85f, .3f) : ratio > .25f ? new Color(.95f, .75f, .2f) : new Color(.9f, .2f, .2f);
-        GUI.DrawTexture(new Rect(x, y, width * ratio, height), Texture2D.whiteTexture);
-        var numStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.LowerCenter, fontSize = 12, fontStyle = FontStyle.Bold };
-        var numRect = new Rect(x - 20, y - 18, width + 40, 16);
-        string numText = PlayerHealth + " / " + MaxPlayerHealth;
+        var old = GUI.color;
+        GUI.color = new Color(0, 0, 0, .8f);
+        GUI.DrawTexture(new Rect(r.x - 2, r.y - 2, r.width + 4, r.height + 4), Texture2D.whiteTexture);
+        GUI.color = new Color(.15f, .15f, .15f, .9f);
+        GUI.DrawTexture(r, Texture2D.whiteTexture);
+        GUI.color = fill;
+        GUI.DrawTexture(new Rect(r.x, r.y, r.width * Mathf.Clamp01(ratio), r.height), Texture2D.whiteTexture);
+        var style = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.MiddleCenter, fontSize = fontSize, fontStyle = FontStyle.Bold,
+            padding = new RectOffset(0, 0, 0, 0), margin = new RectOffset(0, 0, 0, 0),
+            clipping = TextClipping.Overflow, wordWrap = false
+        };
+        // 글씨 상자를 위아래로 넉넉히 잡아서 막대 정가운데에 오게 함
+        var textRect = new Rect(r.x, r.y - 24, r.width, r.height + 40);
         GUI.color = Color.black;
-        GUI.Label(new Rect(numRect.x + 1, numRect.y + 1, numRect.width, numRect.height), numText, numStyle);
+        GUI.Label(new Rect(textRect.x + 1, textRect.y + 1, textRect.width, textRect.height), text, style);
         GUI.color = Color.white;
-        GUI.Label(numRect, numText, numStyle);
-        GUI.color = oldColor;
-        GUI.matrix = oldMatrix;
+        GUI.Label(textRect, text, style);
+        GUI.color = old;
     }
 
+    // 화면 오른쪽 아래: 선비 체력(위)과 스테미너(아래)
+    void DrawPlayerHealthBar()
+    {
+        if (PlayerHealth <= 0 || Paused) return;
+        var oldMatrix = GUI.matrix;
+        GUI.matrix = Matrix4x4.identity;
+
+        float width = 380, height = 34, gap = 10, margin = 24;
+        float x = Screen.width - margin - width;
+        float staminaY = Screen.height - margin - height;
+        float healthY = staminaY - gap - height;
+
+        // 체력: 50% 초과 초록, 25% 초과 노랑, 그 이하 빨강
+        float hp = (float)PlayerHealth / MaxPlayerHealth;
+        Color hpColor = hp > .5f ? new Color(.3f, .85f, .3f) : hp > .25f ? new Color(.95f, .75f, .2f) : new Color(.9f, .2f, .2f);
+        DrawBar(new Rect(x, healthY, width, height), hp, hpColor,
+            "체력  " + Mathf.Max(0, PlayerHealth) + " / " + MaxPlayerHealth, 20);
+
+        // 스테미너: 파란색
+        DrawBar(new Rect(x, staminaY, width, height), (float)player.Stamina / PrototypePlayer.MaxStamina, new Color(.25f, .55f, 1f),
+            "스테미너  " + player.Stamina + " / " + PrototypePlayer.MaxStamina, 20);
+
+        GUI.matrix = oldMatrix;
+    }
+    
     // 화면 상단 중앙 보스 체력바 (보스와 마주친 뒤부터 표시, 쓰러뜨리거나 정화하면 숨김)
     void DrawBossHealthBar()
     {
         if (!alerted || EnemyDefeated || PlayerHealth <= 0 || Paused) return;
         var oldMatrix = GUI.matrix;
-        var oldColor = GUI.color;
         GUI.matrix = Matrix4x4.identity;
 
-        float width = Screen.width * .4f, height = 18;
+        float width = Screen.width * .4f, height = 30;
         float x = (Screen.width - width) / 2;
-        float y = 32;
-        float ratio = (float)EnemyHealth / EnemyMaxHealth;
+        float y = 28;
+        DrawBar(new Rect(x, y, width, height), (float)EnemyHealth / EnemyMaxHealth, new Color(.85f, .15f, .2f),
+            "도깨비   " + Mathf.Max(0, EnemyHealth) + " / " + EnemyMaxHealth, 18);
 
-        // 검은 테두리
-        GUI.color = new Color(0, 0, 0, .75f);
-        GUI.DrawTexture(new Rect(x - 2, y - 2, width + 4, height + 4), Texture2D.whiteTexture);
-        // 빈 칸 (어두운 빨강)
-        GUI.color = new Color(.3f, .08f, .08f);
-        GUI.DrawTexture(new Rect(x, y, width, height), Texture2D.whiteTexture);
-        // 남은 체력 (밝은 빨강)
-        GUI.color = new Color(.85f, .15f, .2f);
-        GUI.DrawTexture(new Rect(x, y, width * ratio, height), Texture2D.whiteTexture);
-
-        // 막대 위에 이름과 숫자
-        GUI.color = Color.white;
-        var style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
-        GUI.Label(new Rect(x, y - 26, width, 24), "도깨비   " + EnemyHealth + " / " + EnemyMaxHealth, style);
-
-        GUI.color = oldColor;
         GUI.matrix = oldMatrix;
     }
-
     void OnGUI()
     {
         PrototypeKoreanUI.Apply();

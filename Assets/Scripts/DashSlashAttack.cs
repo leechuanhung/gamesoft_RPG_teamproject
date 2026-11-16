@@ -30,7 +30,7 @@ public class DashSlashAttack : MonoBehaviour
     {
         if (player == null || combat == null) return;
         Vector3 now = transform.position;
-        bool active = player.DashSlashing && !combat.Paused && combat.PlayerHealth > 0 && player.CanMove;
+        bool active = player.DashSlashDamage && !combat.Paused && combat.PlayerHealth > 0 && player.CanMove;
         if (!active)
         {
             wasDashing = false;
