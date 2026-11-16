@@ -70,6 +70,18 @@ public static partial class JinaPlayChecks
         // Blows, the hurt box, the cover, what she throws.
         int hp=boss.Health;
         Check(boss.HurtBox.size.x>2 && boss.Damage(PrototypeCombat.SwordDamage,true) && boss.Health==hp-PrototypeCombat.SwordDamage,"A wide target that takes the sword");
+        // W 돌진베기도 그녀를 벤다(돌진 한 번에 한 번). Q 물러서기는 베지 않는다.
+        var dash=combat.player.GetComponent<DashSlashAttack>(); var feet=player.position;
+        // 돌진베기는 지난 물리 프레임 자리부터 훑는다: 옮긴 뒤 돌진하지 않는 프레임을 한 번 돌려 그 자리를 새로 잡는다.
+        player.position=new Vector3(boss.Feet.x+1,boss.Feet.y+.95f,0); Call(dash,"FixedUpdate");
+        hp=boss.Health;
+        combat.player.StartDash(1,PrototypeSkills.RushLength,PrototypeSkills.RushSpeed,true);
+        Call(dash,"FixedUpdate"); Call(dash,"FixedUpdate");
+        Check(boss.Health==hp-PrototypeCombat.DashSlashDamage,"The rush cuts her once");
+        combat.player.StartDash(-1,PrototypeSkills.RetreatLength,PrototypeSkills.RetreatSpeed,false);
+        Call(dash,"FixedUpdate");
+        Check(boss.Health==hp-PrototypeCombat.DashSlashDamage,"The retreat does not");
+        Set(combat.player,"dodgeUntil",0f); Call(dash,"FixedUpdate"); player.position=feet;
         int standing=boss.CrocksStanding;
         boss.StrikeCrock(0,KongBoss.CrockShots-1); Check(boss.CrocksStanding==standing && boss.HoneyCount==0,"A crock takes a couple of her shots");
         boss.StrikeCrock(0,1); Check(boss.CrocksStanding==standing-1 && boss.HoneyCount==1,"The third breaks it, and honey spills out");
@@ -88,6 +100,17 @@ public static partial class JinaPlayChecks
         Check(combat.PlayerHealth==50+KongBoss.HoneyHeal && boss.HoneyCount==1,"Touching it heals him at once");
         Set(combat,"<PlayerHealth>k__BackingField",PrototypeCombat.MaxPlayerHealth);
         int crockAt; Check(boss.CrockArrowDistance(new Vector2(WorldBuilder.HillCrocks[2]-3,WorldBuilder.Top(WorldBuilder.HillCrocks[2])+.6f),Vector2.right,5,out crockAt)<5 && crockAt==2,"Arrows strike the crocks too");
+        // W 돌진베기도 독을 한 대 친다(돌진 한 번에 한 대). 무슨 타격이든 두 대에 깨진다.
+        float rx=WorldBuilder.HillCrocks[3]; standing=boss.CrocksStanding; int jars=boss.HoneyCount;
+        player.position=new Vector3(rx-.5f,WorldBuilder.Top(rx)+.95f,0); Call(dash,"FixedUpdate");
+        combat.player.StartDash(1,PrototypeSkills.RushLength,PrototypeSkills.RushSpeed,true);
+        Call(dash,"FixedUpdate"); Call(dash,"FixedUpdate");
+        Check(boss.CrocksStanding==standing && boss.HoneyCount==jars,"One rush only cracks a crock");
+        Set(combat.player,"dodgeUntil",0f); Call(dash,"FixedUpdate");
+        combat.player.StartDash(1,PrototypeSkills.RushLength,PrototypeSkills.RushSpeed,true);
+        Call(dash,"FixedUpdate");
+        Check(boss.CrocksStanding==standing-1 && boss.HoneyCount==jars+1,"A second rush breaks it and spills honey");
+        Set(combat.player,"dodgeUntil",0f); Call(dash,"FixedUpdate");
         player.position=new Vector3(WorldBuilder.KongLair-6,.3f,0);
 
         // Out of a hollow: against the mound's wall (1.6 high) she leaps high and lands on top.

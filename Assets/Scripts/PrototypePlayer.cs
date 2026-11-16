@@ -18,7 +18,7 @@ public class PrototypePlayer : MonoBehaviour
     public void Lunge(int direction, float speed, float length) { lungeSpeed = direction * speed; lungeUntil = Time.time + length; }
     private int dodgeDir = 1;
     private bool backstepDodge;
-    // Distinguishes double-tap forward dash from K backstep (both use Dodging).
+    // W 돌진베기(지나가는 적을 벰, DashSlashAttack)와 Q 물러서기(베지 않음)를 가른다. 둘 다 Dodging이다.
     public bool DashSlashing => Dodging && !backstepDodge;
     private float dashSpeed = DodgeSpeed;   // 대시 속도 (스킬마다 다르게 쓰기 위해)
     // Light straw sandals (JinaItems) quicken his walk and run until then.
@@ -96,9 +96,10 @@ public class PrototypePlayer : MonoBehaviour
     public void Face(int dir) { if (dir != 0) Facing = dir > 0 ? 1 : -1; }
 
     // 스킬용 이동: dir 방향으로 length초 동안 speed 속도로 이동 (이동 중엔 Dodging = true)
-    public void StartDash(int dir, float length, float speed)
+    // `slash`: 지나가는 적을 베는 돌진인지(W). 물러서기(Q)는 false라 베지 않고 뒷걸음 그림이 나온다.
+    public void StartDash(int dir, float length, float speed, bool slash)
     {
-        backstepDodge = false; // 스킬 대시임을 명시
+        backstepDodge = !slash;
         dodgeDir = dir > 0 ? 1 : -1;
         dashSpeed = speed;
         dodgeUntil = Time.time + length;

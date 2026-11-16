@@ -395,13 +395,6 @@ public partial class PrototypeCombat : MonoBehaviour
         return angle > 15f ? 1 : angle < -15f ? -1 : 0;
     }
 
-    // 스킬 공격: area 안의 보스와 일반 몬스터에게 damage만큼 피해
-    public void SkillHit(Bounds area, int damage)
-    {
-        if (!EnemyDefeated && area.Intersects(enemy.bounds)) DamageEnemy(damage);
-        foreach (var camp in Camps) if (camp != null) camp.Slash(area, damage);
-    }
-
     public void HurtPlayer(int attack = MonsterAttack)
     {
         // 스킬 무적 중에는 맞지 않음

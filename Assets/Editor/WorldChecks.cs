@@ -11,6 +11,8 @@ public static class WorldChecks
         var world = new GameObject("World Check").AddComponent<WorldBuilder>();
         world.Build(AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/PrototypeSquare.png"));
         Physics2D.SyncTransforms();
+        // 같은 높이로 이어진 땅은 충돌체 하나여야 한다: 이음매가 있으면 걷던 선비가 옆 조각의 모서리에 걸린다.
+        Collider2D lastFloor = null; float lastTop = 0;
         for (int x = -69; x < (int)WorldBuilder.HillEnd; x++)
         {
             if (x == (int)WorldBuilder.RiverLeft || x == (int)WorldBuilder.RiverRight) continue;   // the bank's very edge
@@ -21,6 +23,8 @@ public static class WorldChecks
                 if (!hit.collider.usedByEffector) { floor = hit; break; }
             Require(river || floor.collider != null && Mathf.Abs(floor.point.y - WorldBuilder.Top(x + .5f)) < .01f, "Floor at the wrong height at " + x);
             Require((floor.collider != null) != river, (river ? "Floor over the river at " : "Missing floor at ") + x);
+            Require(floor.collider == null || lastFloor == null || Mathf.Abs(floor.point.y - lastTop) > .01f || floor.collider == lastFloor, "Seam in level ground at " + x);
+            lastFloor = floor.collider; lastTop = floor.point.y;
         }
         Require(!WorldBuilder.CanDetect(new Vector2(WorldBuilder.FerryStart + 2, .2f), new Vector2(WorldBuilder.EnemyMax, .7f)), "The boss never notices him at the ferry");
         Require(WorldBuilder.GoalX > WorldBuilder.HillStart && WorldBuilder.GoalX < WorldBuilder.HillEnd, "The road to Hanyang is past the back hill");

@@ -23,9 +23,6 @@ public class PrototypeSkills : MonoBehaviour
     }
     public Slot[] slots;
 
-    // 돌진이 끝나는 시각과 시작 위치 (끝나는 순간 지나온 구간에 한 번 피해)
-    private float rushEndsAt = -1, rushStartX;
-
     void Awake()
     {
         slots = new[]
@@ -40,7 +37,6 @@ public class PrototypeSkills : MonoBehaviour
     public void ResetSkills()
     {
         if (slots != null) foreach (var s in slots) s.readyAt = 0;
-        rushEndsAt = -1;
     }
 
     bool CanUse => combat.PlayerHealth > 0 && !combat.Paused && combat.player.CanMove && !combat.player.Dodging;
@@ -48,18 +44,6 @@ public class PrototypeSkills : MonoBehaviour
     void Update()
     {
         if (combat == null || combat.player == null) return;
-
-        // 돌진이 끝나면 시작점~끝점 구간 전체에 한 번만 피해
-        if (rushEndsAt >= 0 && Time.time >= rushEndsAt)
-        {
-            rushEndsAt = -1;
-            var body = combat.player.GetComponent<SpriteRenderer>().bounds;
-            float endX = combat.player.transform.position.x;
-            var area = new Bounds(new Vector3((rushStartX + endX) / 2, body.center.y, 0),
-                new Vector3(Mathf.Abs(endX - rushStartX) + 1.4f, body.size.y, 1));
-            combat.SkillHit(area, RushDamage);
-        }
-
         if (!CanUse) return;
         if (Input.GetKeyDown(KeyCode.Q)) TryUse(0);
         else if (Input.GetKeyDown(KeyCode.W)) TryUse(1);
@@ -73,14 +57,12 @@ public class PrototypeSkills : MonoBehaviour
         var p = combat.player;
         switch (index)
         {
-            case 0:   // Q 물러서기
-                p.StartDash(-p.Facing, RetreatLength, RetreatSpeed);
+            case 0:   // Q 물러서기: 베지 않는다
+                p.StartDash(-p.Facing, RetreatLength, RetreatSpeed, false);
                 combat.GrantSkillInvulnerable(RetreatInvulnerable);
                 break;
-            case 1:   // W 돌진베기
-                rushStartX = p.transform.position.x;
-                p.StartDash(p.Facing, RushLength, RushSpeed);
-                rushEndsAt = Time.time + RushLength;
+            case 1:   // W 돌진베기: 피해는 돌진하는 동안 DashSlashAttack이 준다(적마다 한 번)
+                p.StartDash(p.Facing, RushLength, RushSpeed, true);
                 break;
         }
         s.readyAt = Time.time + s.cooldown;
