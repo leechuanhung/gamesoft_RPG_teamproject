@@ -23,6 +23,7 @@ public class PrototypeSkills : MonoBehaviour
     public class Slot
     {
         public string key, name;
+        public string skillId; // 장착된 스킬의 고유 ID (보관함에서 설정)
         public float cooldown, readyAt;
         public int stamina;
         public bool empty;
@@ -36,8 +37,8 @@ public class PrototypeSkills : MonoBehaviour
     {
         slots = new[]
         {
-            new Slot { key = "Q", name = "물러서기", cooldown = RetreatCooldown, stamina = RetreatStamina },
-            new Slot { key = "W", name = "돌진베기", cooldown = RushCooldown, stamina = RushStamina },
+            new Slot { key = "Q", name = "물러서기", skillId = "retreat", cooldown = RetreatCooldown },
+            new Slot { key = "W", name = "돌진베기", skillId = "rush_slash", cooldown = RushCooldown },
             new Slot { key = "E", name = "", empty = true },
         };
     }
@@ -79,15 +80,13 @@ public class PrototypeSkills : MonoBehaviour
         // 활을 들고 있으면 W(돌진베기)는 못 씀 (스테미너·쿨타임도 안 씀)
         if (index == 1 && combat.UsingBow) return;
         var p = combat.player;
-        // 스테미너가 모자라면 쓰지 않음 (쿨타임도 안 돎)
-        if (!p.UseStamina(s.stamina)) return;
-        switch (index)
+        switch (s.skillId)
         {
-            case 0:   // Q 물러서기
-                p.StartDash(-p.Facing, RetreatLength, RetreatSpeed, true);
+            case "retreat":   // 물러서기 (Q/W/E 어느 칸에서도 사용)
+                p.StartDash(-p.Facing, RetreatLength, RetreatSpeed, false);
                 combat.GrantSkillInvulnerable(RetreatInvulnerable);
                 break;
-            case 1:   // W 돌진베기
+            case "rush_slash":   // 돌진베기 (Q/W/E 어느 칸에서도 사용)
                 rushStartX = p.transform.position.x;
                 p.StartDash(p.Facing, RushLength, RushSpeed);
                 rushEndsAt = Time.time + RushLength;
