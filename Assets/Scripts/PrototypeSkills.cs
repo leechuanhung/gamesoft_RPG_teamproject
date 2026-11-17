@@ -17,8 +17,8 @@ public class PrototypeSkills : MonoBehaviour
 
 // ── 스테미너 소모량 ──
     public const int AttackStamina = 10;    // 기본 공격 (PrototypeCombat에서 사용)
-    public const int RetreatStamina = 10;   // Q 물러서기
-    public const int RushStamina = 20;      // W 돌진베기
+    public const int RetreatStamina = 20;   // 물러서기
+    public const int RushStamina = 30;      // 돌진베기
     
     public class Slot
     {
@@ -67,6 +67,9 @@ public class PrototypeSkills : MonoBehaviour
         // 활을 들고 있으면 W(돌진베기)는 못 씀 (스테미너·쿨타임도 안 씀)
         if (index == 1 && combat.UsingBow) return;
         var p = combat.player;
+        // 스킬 종류에 따라 스테미너 소모. 모자라면 쓰지 않음 (쿨타임도 안 돎)
+        int cost = s.skillId == "retreat" ? RetreatStamina : s.skillId == "rush_slash" ? RushStamina : 0;
+        if (!p.UseStamina(cost)) return;
         switch (s.skillId)
         {
             case "retreat":   // 물러서기 (Q/W/E 어느 칸에서도 사용)
