@@ -219,7 +219,7 @@ public class JinaFx : MonoBehaviour
         var cam = Camera.main;
         if (cam == null) return;
         GUI.depth = 5;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         for (int i = popups.Count - 1; i >= 0; i--)
         {
             var p = popups[i];

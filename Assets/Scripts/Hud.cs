@@ -4,9 +4,9 @@ using UnityEngine;
 // 저절로 접힘), 선악 게이지와 수(오른쪽 위), 보스 막대(위 가운데),
 // 맵 사이 길 안내(아래 가운데). 판은 글자에 맞춰 크기가 정해진다. 연출 중에는 비켜 주고,
 // 창이 열리면 작아진다. 맞으면 화면 가장자리가 붉어지고, 죽을 때가 가까워도 붉어진다.
-public class PrototypeHud : MonoBehaviour
+public class Hud : MonoBehaviour
 {
-    public PrototypeCombat combat;
+    public Combat combat;
     public const float PanelWidth = 276, Margin = 12, GuideFoldsAfter = 22f;
     public bool GuideOpen { get; private set; } = true;
     private bool guideTouched;
@@ -88,7 +88,7 @@ public class PrototypeHud : MonoBehaviour
     void OnGUI()
     {
         if (combat == null) return;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         // 화면 가장자리: 맞을 때마다 번쩍, 죽을 때가 가까우면 느리게 맥박. 세상 위, 모든 판 아래.
         if (combat.PlayerHealth > 0 && !Hidden) DrawHurt();
         if (Hidden) { JinaUI.ToastTop = 14; return; }
@@ -103,7 +103,7 @@ public class PrototypeHud : MonoBehaviour
     void DrawHurt()
     {
         float flash = combat.PlayerHurtAt < 0 ? 0 : Mathf.Clamp01(1 - (Time.time - combat.PlayerHurtAt) / .32f);
-        float low = combat.PlayerHealth <= PrototypeCombat.MaxPlayerHealth / 4 ? .3f + .16f * Mathf.Sin(Time.time * 4.4f) : 0;
+        float low = combat.PlayerHealth <= Combat.MaxPlayerHealth / 4 ? .3f + .16f * Mathf.Sin(Time.time * 4.4f) : 0;
         float a = Mathf.Max(flash * .85f, low);
         if (a <= 0) return;
         var v = JinaUI.Art("vignette");
@@ -145,7 +145,7 @@ public class PrototypeHud : MonoBehaviour
         if (!combat.UsingBow && combat.ComboStep >= 0)
             for (int i = 0; i < 3; i++)
                 JinaUI.Fill(new Rect(left + width - 34 + i * 12, y + 12, 8, 8), i <= combat.ComboStep ? JinaUI.Gold : new Color(.3f, .26f, .22f));
-        // 체력은 이제 머리 위에 그린다(PrototypeCombat.DrawPlayerHealthBar).
+        // 체력은 이제 머리 위에 그린다(Combat.DrawPlayerHealthBar).
         JinaUI.Icon("icon_arrow", left - 2, y + 47, 1.25f);
         JinaUI.Text(new Rect(left + 20, y + 48, 70, 18), combat.Arrows + " / " + ShopRules.MaxArrows, 13, combat.Arrows == 0 ? new Color(1, .5f, .4f) : JinaUI.Bright, TextAnchor.MiddleLeft);
         string coins = (combat.Tavern != null ? combat.Tavern.wallet.Coins : 0) + "문";
@@ -199,8 +199,8 @@ public class PrototypeHud : MonoBehaviour
         {
             q.ElderDead ? "노인 희생" : null,
             combat.Camp != null && combat.Camp.Remaining > 0 && combat.player.transform.position.x < WorldBuilder.ForestStart ? "들판 유령 " + combat.Camp.Remaining + "마리 남음" : null,
-            combat.River != null && combat.RiverFelled < PrototypeCombat.KeepsakeAt && (combat.RiverFelled > 0 || combat.River.Inside(combat.player.transform.position))
-                ? "물귀신 " + combat.RiverFelled + " / " + PrototypeCombat.KeepsakeAt : null,
+            combat.River != null && combat.RiverFelled < Combat.KeepsakeAt && (combat.RiverFelled > 0 || combat.River.Inside(combat.player.transform.position))
+                ? "물귀신 " + combat.RiverFelled + " / " + Combat.KeepsakeAt : null,
             combat.Kong != null && combat.Kong.InVillage && !combat.Kong.Revealed ? "콩밭 단서 " + combat.Kong.Clues + " / 3" : null,
         };
         int shown = 0; foreach (var row in rows) if (row != null) shown++;
@@ -228,7 +228,7 @@ public class PrototypeHud : MonoBehaviour
     void DrawBossBar()
     {
         JinaUI.ToastTop = Margin + 2;
-        // 막대 자체는 팀원 것(PrototypeCombat.DrawBossHealthBar). 알림은 그 아래로 간다.
+        // 막대 자체는 팀원 것(Combat.DrawBossHealthBar). 알림은 그 아래로 간다.
         bool kong = combat.KongBoss != null && combat.KongBoss.Fighting;
         if ((!combat.BossAlerted || combat.EnemyDefeated) && !kong || combat.Paused) return;
         JinaUI.ToastTop = Margin + 56;
@@ -238,7 +238,7 @@ public class PrototypeHud : MonoBehaviour
     void DrawRoute()
     {
         if (combat.Paused || combat.Maps == null) return;
-        int i = combat.Maps.Current; var all = PrototypeMaps.All;
+        int i = combat.Maps.Current; var all = Maps.All;
         string route = (i > 0 ? all[i - 1].name + "  ←  " : "") + "[ " + all[i].name + " ]" + (i + 1 < all.Length ? "  →  " + all[i + 1].name : "");
         float w = Mathf.Min(JinaUI.Width(route, 12) + 24, JinaUI.W - 20);
         var r = new Rect((JinaUI.W - w) / 2, JinaUI.H - 30, w, 22);

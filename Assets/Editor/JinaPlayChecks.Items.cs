@@ -13,15 +13,15 @@ public static partial class JinaPlayChecks
         // Each effect on its own.
         string said;
         var misut=JinaItems.Get("misutgaru");
-        Check(!misut.Use(combat,out said) && combat.PlayerHealth==PrototypeCombat.MaxPlayerHealth,"Food is kept at full health");
+        Check(!misut.Use(combat,out said) && combat.PlayerHealth==Combat.MaxPlayerHealth,"Food is kept at full health");
         Set(combat,"<PlayerHealth>k__BackingField",10);
         Check(JinaItems.Get("cheongsimhwan").Use(combat,out said) && combat.PlayerHealth==70,"Cheongsimhwan heals sixty");
-        Set(combat,"<PlayerHealth>k__BackingField",PrototypeCombat.MaxPlayerHealth);
+        Set(combat,"<PlayerHealth>k__BackingField",Combat.MaxPlayerHealth);
         combat.AddArrows(-12);
         Check(JinaItems.Get("arrows").Use(combat,out said) && combat.Arrows==ShopRules.MaxArrows-7,"An arrow bundle refills the quiver");
         Check(JinaItems.Get("ward").Use(combat,out said) && combat.Warded && !JinaItems.Get("ward").Use(combat,out said),"One ward charm at a time");
         Set(combat,"invulnerableUntil",0f); combat.HurtPlayer();
-        Check(combat.PlayerHealth==PrototypeCombat.MaxPlayerHealth && !combat.Warded && combat.WardBrokeAt>=0,"The ward takes the blow");
+        Check(combat.PlayerHealth==Combat.MaxPlayerHealth && !combat.Warded && combat.WardBrokeAt>=0,"The ward takes the blow");
         Check(JinaItems.Get("jipsin").Use(combat,out said) && combat.player.Hasted,"Straw sandals quicken him");
         combat.player.HasteUntil=0;
 
@@ -35,41 +35,41 @@ public static partial class JinaPlayChecks
         Check(combat.PlayerHealth==70 && bag.Slots.Count==0,"Using it heals and empties the slot");
         Set(wallet,"<Coins>k__BackingField",2); combat.Peddler.Purchase(JinaItems.Get("cheongsimhwan"));
         Check(wallet.Coins==2 && bag.Slots.Count==0,"No sale without the coins");
-        combat.FindCoins(PrototypeCamp.CoinsPerGhost);
-        Check(wallet.Coins==2+PrototypeCamp.CoinsPerGhost,"Ghosts leave coins");
+        combat.FindCoins(Camp.CoinsPerGhost);
+        Check(wallet.Coins==2+Camp.CoinsPerGhost,"Ghosts leave coins");
         combat.Peddler.Purchase(JinaItems.Get("misutgaru"));
         combat.Restart();
         Check(bag.Slots.Count==0 && !combat.Warded && wallet.Coins==30,"Restart empties the bag and the charms");
     }
 
-    static void Maps()
+    static void MapChecks()
     {
         combat.Restart();
-        var maps=combat.Maps; var view=Camera.main.GetComponent<PrototypeView>(); var player=combat.player.transform;
+        var maps=combat.Maps; var view=Camera.main.GetComponent<View>(); var player=combat.player.transform;
         var cam=Camera.main; float half=cam.orthographicSize*cam.aspect;
-        PrototypeView.Shake(0,.01f);   // an earlier check's shake would push the camera off
-        Check(PrototypeMaps.All.Length==8 && PrototypeMaps.Index(WorldBuilder.Spawn.x)==2 && PrototypeMaps.Index(-50)==0 && PrototypeMaps.Index(40)==3 && PrototypeMaps.Index(90)==4 && PrototypeMaps.Index(130)==5 && PrototypeMaps.Index(170)==6 && PrototypeMaps.Index(220)==7,"Eight maps, the village where he starts");
+        View.Shake(0,.01f);   // an earlier check's shake would push the camera off
+        Check(Maps.All.Length==8 && Maps.Index(WorldBuilder.Spawn.x)==2 && Maps.Index(-50)==0 && Maps.Index(40)==3 && Maps.Index(90)==4 && Maps.Index(130)==5 && Maps.Index(170)==6 && Maps.Index(220)==7,"Eight maps, the village where he starts");
         Check(maps.Current==2 && !maps.Travelling,"He starts in the village");
         Call(view,"LateUpdate");
         Check(cam.transform.position.x+half<=WorldBuilder.ForestStart+.01f,"The camera stays inside the village");
 
         // Walking off the right edge: black closes, the forest is shown, black opens, his name card.
-        player.position=new Vector3(WorldBuilder.ForestStart+PrototypeMaps.Margin+.1f,player.position.y,0);
+        player.position=new Vector3(WorldBuilder.ForestStart+Maps.Margin+.1f,player.position.y,0);
         Call(maps);
         Check(maps.Travelling && maps.Current==2,"Leaving the village begins the change");
         Check(!maps.Shows(WorldBuilder.ForestStart),"The dokkaebi cannot notice him before the forest is on screen");
-        Set(maps,"<LeftAt>k__BackingField",Time.time-PrototypeMaps.FadeOut-.01f); Call(maps);
+        Set(maps,"<LeftAt>k__BackingField",Time.time-Maps.FadeOut-.01f); Call(maps);
         Check(maps.Current==3 && maps.Cover>.99f,"Behind the black the forest takes over");
         Call(view,"LateUpdate");
         Check(cam.transform.position.x-half>=WorldBuilder.ForestStart-.01f,"The camera shows only the forest");
-        Set(maps,"<LeftAt>k__BackingField",Time.time-PrototypeMaps.FadeOut-PrototypeMaps.FadeIn-.02f);
-        Set(maps,"<EnteredAt>k__BackingField",Time.time-PrototypeMaps.FadeIn-.01f); Call(maps);
+        Set(maps,"<LeftAt>k__BackingField",Time.time-Maps.FadeOut-Maps.FadeIn-.02f);
+        Set(maps,"<EnteredAt>k__BackingField",Time.time-Maps.FadeIn-.01f); Call(maps);
         Check(!maps.Travelling && maps.Cover==0 && maps.Shows(WorldBuilder.ForestStart),"The black lifts on the forest");
         Capture("map-forest-edge",cam.transform.position,5.5f);
 
         // Walking back the other way.
-        player.position=new Vector3(WorldBuilder.ForestStart-PrototypeMaps.Margin-.1f,player.position.y,0);
-        Call(maps); Set(maps,"<LeftAt>k__BackingField",Time.time-PrototypeMaps.FadeOut-.01f); Call(maps);
+        player.position=new Vector3(WorldBuilder.ForestStart-Maps.Margin-.1f,player.position.y,0);
+        Call(maps); Set(maps,"<LeftAt>k__BackingField",Time.time-Maps.FadeOut-.01f); Call(maps);
         Check(maps.Current==2,"And back into the village");
         combat.Restart();
         Check(maps.Current==2 && !maps.Travelling,"Restart returns to the village map");
@@ -125,7 +125,7 @@ public static partial class JinaPlayChecks
         // Falling into the river hurts and puts him back on the nearer bank.
         player.position=new Vector3(WorldBuilder.RiverLeft+4,-2,0);
         Set(combat,"invulnerableUntil",0f); ferry.Splash();
-        Check(combat.PlayerHealth==PrototypeCombat.MaxPlayerHealth-PrototypeCombat.MonsterAttack && player.position.x<WorldBuilder.RiverLeft && ferry.SplashAt>=0,"The river hurts and returns him to the bank");
+        Check(combat.PlayerHealth==Combat.MaxPlayerHealth-Combat.MonsterAttack && player.position.x<WorldBuilder.RiverLeft && ferry.SplashAt>=0,"The river hurts and returns him to the bank");
         // Water ghosts: tinted blue, rise again each time he comes back, and the tenth felled frees the keepsake.
         combat.Restart();
         var river=combat.River; var bag=JinaItems.Inventory;
@@ -135,11 +135,11 @@ public static partial class JinaPlayChecks
             player.position=new Vector3(WorldBuilder.Spawn.x,player.position.y,0); Call(river);
             player.position=new Vector3(WorldBuilder.Ferryman.x,player.position.y,0); Call(river);
             Check(river.Remaining==3,"The water ghosts rise again on coming back, round "+round);
-            foreach(var m in river.mobs) if(combat.RiverFelled<PrototypeCombat.KeepsakeAt) river.Hit(m,PrototypeCamp.GhostHealth);
+            foreach(var m in river.mobs) if(combat.RiverFelled<Combat.KeepsakeAt) river.Hit(m,Camp.GhostHealth);
         }
-        Check(combat.RiverFelled==PrototypeCombat.KeepsakeAt && bag.GetQuantity(JinaItems.Keepsake)==1 && combat.KeepsakeFreedAt>=0,"The tenth frees the drowned mother's keepsake");
+        Check(combat.RiverFelled==Combat.KeepsakeAt && bag.GetQuantity(JinaItems.Keepsake)==1 && combat.KeepsakeFreedAt>=0,"The tenth frees the drowned mother's keepsake");
         string kept; Check(!JinaItems.Keepsake.Use(combat,out kept) && bag.GetQuantity(JinaItems.Keepsake)==1,"The keepsake is kept, not spent");
-        river.Hit(river.mobs[2],PrototypeCamp.GhostHealth);
+        river.Hit(river.mobs[2],Camp.GhostHealth);
         Check(bag.GetQuantity(JinaItems.Keepsake)==1,"Only one keepsake a run");
         Capture("river-ghosts",new Vector3(90,1,-10),5.5f);
         combat.Restart();
@@ -166,16 +166,16 @@ public static partial class JinaPlayChecks
         rock.art.transform.position=new Vector3(s0+8.3f,WorldBuilder.Top(s0+8)+MountainPass.Radius,0);
         Set(combat.player,"dodgeUntil",Time.time+1); Set(combat,"invulnerableUntil",0f);
         pass.Step(0);
-        Check(combat.PlayerHealth==PrototypeCombat.MaxPlayerHealth,"Backstepping slips through a boulder");
+        Check(combat.PlayerHealth==Combat.MaxPlayerHealth,"Backstepping slips through a boulder");
         Set(combat.player,"dodgeUntil",0f);
         pass.Step(0);
-        Check(combat.PlayerHealth==PrototypeCombat.MaxPlayerHealth-PrototypeCombat.MonsterAttack,"A boulder hits him");
+        Check(combat.PlayerHealth==Combat.MaxPlayerHealth-Combat.MonsterAttack,"A boulder hits him");
         Capture("pass-boulder",new Vector3(s0+14,2,-10),5.5f);
 
         // The shrine: a stone on the cairn restores him, once.
         player.position=new Vector3(WorldBuilder.ShrineX,WorldBuilder.Top(WorldBuilder.ShrineX)+.8f,0);
         Set(combat,"<PlayerHealth>k__BackingField",2);
-        Check(pass.NearShrine && pass.UseShrine() && combat.PlayerHealth==PrototypeCombat.MaxPlayerHealth,"The shrine restores him");
+        Check(pass.NearShrine && pass.UseShrine() && combat.PlayerHealth==Combat.MaxPlayerHealth,"The shrine restores him");
         Set(combat,"<PlayerHealth>k__BackingField",2);
         Check(!pass.UseShrine() && combat.PlayerHealth==2,"Only once a run");
         Capture("pass-shrine",new Vector3(WorldBuilder.ShrineX-2,2,-10),5.5f);
@@ -249,7 +249,7 @@ public static partial class JinaPlayChecks
         Capture("stay-evening-stare",new Vector3(KongNightStay.RoomX,2,-10),KongNightStay.RoomSize);
 
         // The night runs by itself, picture after picture; then the morning.
-        var view=Camera.main.GetComponent<PrototypeView>();
+        var view=Camera.main.GetComponent<View>();
         stay.Show(KongNightStay.Phase.Night,1); Call(view,"LateUpdate");
         float fit=Mathf.Max(KongNightStay.RoomSize,KongNightStay.PictureWidth/2/Camera.main.aspect);
         Check(stay.InRoom && Mathf.Abs(Camera.main.transform.position.x-KongNightStay.RoomX)<.01f && Mathf.Abs(Camera.main.orthographicSize-fit)<.01f,"The camera moves onto the pictures, one filling the screen: "+Camera.main.transform.position.x+" "+Camera.main.orthographicSize+" "+fit+" "+stay.InRoom);

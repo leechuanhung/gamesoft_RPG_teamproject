@@ -65,13 +65,13 @@ public class TavernShop : NpcTalk
             combat.RestoreHealth(restored);
             message = "든든히 드셨구려. 부디 남은 길도 평안히 가시오. (체력 +" + restored + ")";
         }
-        else message = combat.PlayerHealth >= PrototypeCombat.MaxPlayerHealth ? "이미 기운이 넉넉하오. 음식값은 받지 않겠소." : "엽전이 모자라는구려.";
+        else message = combat.PlayerHealth >= Combat.MaxPlayerHealth ? "이미 기운이 넉넉하오. 음식값은 받지 않겠소." : "엽전이 모자라는구려.";
     }
     // 주막 창을 그린다.
     void OnGUI()
     {
         if (combat == null) return;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         if (Near && !IsOpen && combat.PlayerHealth > 0 && !combat.Paused) JinaUI.Prompt("Enter: 주막에서 음식 사 먹기");
         if (!IsOpen) return;
         bool special = ShopRules.MenuOpen(ShopRules.SpecialMenu, Progress);
@@ -197,7 +197,7 @@ public class PeddlerShop : NpcTalk
     void OnGUI()
     {
         if (combat == null) return;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         if (Near && !IsOpen && combat.PlayerHealth > 0 && !combat.Paused) JinaUI.Prompt("Enter: 보부상 등짐 보기");
         if (!IsOpen) return;
         // 화살, 그다음 한 줄에 둘씩 물건: 아이콘, 이름, 가격, 효과.
@@ -264,10 +264,10 @@ public class TavernWallet
     public bool Buy(int menu, int health, out int restored, QuestProgress quest = null)
     {
         restored = 0;
-        if (menu < 0 || menu >= MenuPrices.Length || !ShopRules.MenuOpen(menu, quest) || health <= 0 || health >= PrototypeCombat.MaxPlayerHealth) return false;
+        if (menu < 0 || menu >= MenuPrices.Length || !ShopRules.MenuOpen(menu, quest) || health <= 0 || health >= Combat.MaxPlayerHealth) return false;
         int cost = ShopRules.Price(MenuPrices[menu], quest);
         if (Coins < cost) return false;
-        restored = System.Math.Min(PrototypeCombat.MaxPlayerHealth - health, MenuHeals[menu]);
+        restored = System.Math.Min(Combat.MaxPlayerHealth - health, MenuHeals[menu]);
         Coins -= cost;
         return true;
     }

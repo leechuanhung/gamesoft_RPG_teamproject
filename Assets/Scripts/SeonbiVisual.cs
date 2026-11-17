@@ -1,8 +1,8 @@
 using UnityEngine;
 public class SeonbiVisual : MonoBehaviour
 {
-    private PrototypePlayer player;
-    private PrototypeCombat combat;
+    private Player player;
+    private Combat combat;
     private SpriteRenderer source,body,weapon,gripFingers;
     private Sprite fingerSprite;
     private Sprite[] swordFrames,bowFrames,bowUpFrames,bowDownFrames,jumpFrames,walkFrames,runFrames,hitFrames,dashFrames;
@@ -34,7 +34,7 @@ public class SeonbiVisual : MonoBehaviour
     // A hit he survives: he reels back for a moment (the death recoil frame), unless mid-swing.
     public const float HurtLength=.3f;
     public static Sprite LoadSprite() => JinaArt.Load(JinaArt.Player);
-    public static SeonbiVisual Attach(PrototypePlayer player,PrototypeCombat combat)
+    public static SeonbiVisual Attach(Player player,Combat combat)
     {
         var v=player.gameObject.AddComponent<SeonbiVisual>();
         v.player=player; v.combat=combat; v.source=player.GetComponent<SpriteRenderer>();
@@ -100,7 +100,7 @@ public class SeonbiVisual : MonoBehaviour
         bool dashSlashing=dodging && player.DashSlashing;
         var shot=attackAim>0 ? bowUpFrames : attackAim<0 ? bowDownFrames : bowFrames;
         int strideFrame=(int)(walkTime/(running ? .08f : .12f))%4;
-        body.sprite=dashSlashing ? dashFrames[Mathf.Clamp((int)((1f-Mathf.Clamp01(player.DashRemaining / PrototypePlayer.DodgeLength))*8f),0,7)] : dodging ? JinaArt.Load("01_Player/player_dodge") : hurt ? hitFrames[0] : attacking ? (bowAttack ? shot[Mathf.Min(3,(int)(attackTime/(duration/4)))] : swordFrames[SwordFrame(attackTime)]) : jumping ? jumpFrames[jumpFrame] : running ? runFrames[strideFrame] : walking ? walkFrames[strideFrame] : LoadSprite();
+        body.sprite=dashSlashing ? dashFrames[Mathf.Clamp((int)((1f-Mathf.Clamp01(player.DashRemaining / Player.DodgeLength))*8f),0,7)] : dodging ? JinaArt.Load("01_Player/player_dodge") : hurt ? hitFrames[0] : attacking ? (bowAttack ? shot[Mathf.Min(3,(int)(attackTime/(duration/4)))] : swordFrames[SwordFrame(attackTime)]) : jumping ? jumpFrames[jumpFrame] : running ? runFrames[strideFrame] : walking ? walkFrames[strideFrame] : LoadSprite();
         JinaArt.Place(body,feet,facing<0);
         body.transform.rotation=Quaternion.identity; weapon.transform.rotation=Quaternion.identity; weapon.color=Color.white;
         // Standing still, his chest rises and falls by one art pixel.

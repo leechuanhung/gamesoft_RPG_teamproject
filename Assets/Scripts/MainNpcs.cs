@@ -9,7 +9,7 @@ using UnityEngine;
 // 하위 클래스는 누구와 무엇을 말할지(Begin에 넘기는 대사)와 닫을 때 할 일(Close)만 정한다.
 public abstract class NpcTalk : MonoBehaviour
 {
-    public PrototypeCombat combat;
+    public Combat combat;
     public bool IsOpen { get; protected set; }
     public int Page { get; protected set; }
     protected string[] lines;
@@ -48,7 +48,7 @@ public class ElderQuest : NpcTalk
     private float charmReveal = -1;
     const float CharmRevealLength = 3.4f;
     public bool RevealingCharm => charmReveal >= 0;
-    private PrototypePlayer Player => combat.player;
+    private Player Player => combat.player;
 
     // 노인 표시를 만들고 그림을 붙인다.
     void Start()
@@ -175,7 +175,7 @@ public class ElderQuest : NpcTalk
     void OnGUI()
     {
         if (combat == null || Player == null) return;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         if (!IsOpen && combat.PlayerHealth > 0 && !combat.Paused)
         {
             if (Near(WorldBuilder.Elder)) JinaUI.Prompt(progress.ElderDead ? "Enter: 노인이 남긴 쪽지 살펴보기" : "Enter: 마을 노인과 대화");
@@ -274,7 +274,7 @@ public class ElderQuest : NpcTalk
 // (KongBoss). 다른 마을 사람 셋(훈장, 엿장수, 할멈)은 말만 한다.
 // 요괴가 선비를 따라 여기까지 오면 저주로 모두 그 자리에 묶이고(팥쥐는 먼저 맨 왼쪽으로 달아남)
 // 오른쪽부터 한 명씩 죽인다(Raided, Kill: 한 명당 −10). 여기서는 아무도 대피하지 않는다.
-// 싸운 뒤 PrototypeKongAftermath가 WalkTo, SetLook, Face로 사람들을 움직이고 자세를 고른다.
+// 싸운 뒤 KongAftermath가 WalkTo, SetLook, Face로 사람들을 움직이고 자세를 고른다.
 public class KongVillage : NpcTalk
 {
     public enum Who { Kongjwi, Patjwi, Anak, Namu, Hunjang, Yeot, Halmi }
@@ -501,7 +501,7 @@ public class KongVillage : NpcTalk
         return best;
     }
 
-    // 여기 무언가가 E에 반응한다(PrototypeLore는 비켜 준다).
+    // 여기 무언가가 E에 반응한다(RoadsideLore는 비켜 준다).
     public bool HasSomethingHere => Nearest().HasValue || OnPaper || Near(WorldBuilder.JangdokX, LookRange);
 
     // 하룻밤이 끝나고 아침에 깨어난다(`blunt`: 대놓고 의심했음).
@@ -747,7 +747,7 @@ public class KongVillage : NpcTalk
     void OnGUI()
     {
         if (combat == null || combat.PlayerHealth <= 0) return;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         if (IsOpen && Portrait != null) { DrawTalk(); return; }
         if (IsOpen)
         {

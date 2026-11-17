@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class PrototypePlayer : MonoBehaviour
+public class Player : MonoBehaviour
 {
     public float moveSpeed = 6f;
     public float runSpeed = 10f;
@@ -20,7 +20,7 @@ public class PrototypePlayer : MonoBehaviour
     private bool backstepDodge;
     // W 돌진베기(지나가는 적을 벰, DashSlashAttack)와 Q 물러서기(베지 않음)를 가른다. 둘 다 Dodging이다.
     public bool DashSlashing => Dodging && !backstepDodge;
-    // 스킬(Q·W) 이동인지: 그림은 대시 베기 모션 그대로, 피해는 PrototypeSkills가 따로 줌
+    // 스킬(Q·W) 이동인지: 그림은 대시 베기 모션 그대로, 피해는 Skills가 따로 줌
     private bool skillMove;
     public bool DashSlashDamage => DashSlashing && !skillMove;
     private float dashSpeed = DodgeSpeed;   // 대시 속도 (스킬마다 다르게 쓰기 위해)
@@ -84,7 +84,7 @@ public class PrototypePlayer : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space)) jumpRequestedUntil = Time.time + 0.12f;
         if (Input.GetKeyDown(KeyCode.R) || transform.position.y < -8f)
         {
-            var combat = FindObjectOfType<PrototypeCombat>();
+            var combat = FindObjectOfType<Combat>();
             if (combat != null) combat.Restart();
             else Respawn();
         }

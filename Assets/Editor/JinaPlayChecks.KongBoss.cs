@@ -25,12 +25,12 @@ public static partial class JinaPlayChecks
 
         // The developer's F9: the dokkaebi purified as if played through, and the seonbi at the ferry.
         Check(combat.Cheats.SkipToFerry() && q.Outcome==EncounterOutcome.Purified && q.Honor==30 && combat.Camp.Remaining==0 && combat.BossPurified
-            && combat.Maps.Current==PrototypeMaps.Index(WorldBuilder.Ferryman.x) && Mathf.Abs(player.position.x-DevCheats.FerrySpot.x)<.01f,"F9 finishes the purification route and moves him to the ferry");
+            && combat.Maps.Current==Maps.Index(WorldBuilder.Ferryman.x) && Mathf.Abs(player.position.x-DevCheats.FerrySpot.x)<.01f,"F9 finishes the purification route and moves him to the ferry");
         Check(combat.Cheats.SkipToFerry() && q.Honor==30,"Pressed again it only moves him");
         combat.Restart();
 
         // The back hill: a map of its own past the pass, ground at several heights, ledges stacked high, crocks for cover.
-        Check(PrototypeMaps.Index(WorldBuilder.KongLair)==7 && WorldBuilder.GoalX>WorldBuilder.HillStart && WorldBuilder.Top(WorldBuilder.GoalX)==-.5f,"The back hill is the last map, the road at its end");
+        Check(Maps.Index(WorldBuilder.KongLair)==7 && WorldBuilder.GoalX>WorldBuilder.HillStart && WorldBuilder.Top(WorldBuilder.GoalX)==-.5f,"The back hill is the last map, the road at its end");
         float highest=0; foreach(var l in WorldBuilder.HillLedges) highest=Mathf.Max(highest,l.top);
         Check(WorldBuilder.HillLedges.Length>=10 && highest>=4.4f && WorldBuilder.Top(223)>.9f,"More ledges than the forest, stacked higher, and rises in the ground");
         Physics2D.SyncTransforms();
@@ -69,18 +69,18 @@ public static partial class JinaPlayChecks
 
         // Blows, the hurt box, the cover, what she throws.
         int hp=boss.Health;
-        Check(boss.HurtBox.size.x>2 && boss.Damage(PrototypeCombat.SwordDamage,true) && boss.Health==hp-PrototypeCombat.SwordDamage,"A wide target that takes the sword");
+        Check(boss.HurtBox.size.x>2 && boss.Damage(Combat.SwordDamage,true) && boss.Health==hp-Combat.SwordDamage,"A wide target that takes the sword");
         // W 돌진베기도 그녀를 벤다(돌진 한 번에 한 번). Q 물러서기는 베지 않는다.
         var dash=combat.player.GetComponent<DashSlashAttack>(); var feet=player.position;
         // 돌진베기는 지난 물리 프레임 자리부터 훑는다: 옮긴 뒤 돌진하지 않는 프레임을 한 번 돌려 그 자리를 새로 잡는다.
         player.position=new Vector3(boss.Feet.x+1,boss.Feet.y+.95f,0); Call(dash,"FixedUpdate");
         hp=boss.Health;
-        combat.player.StartDash(1,PrototypeSkills.RushLength,PrototypeSkills.RushSpeed,true);
+        combat.player.StartDash(1,Skills.RushLength,Skills.RushSpeed,true);
         Call(dash,"FixedUpdate"); Call(dash,"FixedUpdate");
-        Check(boss.Health==hp-PrototypeCombat.DashSlashDamage,"The rush cuts her once");
-        combat.player.StartDash(-1,PrototypeSkills.RetreatLength,PrototypeSkills.RetreatSpeed,false);
+        Check(boss.Health==hp-Combat.DashSlashDamage,"The rush cuts her once");
+        combat.player.StartDash(-1,Skills.RetreatLength,Skills.RetreatSpeed,false);
         Call(dash,"FixedUpdate");
-        Check(boss.Health==hp-PrototypeCombat.DashSlashDamage,"The retreat does not");
+        Check(boss.Health==hp-Combat.DashSlashDamage,"The retreat does not");
         Set(combat.player,"dodgeUntil",0f); Call(dash,"FixedUpdate"); player.position=feet;
         int standing=boss.CrocksStanding;
         boss.StrikeCrock(0,KongBoss.CrockShots-1); Check(boss.CrocksStanding==standing && boss.HoneyCount==0,"A crock takes a couple of her shots");
@@ -98,16 +98,16 @@ public static partial class JinaPlayChecks
         Check(boss.HoneyCount==2,"At full health he leaves the honey where it is");
         Set(combat,"<PlayerHealth>k__BackingField",50); Call(boss);
         Check(combat.PlayerHealth==50+KongBoss.HoneyHeal && boss.HoneyCount==1,"Touching it heals him at once");
-        Set(combat,"<PlayerHealth>k__BackingField",PrototypeCombat.MaxPlayerHealth);
+        Set(combat,"<PlayerHealth>k__BackingField",Combat.MaxPlayerHealth);
         int crockAt; Check(boss.CrockArrowDistance(new Vector2(WorldBuilder.HillCrocks[2]-3,WorldBuilder.Top(WorldBuilder.HillCrocks[2])+.6f),Vector2.right,5,out crockAt)<5 && crockAt==2,"Arrows strike the crocks too");
         // W 돌진베기도 독을 한 대 친다(돌진 한 번에 한 대). 무슨 타격이든 두 대에 깨진다.
         float rx=WorldBuilder.HillCrocks[3]; standing=boss.CrocksStanding; int jars=boss.HoneyCount;
         player.position=new Vector3(rx-.5f,WorldBuilder.Top(rx)+.95f,0); Call(dash,"FixedUpdate");
-        combat.player.StartDash(1,PrototypeSkills.RushLength,PrototypeSkills.RushSpeed,true);
+        combat.player.StartDash(1,Skills.RushLength,Skills.RushSpeed,true);
         Call(dash,"FixedUpdate"); Call(dash,"FixedUpdate");
         Check(boss.CrocksStanding==standing && boss.HoneyCount==jars,"One rush only cracks a crock");
         Set(combat.player,"dodgeUntil",0f); Call(dash,"FixedUpdate");
-        combat.player.StartDash(1,PrototypeSkills.RushLength,PrototypeSkills.RushSpeed,true);
+        combat.player.StartDash(1,Skills.RushLength,Skills.RushSpeed,true);
         Call(dash,"FixedUpdate");
         Check(boss.CrocksStanding==standing-1 && boss.HoneyCount==jars+1,"A second rush breaks it and spills honey");
         Set(combat.player,"dodgeUntil",0f); Call(dash,"FixedUpdate");
@@ -212,7 +212,7 @@ public static partial class JinaPlayChecks
         Check(hunjang.look==VillagerVisual.Look.Bound && hunjang.trembling,"Bound and trembling");
         KongDraw();
         Capture("kong-raid",new Vector3(boss.Feet.x-2,2,-10),4);
-        boss.Damage(PrototypeCombat.SwordDamage,true); boss.Damage(PrototypeCombat.SwordDamage,true);
+        boss.Damage(Combat.SwordDamage,true); boss.Damage(Combat.SwordDamage,true);
         Check(boss.KillAt<0 && kong.Alive(Who.Hunjang),"Two sword cuts make her let go");
         Set(boss,"stunnedUntil",0f); Set(boss,"nextKillAt",0f); Call(boss);
         Set(boss,"<KillAt>k__BackingField",Time.time-KongBoss.KillWindup-.01f); Call(boss);
@@ -227,8 +227,8 @@ public static partial class JinaPlayChecks
         player.position=new Vector3(80,.3f,0);
         Check(boss.Goal(kong)==KongBoss.VillageCentre,"With nobody left she waits in the middle of the village");
         // Slain: +10.
-        Set(boss,"<Health>k__BackingField",PrototypeCombat.SwordDamage);
-        boss.Damage(PrototypeCombat.SwordDamage,false);
+        Set(boss,"<Health>k__BackingField",Combat.SwordDamage);
+        boss.Damage(Combat.SwordDamage,false);
         Check(boss.Now==KongBoss.Phase.Slain && q.KongOutcome==EncounterOutcome.Slain && q.Honor==-50,"Slain: ten back");
 
         // Purified in the village with some dead: she weeps, the survivors turn on her, Patjwi and he stop them.
@@ -292,8 +292,8 @@ public static partial class JinaPlayChecks
         Set(combat,"invulnerableUntil",0f); combat.HurtPlayer(1000);
         Check(combat.PlayerHealth==0 && combat.CanRetryAtHill && kong.Raided,"Struck down in the middle of her raid");
         combat.RestartAtHill();
-        Check(combat.PlayerHealth==PrototypeCombat.MaxPlayerHealth && !combat.player.Downed && combat.player.CanMove && !combat.GameOver.Showing
-            && Mathf.Abs(player.position.x-PrototypeCombat.HillEntrance.x)<.01f && combat.Maps.Current==PrototypeMaps.Index(WorldBuilder.HillStart+1) && !combat.Maps.Travelling,"He rises at the foot of the hill");
+        Check(combat.PlayerHealth==Combat.MaxPlayerHealth && !combat.player.Downed && combat.player.CanMove && !combat.GameOver.Showing
+            && Mathf.Abs(player.position.x-Combat.HillEntrance.x)<.01f && combat.Maps.Current==Maps.Index(WorldBuilder.HillStart+1) && !combat.Maps.Travelling,"He rises at the foot of the hill");
         Check(boss.Now==KongBoss.Phase.Waiting && boss.Health==KongBoss.MaxHealth && boss.Retries==1 && q.Honor==honorAt && q.VillagersLost==0
             && kong.Alive(Who.Hunjang) && !kong.Raided && combat.Arrows==arrowsAt,"Her fight is undone: everyone alive, honour and arrows as they were");
         Check(kong.Stayed && combat.CanRetryAtHill,"What he has learned is kept, and so is the checkpoint");

@@ -111,7 +111,7 @@ public partial class KongBoss
         {
             kong.StartRaid();
             CastAt = Time.time; castUntil = Time.time + 1.3f; Doing = Attack.None; KillAt = -1;
-            JinaFx.Shock(Feet, 2.2f); PrototypeView.Shake(.08f, .5f);
+            JinaFx.Shock(Feet, 2.2f); View.Shake(.08f, .5f);
         }
         Victim = kong != null && kong.Raided ? kong.NextVictim() : null;
         if (Time.time < stunnedUntil) return;
@@ -125,7 +125,7 @@ public partial class KongBoss
             StartKill(kong, Victim.Value);
             return;
         }
-        if (Time.time >= nextAttackAt && d < AttackRange && Mathf.Abs(PlayerY - Feet.y) < 6.5f && combat.Maps != null && combat.Maps.Current == PrototypeMaps.Index(x)
+        if (Time.time >= nextAttackAt && d < AttackRange && Mathf.Abs(PlayerY - Feet.y) < 6.5f && combat.Maps != null && combat.Maps.Current == Maps.Index(x)
             && (Reachable || d < 10))
         {
             StartAttack(d);
@@ -202,7 +202,7 @@ public partial class KongBoss
             {
                 airborne = false; v.x = 0; landedAt = Time.time; hopReadyAt = Time.time + HopRest;
                 JinaFx.Dust(Feet, -1, 1.3f); JinaFx.Dust(Feet, 1, 1.3f);
-                if (combat.Maps != null && combat.Maps.Current == PrototypeMaps.Index(Feet.x)) PrototypeView.Shake(.05f, .15f);
+                if (combat.Maps != null && combat.Maps.Current == Maps.Index(Feet.x)) View.Shake(.05f, .15f);
             }
         }
         else v.x = 0;
@@ -392,7 +392,7 @@ public partial class KongBoss
     {
         float t = Time.time - KillAt;
         if (t < KillWindup) return;
-        if (!killed) { killed = true; kong.Kill(killing); PrototypeView.Shake(.06f, .2f); }
+        if (!killed) { killed = true; kong.Kill(killing); View.Shake(.06f, .2f); }
         if (t < KillWindup + TongueOut + TongueHold + TongueBack) return;
         KillAt = -1; nextKillAt = Time.time + KillGap; hopReadyAt = Time.time + .2f;
     }

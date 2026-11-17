@@ -46,7 +46,7 @@ public partial class KongBoss
         }
         return false;
     }
-    // 선비의 칼과 돌진베기(PrototypeCombat): 범위 안의 서 있는 독이 모두 한 대씩 맞는다. 하나라도 맞으면 true.
+    // 선비의 칼과 돌진베기(Combat): 범위 안의 서 있는 독이 모두 한 대씩 맞는다. 하나라도 맞으면 true.
     // `once`: 돌진베기처럼 여러 프레임에 걸친 타격이 이미 친 것. 여기 있는 독은 다시 맞지 않는다.
     public bool BlowCrocks(Bounds blow, HashSet<object> once = null)
     {
@@ -63,7 +63,7 @@ public partial class KongBoss
         for (int i = 0; i < crocks.Count; i++)
         {
             if (crocks[i].Broken) continue;
-            float d = PrototypeCombat.ArrowHitDistance(crocks[i].art.bounds, origin, direction, step);
+            float d = Combat.ArrowHitDistance(crocks[i].art.bounds, origin, direction, step);
             if (d < best) { best = d; index = i; }
         }
         return best;
@@ -76,7 +76,7 @@ public partial class KongBoss
     {
         var at = c.art.bounds.center;
         JinaFx.Dots(at, 6, new Color(.55f, .34f, .22f), 2.5f, .4f, 0, 12);
-        if (his) PrototypeView.Shake(.03f, .1f);
+        if (his) View.Shake(.03f, .1f);
         if (!c.Broken) { c.art.sprite = JinaArt.Prop("crock_cracked"); return; }
         c.art.sprite = JinaArt.Prop("crock_broken");
         JinaFx.Dots(at, 14, new Color(.47f, .27f, .18f), 4, .6f, 0, 14);
@@ -98,7 +98,7 @@ public partial class KongBoss
             var h = honey[i]; var p = h.art.transform.position;
             if (h.vy != 0 || p.y > h.floor) { h.vy -= 20 * dt; p.y = Mathf.Max(h.floor, p.y + h.vy * dt); if (p.y <= h.floor) h.vy = 0; }
             h.art.transform.position = p;
-            if (!h.art.bounds.Intersects(him) || combat.PlayerHealth >= PrototypeCombat.MaxPlayerHealth) continue;
+            if (!h.art.bounds.Intersects(him) || combat.PlayerHealth >= Combat.MaxPlayerHealth) continue;
             combat.RestoreHealth(HoneyHeal);
             NoticeAt = Time.time; notice = "꿀 한 종지를 들이켰습니다. 체력 +" + HoneyHeal;
             Destroy(h.art.gameObject); honey.RemoveAt(i);

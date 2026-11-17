@@ -10,7 +10,7 @@ using UnityEngine;
 // 여기서는 움직임만 맡고, 프레임은 KeeperVisual, PeddlerVisual, ElderVisual이 고른다.
 public class VillageAlarm : MonoBehaviour
 {
-    public PrototypeCombat combat;
+    public Combat combat;
     public const string AlarmLine = "기어코 저 도깨비가 마을에 왔군! 모두 대피하시오!";
     public const float AlarmBubbleLength = 3.5f, RunSpeed = 3.6f, WalkSpeed = 1.1f;
     // 기와집 문. 마을 사람은 문 앞 마지막 반 칸에서 사라진다.
@@ -45,7 +45,7 @@ public class VillageAlarm : MonoBehaviour
     // 다음 사람이 말을 시작할 수 있는 시각(앞사람이 끝난 뒤).
     private float lineFree;
 
-    // 주모는 PrototypeWorld가, 보부상은 PeddlerShop.Start가 만드니 필요할 때 찾는다.
+    // 주모는 WorldBuilder가, 보부상은 PeddlerShop.Start가 만드니 필요할 때 찾는다.
     void Bind()
     {
         if (Keeper == null)
@@ -324,7 +324,7 @@ public class Ferry : NpcTalk
     void OnGUI()
     {
         if (combat == null || combat.PlayerHealth <= 0) return;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         if (Near && !IsOpen && !combat.Paused) JinaUI.Prompt("Enter: 뱃사공과 이야기하기");
         if (AtThorns && !combat.Paused) JinaUI.Prompt("가시덤불이 길을 막았습니다. 숲의 도깨비를 해결해야 지나갈 수 있습니다.");
         if (ClearedAt >= 0 && Time.time - ClearedAt < ClearedNotice && !combat.Paused && combat.Encounter != null && !combat.Encounter.Playing)
@@ -385,7 +385,7 @@ public class FerryBoat : MonoBehaviour
 // 다른 사람이 답한다. 이야기는 진행을 따른다(도깨비가 날뜀, 토벌, 정화, 노인이 죽음).
 public class ShopChatter : MonoBehaviour
 {
-    public PrototypeCombat combat;
+    public Combat combat;
     // 한 줄의 초, 주고받기 사이, 첫 주고받기 전, 엿들으려면 선비가 얼마나 가까워야 하는지.
     public const float LineLength = 3.4f, Gap = 8f, FirstAt = 4f, Range = 8f;
     // 주고받기 하나는 주모 한 줄, 보부상 한 줄.

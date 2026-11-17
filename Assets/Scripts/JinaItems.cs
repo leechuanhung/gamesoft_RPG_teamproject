@@ -22,7 +22,7 @@ public class JinaItem : ItemData
     }
 
     // 선비에게 쓴다: 무슨 일이 있었는지와 소모됐는지(체력이나 화살통이 가득하면 남는다).
-    public bool Use(PrototypeCombat combat, out string message)
+    public bool Use(Combat combat, out string message)
     {
         if (effect == Effect.Keepsake)
         {
@@ -35,7 +35,7 @@ public class JinaItem : ItemData
         switch (effect)
         {
             case Effect.Heal:
-                if (combat.PlayerHealth >= PrototypeCombat.MaxPlayerHealth) { message = "기운이 이미 넘칩니다."; return false; }
+                if (combat.PlayerHealth >= Combat.MaxPlayerHealth) { message = "기운이 이미 넘칩니다."; return false; }
                 int before = combat.PlayerHealth; combat.RestoreHealth(amount);
                 message = ItemName + "을(를) 먹었습니다. 체력 +" + (combat.PlayerHealth - before); return true;
             case Effect.Arrows:
@@ -63,7 +63,7 @@ public static class JinaItems
         JinaItem.Make("ward", "액막이 부적", "붉은 글씨로 액을 막는 작은 부적.\n다음에 받는 공격 한 번을 막는다", JinaItem.Effect.Ward, 1, 12, 3),
         JinaItem.Make("jipsin", "날랜 짚신", "가볍게 삼은 새 짚신. 오래 신으면 해진다.\n15초 동안 이동이 빨라진다", JinaItem.Effect.Haste, 15, 10, 3),
     };
-    // 팔지 않는다: 강의 물귀신에게서 풀려난 것(PrototypeCombat.FellWaterGhost).
+    // 팔지 않는다: 강의 물귀신에게서 풀려난 것(Combat.FellWaterGhost).
     public static readonly JinaItem Keepsake = JinaItem.Make("binyeo", "은비녀", "누군가 아끼던 은비녀. 강물에 오래 잠겨 있었다. 물귀신들 사이에서 한 여인의 넋이 남기고 갔다.\n요괴의 기운이 절반 아래로 꺾였을 때 가까이에서 쓰면(F) 사로잡힌 이를 되찾는다", JinaItem.Effect.Keepsake, 0, 0, 1);
     public static JinaItem Get(string id) => System.Array.Find(All, i => i.id == id);
 

@@ -11,7 +11,7 @@ from pixlib import Canvas
 OUT = sys.argv[1]
 preview = sys.argv[sys.argv.index('--preview') + 1] if '--preview' in sys.argv else None
 PPU = 546 / 1.9 / 12            # art pixels per unit, as JinaArt.PropPixelsPerUnit
-# Area spans in units (PrototypeWorld): the layers are 4 units wider and fade out at their ends.
+# Area spans in units (WorldBuilder): the layers are 4 units wider and fade out at their ends.
 AREAS = {'stele': 30, 'camp': 28, 'village': 40, 'forest': 36, 'ferry': 46, 'kong': 40, 'pass': 48}
 SKY = {'stele': (43, 46, 71), 'camp': (118, 58, 46), 'village': (112, 146, 164), 'forest': (30, 66, 54), 'ferry': (114, 136, 150), 'kong': (176, 150, 110), 'pass': (116, 74, 100)}
 

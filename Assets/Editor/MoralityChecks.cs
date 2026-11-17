@@ -23,19 +23,19 @@ public static class MoralityChecks
                 q.Reset();
                 Require(q.Honor == 0 && !q.ElderDead && !q.HasCharm, "Full restart");
             }
-        var camp = new GameObject("Camp verification").AddComponent<PrototypeCamp>();
-        camp.Initialize(null, AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/PrototypeSquare.png"));
+        var camp = new GameObject("Camp verification").AddComponent<Camp>();
+        camp.Initialize(null, AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Square.png"));
         var gate = camp.GetComponentInChildren<BoxCollider2D>();
         Require(camp.Remaining == 3 && gate.gameObject.activeSelf, "Gate starts closed");
-        for (int i = 0; i < 2; i++) for (int hp = 0; hp < PrototypeCamp.GhostHealth; hp++) camp.Hit(camp.mobs[i]);
+        for (int i = 0; i < 2; i++) for (int hp = 0; hp < Camp.GhostHealth; hp++) camp.Hit(camp.mobs[i]);
         Require(camp.Remaining == 1 && gate.gameObject.activeSelf, "Last monster still blocks passage");
-        for (int hp = 0; hp < PrototypeCamp.GhostHealth; hp++) camp.Hit(camp.mobs[2]);
+        for (int hp = 0; hp < Camp.GhostHealth; hp++) camp.Hit(camp.mobs[2]);
         Require(camp.Remaining == 0 && !gate.gameObject.activeSelf, "All defeated opens gate");
         camp.ResetCamp();
         Require(camp.Remaining == 3 && gate.gameObject.activeSelf, "Restart restores gate and monsters");
-        camp.Hit(camp.mobs[0], PrototypeCombat.SwordDamage);
-        Require(camp.mobs[0].hp == PrototypeCamp.GhostHealth - PrototypeCombat.SwordDamage, "A sword hit deals its damage");
-        for (int i = 1; i * PrototypeCombat.SwordDamage < PrototypeCamp.GhostHealth; i++) camp.Hit(camp.mobs[0], PrototypeCombat.SwordDamage);
+        camp.Hit(camp.mobs[0], Combat.SwordDamage);
+        Require(camp.mobs[0].hp == Camp.GhostHealth - Combat.SwordDamage, "A sword hit deals its damage");
+        for (int i = 1; i * Combat.SwordDamage < Camp.GhostHealth; i++) camp.Hit(camp.mobs[0], Combat.SwordDamage);
         Require(camp.mobs[0].hp == 0 && camp.Remaining == 2, "Enough sword hits fell a monster");
         camp.ResetCamp();
         UnityEngine.Object.DestroyImmediate(camp.gameObject);

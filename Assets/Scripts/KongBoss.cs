@@ -12,7 +12,7 @@ using UnityEngine;
 // 싸움 자체(이동, 공격, 던지는 것)는 KongBoss.Fight.cs에 있다.
 public partial class KongBoss : MonoBehaviour
 {
-    public PrototypeCombat combat;
+    public Combat combat;
     public enum Phase { Waiting, Meeting, Changing, Fighting, Slain, Purified }
     public Phase Now { get; private set; }
     public const int MaxHealth = 260;
@@ -22,7 +22,7 @@ public partial class KongBoss : MonoBehaviour
     public bool Fighting => Now == Phase.Fighting;
     public bool Resolved => Now == Phase.Slain || Now == Phase.Purified;
     public bool Started => Now >= Phase.Fighting;
-    // 대화와 변신 동안 게임이 멈춘다(PrototypeCombat.Paused).
+    // 대화와 변신 동안 게임이 멈춘다(Combat.Paused).
     public bool Cutscene => Now == Phase.Meeting || Now == Phase.Changing;
     public const string Name = "콩쥐 요괴", Epithet = "밑 빠진 독에 깃든 두꺼비", LastLine = "젓갈로 담가 주마!", Roar = "꾸르륵… 꾸에에엑!";
     // 말을 걸기 전에 선비가 얼마나 가까이 와야 하는지, 변신과 그 단계들의 초.
@@ -124,7 +124,7 @@ public partial class KongBoss : MonoBehaviour
         transform.position = new Vector3(WorldBuilder.KongLair, WorldBuilder.Top(WorldBuilder.KongLair), 0);
         body.position = transform.position;
         ResetFight();
-        PrototypeView.Focus(0, 0);
+        View.Focus(0, 0);
     }
 
     float PlayerX => combat.player.transform.position.x;
@@ -183,7 +183,7 @@ public partial class KongBoss : MonoBehaviour
     public string Line => Now == Phase.Meeting && lines != null ? lines[Mathf.Min(page, lines.Length - 1)] : null;
     public int Page => page;
     // 대화와 변신 동안 카메라가 요괴 쪽으로 절반 돈다.
-    void Look(float weight) => PrototypeView.Focus((PlayerX + Feet.x) / 2, Mathf.SmoothStep(0, 1, weight));
+    void Look(float weight) => View.Focus((PlayerX + Feet.x) / 2, Mathf.SmoothStep(0, 1, weight));
 
     // 변신: 어두운 안개 속에서 떨고, 검은 형체가 부풀고, 번쩍, 요괴가 포효한다.
     void Change()
@@ -193,12 +193,12 @@ public partial class KongBoss : MonoBehaviour
         Look(Mathf.Clamp01((ChangeLength - t) / .5f));
         var chest = Feet + Vector3.up * .8f;
         if (t < SwellAt && Time.frameCount % 3 == 0) JinaFx.Rise(chest, 2, new Color(.16f, .1f, .2f, .9f), .9f, 1.6f, .7f);
-        if (was < .3f && t >= .3f) PrototypeView.Shake(.04f, .6f);
-        if (was < SwellAt && t >= SwellAt) { JinaFx.Dust(Feet, -1.5f, 1.4f); JinaFx.Dust(Feet, 1.5f, 1.4f); PrototypeView.Shake(.08f, .8f); }
-        if (was < FlashAt && t >= FlashAt) { JinaFx.Shock(Feet, 1.6f); PrototypeView.Shake(.18f, .7f); JinaFx.Dots(chest + Vector3.up, 20, new Color(.4f, .3f, .5f), 6, .7f); }
+        if (was < .3f && t >= .3f) View.Shake(.04f, .6f);
+        if (was < SwellAt && t >= SwellAt) { JinaFx.Dust(Feet, -1.5f, 1.4f); JinaFx.Dust(Feet, 1.5f, 1.4f); View.Shake(.08f, .8f); }
+        if (was < FlashAt && t >= FlashAt) { JinaFx.Shock(Feet, 1.6f); View.Shake(.18f, .7f); JinaFx.Dots(chest + Vector3.up, 20, new Color(.4f, .3f, .5f), 6, .7f); }
         if (t < ChangeLength) return;
         Now = Phase.Fighting;
-        PrototypeView.Focus(0, 0);
+        View.Focus(0, 0);
         combat.player.CanMove = true;
         body.simulated = true; body.position = transform.position; body.velocity = Vector2.zero;
         StartFight();
@@ -209,7 +209,7 @@ public partial class KongBoss : MonoBehaviour
     {
         if (!Fighting) return false;
         int before = Health;
-        Health -= PrototypeCombat.CalcDamage(amount, 0);
+        Health -= Combat.CalcDamage(amount, 0);
         HitAt = Time.time;
         if (sword) Stagger(amount);
         var at = Feet + new Vector3(0, 1.4f, 0);
@@ -220,7 +220,7 @@ public partial class KongBoss : MonoBehaviour
         if (Health > 0) return true;
         Now = Phase.Slain; DownAt = Time.time;
         body.simulated = false;
-        JinaFx.Stop(.16f); PrototypeView.Shake(.22f, .5f);
+        JinaFx.Stop(.16f); View.Shake(.22f, .5f);
         EndFight();
         if (combat.Quest != null) combat.Quest.progress.ResolveKong(false);
         if (combat.Kong != null) combat.Kong.Release();
@@ -239,7 +239,7 @@ public partial class KongBoss : MonoBehaviour
         if (take) JinaItems.Inventory.TryRemove(JinaItems.Keepsake);
         Now = Phase.Purified; PurifiedAt = Time.time; PurifiedX = Feet.x;
         body.simulated = false;
-        PrototypeView.Shake(.12f, .5f);
+        View.Shake(.12f, .5f);
         EndFight();
         if (combat.Quest != null) combat.Quest.progress.ResolveKong(true);
         if (combat.Kong != null) combat.Kong.Release();
@@ -252,7 +252,7 @@ public partial class KongBoss : MonoBehaviour
     {
         if (HandedBack || Time.time - PurifiedAt < PurifyLength) return;
         bool inVillage = Feet.x >= WorldBuilder.KongStart && Feet.x < WorldBuilder.KongEnd;
-        bool away = combat.Maps != null && combat.Maps.Current != PrototypeMaps.Index(Feet.x) && !combat.Maps.Travelling;
+        bool away = combat.Maps != null && combat.Maps.Current != Maps.Index(Feet.x) && !combat.Maps.Travelling;
         var after = combat.Aftermath;
         if (!inVillage && !(away && (after == null || after.FieldDone))) return;
         HandedBack = true;
@@ -378,7 +378,7 @@ public partial class KongBoss : MonoBehaviour
     void OnGUI()
     {
         if (combat == null || combat.PlayerHealth <= 0) return;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         if (Now == Phase.Meeting && lines != null)
         {
             DrawBars(Mathf.Clamp01((Time.time - MetAt) / .4f));

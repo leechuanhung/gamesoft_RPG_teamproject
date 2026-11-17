@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class PrototypeView : MonoBehaviour
+public class View : MonoBehaviour
 {
     public Transform target;
     static float shakeUntil, shakeLength, shakeAmount;
@@ -13,13 +13,13 @@ public class PrototypeView : MonoBehaviour
     // 카메라를 준비하고 세계와 전투를 만든다.
     void Start()
     {
-        if (target != null && FindObjectOfType<PrototypeCombat>() == null)
+        if (target != null && FindObjectOfType<Combat>() == null)
         {
             var world = new GameObject("네 구역 지도").AddComponent<WorldBuilder>();
             world.Build(target.GetComponent<SpriteRenderer>().sprite);
-            target.GetComponent<PrototypePlayer>().SetSpawn(WorldBuilder.Spawn);
-            var combat = gameObject.AddComponent<PrototypeCombat>();
-            combat.player = target.GetComponent<PrototypePlayer>();
+            target.GetComponent<Player>().SetSpawn(WorldBuilder.Spawn);
+            var combat = gameObject.AddComponent<Combat>();
+            combat.player = target.GetComponent<Player>();
         }
     }
     // 카메라가 선비(또는 연출 지점)를 따라간다.
@@ -35,7 +35,7 @@ public class PrototypeView : MonoBehaviour
     public float ViewX(float x)
     {
         if (FixedX.HasValue) return FixedX.Value;
-        var maps = GetComponent<PrototypeMaps>();
+        var maps = GetComponent<Maps>();
         var cam = GetComponent<Camera>();
         return maps != null && cam != null ? maps.ClampView(x, cam.orthographicSize * cam.aspect) : Mathf.Clamp(x, -60f, 54f);
     }

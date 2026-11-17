@@ -6,7 +6,7 @@ public static partial class JinaPlayChecks
     static void Encounter()
     {
         var encounter=combat.Encounter; var bossVisual=boss.GetComponent<JinaActorVisual>();
-        var view=Camera.main.GetComponent<PrototypeView>();
+        var view=Camera.main.GetComponent<View>();
         combat.player.transform.position=new Vector3(WorldBuilder.ForestStart+1,combat.player.transform.position.y,0);
         Call(encounter);
         Check(!encounter.Playing,"No encounter before the boss notices");

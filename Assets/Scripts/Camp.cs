@@ -5,11 +5,11 @@ using UnityEngine;
 // 다가와 준비 동작 뒤 공격한다.
 //   들판의 수호 유령(Initialize)은 전부 쓰러질 때까지 비석 길을 막고, 쓰러지면 그대로 남는다.
 //   강의 물귀신(InitializeRiver)은 나루터에 올 때마다 되살아나고, 쓰러뜨린 수는 모두
-//   어머니의 은비녀에 쌓인다(PrototypeCombat.RiverFelled).
-public class PrototypeCamp : MonoBehaviour
+//   어머니의 은비녀에 쌓인다(Combat.RiverFelled).
+public class Camp : MonoBehaviour
 {
-    public PrototypeCombat combat;
-    public const int GhostHealth = PrototypeCombat.MonsterMaxHealth, CoinsPerGhost = 4, CoinsPerWaterGhost = 1;
+    public Combat combat;
+    public const int GhostHealth = Combat.MonsterMaxHealth, CoinsPerGhost = 4, CoinsPerWaterGhost = 1;
     // 날아다니는 구역, 사각형과 그림의 색, 되살아나는지, 무엇을 남기는지.
     public float minX = -38, maxX = -13;
     public Color body = new Color(.65f,.35f,.22f), tint = Color.white;
@@ -33,7 +33,7 @@ public class PrototypeCamp : MonoBehaviour
     public int Remaining { get { int n = 0; foreach (var m in mobs) if (m.hp > 0) n++; return n; } }
 
     // 들판의 수호 유령들을 만든다.
-    public void Initialize(PrototypeCombat owner, Sprite sprite)
+    public void Initialize(Combat owner, Sprite sprite)
     {
         combat = owner;
         Spawn(sprite, "일반 몬스터", new[] { -18f, -26f, -34f });
@@ -59,7 +59,7 @@ public class PrototypeCamp : MonoBehaviour
         ResetCamp();
     }
     // 나루터의 물귀신들을 만든다.
-    public void InitializeRiver(PrototypeCombat owner, Sprite sprite)
+    public void InitializeRiver(Combat owner, Sprite sprite)
     {
         combat = owner; river = true; coins = CoinsPerWaterGhost;
         minX = WorldBuilder.RiverLeft - 1; maxX = WorldBuilder.RiverRight + 1;
@@ -109,11 +109,11 @@ public class PrototypeCamp : MonoBehaviour
         if (gate != null) gate.SetActive(true);
     }
     // 유령 하나에 피해를 준다. 체력이 다하면 쓰러지고 동전·넋을 남긴다.
-    public void Hit(Mob m, int damage = PrototypeCombat.ArrowDamage)
+    public void Hit(Mob m, int damage = Combat.ArrowDamage)
     {
         if (m == null || m.hp <= 0) return;
         int before = m.hp;
-        m.hp -= PrototypeCombat.CalcDamage(damage, PrototypeCombat.MonsterDefense);
+        m.hp -= Combat.CalcDamage(damage, Combat.MonsterDefense);
         var at = m.art.transform.position;
         int away = combat != null && combat.player.transform.position.x < at.x ? 1 : -1;
         JinaFx.Hit(at + Vector3.up * .1f, away, river ? new Color(.74f, .92f, 1) : new Color(1, .92f, .72f));
@@ -139,7 +139,7 @@ public class PrototypeCamp : MonoBehaviour
     }
     // Whether the blow landed on anything.
     // damage를 넘기지 않으면 환도 데미지(10), 스킬은 Slash(area, 20)처럼 원하는 데미지를 넘김
-    public bool Slash(Bounds bounds, int damage = PrototypeCombat.SwordDamage)
+    public bool Slash(Bounds bounds, int damage = Combat.SwordDamage)
     {
         bool landed = false;
         foreach (var m in mobs) if (m.hp > 0 && bounds.Intersects(m.art.bounds)) { Hit(m, damage); landed = true; }
@@ -162,7 +162,7 @@ public class PrototypeCamp : MonoBehaviour
             if (screen.z < 0 || screen.x < -80 || screen.x > Screen.width + 80) continue;
             float width = 100, height = 20;
             var r = new Rect(screen.x - width / 2, Screen.height - screen.y - height, width, height);
-            PrototypeCombat.DrawBar(r, (float)m.hp / GhostHealth, new Color(.9f, .2f, .2f), m.hp + " / " + GhostHealth, 15);
+            Combat.DrawBar(r, (float)m.hp / GhostHealth, new Color(.9f, .2f, .2f), m.hp + " / " + GhostHealth, 15);
         }
         GUI.matrix = oldMatrix;
     }
@@ -200,7 +200,7 @@ public class PrototypeCamp : MonoBehaviour
                 // 공격은 노린 자리에 그대로 떨어진다. 움직이거나 뛰면 피할 수 있다.
                 if (Time.time >= m.windup)
                 {
-                    if (new Bounds(m.strike, new Vector3(1.5f, 1.5f, 1)).Intersects(combat.player.GetComponent<SpriteRenderer>().bounds)) combat.HurtPlayer(PrototypeCombat.MonsterAttack);
+                    if (new Bounds(m.strike, new Vector3(1.5f, 1.5f, 1)).Intersects(combat.player.GetComponent<SpriteRenderer>().bounds)) combat.HurtPlayer(Combat.MonsterAttack);
                     m.windup = -1; m.ready = Time.time + StrikeCooldown;
                     m.visual.Strike();
                 }

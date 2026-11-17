@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // ===== 땅·기물·배경·발판 배치 (WorldBuilder) =====
-// 이어진 구역들은 플레이어가 오가는 동안 퀘스트 상태를 유지한다(PrototypeMaps가 각각을 맵으로 보여 줌).
+// 이어진 구역들은 플레이어가 오가는 동안 퀘스트 상태를 유지한다(Maps가 각각을 맵으로 보여 줌).
 public class WorldBuilder : MonoBehaviour
 {
     public const float VillageLeft = -12f;
@@ -274,11 +274,11 @@ public class ParallaxLayer : MonoBehaviour
 // 고개의 바람), 주막 굴뚝 연기, 강의 물빛, 전체에 옅은 비네트.
 public class MapAmbience : MonoBehaviour
 {
-    public PrototypeCombat combat;
+    public Combat combat;
     enum Kind { Firefly, Ash, Petal, Leaf, Mist, Seed, Wind }
     struct Air { public Kind kind; public Color a, b; public int count; public Color cloud; public int clouds; }
-    // PrototypeMaps.All 순서.
-    static readonly Air[] Maps =
+    // Maps.All 순서.
+    static readonly Air[] AirByMap =
     {
         new Air { kind = Kind.Firefly, a = new Color(.72f, 1, .78f), b = new Color(.5f, .8f, 1), count = 16, cloud = new Color(.32f, .34f, .5f, .55f), clouds = 3 },
         new Air { kind = Kind.Ash, a = new Color(1, .62f, .3f), b = new Color(.45f, .42f, .42f), count = 26, cloud = new Color(.42f, .2f, .22f, .75f), clouds = 4 },
@@ -336,7 +336,7 @@ public class MapAmbience : MonoBehaviour
         if (cam == null || combat == null || combat.Maps == null) return;
         bool away = combat.Stay != null && combat.Stay.InRoom;
         int map = combat.Maps.Current;
-        var air = Maps[Mathf.Clamp(map, 0, Maps.Length - 1)];
+        var air = AirByMap[Mathf.Clamp(map, 0, AirByMap.Length - 1)];
         float cx = cam.transform.position.x, t = Time.time;
 
         for (int i = 0; i < MaxMotes; i++)
@@ -346,7 +346,7 @@ public class MapAmbience : MonoBehaviour
             if (!m.art.enabled) continue;
             StepMote(m, air, i, t, cx);
         }
-        var bounds = PrototypeMaps.All[map];
+        var bounds = Maps.All[map];
         float span = bounds.right - bounds.left + 20;
         for (int i = 0; i < MaxClouds; i++)
         {
@@ -441,7 +441,7 @@ public class MapAmbience : MonoBehaviour
     {
         if (combat == null || (combat.Stay != null && combat.Stay.InRoom)) return;
         GUI.depth = 20;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         var v = JinaUI.Art("vignette");
         if (v == null) return;
         v.wrapMode = TextureWrapMode.Clamp; v.filterMode = FilterMode.Bilinear;

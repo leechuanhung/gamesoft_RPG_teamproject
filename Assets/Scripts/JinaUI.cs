@@ -4,7 +4,7 @@ using UnityEngine;
 // ===== UI 공통 모양 (JinaUI) =====
 // 게임 속 모든 창과 알림의 모양, "한지와 나무": 나뭇결 테두리와 놋쇠 모서리 안의 섬유질 한지,
 // 상시 HUD는 어두운 옻칠 판, 글자는 말하듯 한 자씩 찍힌다.
-// UI는 창 크기와 상관없이 높이 720 단위 화면(W x H)에 배치한다. PrototypeKoreanUI.Apply가 행렬을
+// UI는 창 크기와 상관없이 높이 720 단위 화면(W x H)에 배치한다. KoreanUI.Apply가 행렬을
 // 맞추고, 글자는 실제 픽셀 크기로 그려 또렷하다. 글자 높이를 재서(Height) 창이 글자를 자르지 않고
 // 늘어나게 한다. 알림(Toast)은 아래로 쌓이고 행동 안내(Prompt)는 하나만 보여서, 여러 스크립트의 알림이
 // 서로 겹치지 않는다.
@@ -35,7 +35,7 @@ public static class JinaUI
     static GUIStyle Style(int size, TextAnchor anchor, bool bold)
     {
         if (text == null) text = new GUIStyle { wordWrap = false, richText = false, clipping = TextClipping.Overflow };
-        text.font = PrototypeKoreanUI.Font; text.fontSize = size; text.alignment = anchor;
+        text.font = KoreanUI.Font; text.fontSize = size; text.alignment = anchor;
         text.fontStyle = bold ? FontStyle.Bold : FontStyle.Normal;
         return text;
     }
@@ -367,7 +367,7 @@ public static class SpeechBubble
     {
         var cam = Camera.main;
         if (cam == null) return;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         Vector3 point = JinaUI.FromWorld(cam, head);
         if (point.z < 0) return;
         float width = Mathf.Min(Mathf.Max(260, JinaUI.Width(message, 17) + Pad * 2 + 6), Mathf.Min(500, JinaUI.W - 40));
@@ -402,8 +402,8 @@ public static class SpeechBubble
     }
 }
 
-// ===== UI 배율과 한글 글꼴 (PrototypeKoreanUI) =====
-public static class PrototypeKoreanUI
+// ===== UI 배율과 한글 글꼴 (KoreanUI) =====
+public static class KoreanUI
 {
     private static Font koreanFont;
     public static Font Font

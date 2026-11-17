@@ -4,10 +4,10 @@
 //   Q 물러서기: 보는 방향 반대로 빠르게 물러나며 1.5초 무적
 //   W 돌진베기: 보는 방향으로 돌진하고, 지나간 구간의 적에게 20 피해
 //   E 비어 있음 (나중에 추가)
-// PrototypeCombat.Start에서 자동으로 붙는다.
-public class PrototypeSkills : MonoBehaviour
+// Combat.Start에서 자동으로 붙는다.
+public class Skills : MonoBehaviour
 {
-    public PrototypeCombat combat;
+    public Combat combat;
 
     // ── Q 물러서기 ──
     public const float RetreatCooldown = 4f, RetreatInvulnerable = 1.5f, RetreatLength = .25f, RetreatSpeed = 10f;
@@ -16,7 +16,7 @@ public class PrototypeSkills : MonoBehaviour
     public const int RushDamage = 20;
 
 // ── 스테미너 소모량 ──
-    public const int AttackStamina = 10;    // 기본 공격 (PrototypeCombat에서 사용)
+    public const int AttackStamina = 10;    // 기본 공격 (Combat에서 사용)
     public const int RetreatStamina = 20;   // 물러서기
     public const int RushStamina = 30;      // 돌진베기
     

@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
-public static class PrototypeSetup
+public static class SceneSetup
 {
     [MenuItem("Seonbi/Create Movement Test Scene")]
     public static void Build()
@@ -15,16 +15,16 @@ public static class PrototypeSetup
         var texture = new Texture2D(1, 1);
         texture.SetPixel(0, 0, Color.white);
         texture.Apply();
-        File.WriteAllBytes("Assets/Art/PrototypeSquare.png", texture.EncodeToPNG());
+        File.WriteAllBytes("Assets/Art/Square.png", texture.EncodeToPNG());
         Object.DestroyImmediate(texture);
         AssetDatabase.Refresh();
-        var importer = (TextureImporter)AssetImporter.GetAtPath("Assets/Art/PrototypeSquare.png");
+        var importer = (TextureImporter)AssetImporter.GetAtPath("Assets/Art/Square.png");
         importer.textureType = TextureImporterType.Sprite;
         importer.spritePixelsPerUnit = 1;
         importer.filterMode = FilterMode.Point;
         importer.textureCompression = TextureImporterCompression.Uncompressed;
         importer.SaveAndReimport();
-        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/PrototypeSquare.png");
+        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Square.png");
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
         Block("Ground", new Vector2(0, -1), new Vector2(18, 1), new Color(.25f,.39f,.31f), sprite, true);
@@ -42,7 +42,7 @@ public static class PrototypeSetup
         var material = new PhysicsMaterial2D("PlayerFriction") { friction = 0f, bounciness = 0f };
         AssetDatabase.CreateAsset(material, "Assets/Art/PlayerFriction.physicsMaterial2D");
         player.GetComponent<BoxCollider2D>().sharedMaterial = material;
-        player.AddComponent<PrototypePlayer>();
+        player.AddComponent<Player>();
         var cameraObject = new GameObject("Main Camera");
         cameraObject.tag = "MainCamera";
         var camera = cameraObject.AddComponent<Camera>();
@@ -51,7 +51,7 @@ public static class PrototypeSetup
         camera.clearFlags = CameraClearFlags.SolidColor;
         camera.backgroundColor = new Color(.1f,.15f,.23f);
         cameraObject.transform.position = new Vector3(0, 2, -10);
-        cameraObject.AddComponent<PrototypeView>().target = player.transform;
+        cameraObject.AddComponent<View>().target = player.transform;
         EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), scenePath);
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(scenePath, true) };
         AssetDatabase.SaveAssets();

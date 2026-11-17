@@ -6,7 +6,7 @@ using UnityEngine;
 // 그동안 게임은 멈추고, 한 판에 한 번만 나온다.
 public class BossEncounter : MonoBehaviour
 {
-    public PrototypeCombat combat;
+    public Combat combat;
     public const string Name = "미혹된 도깨비", Epithet = "망국의 원한에 사로잡힌 산의 주인";
     public const string Line = "죽인다죽인다죽인다죽인다";
     // 초: 전체 장면, 카메라가 오가는 시간, 포효, 이름 카드, 대사.
@@ -19,7 +19,7 @@ public class BossEncounter : MonoBehaviour
     public float Elapsed => Time.time - startAt;
     public bool Roaring => Playing && Elapsed >= RoarAt && Elapsed < RoarAt + RoarLength;
 
-    public void ResetEncounter() { played = finished = shaken = false; PrototypeView.Focus(0, 0); }
+    public void ResetEncounter() { played = finished = shaken = false; View.Focus(0, 0); }
     // 조우 연출을 시작한다(한 판에 한 번).
     public void Play()
     {
@@ -39,15 +39,15 @@ public class BossEncounter : MonoBehaviour
         if (!Playing)
         {
             finished = true;
-            PrototypeView.Focus(0, 0);
+            View.Focus(0, 0);
             combat.player.CanMove = combat.PlayerHealth > 0;
             return;
         }
         combat.player.CanMove = false;
-        if (!shaken && Elapsed >= RoarAt) { PrototypeView.Shake(.15f, .7f); shaken = true; }
+        if (!shaken && Elapsed >= RoarAt) { View.Shake(.15f, .7f); shaken = true; }
         // 도깨비로 갔다가 돌아오는 부드러운 이동. 가중치는 카메라가 선비에게서 돌아간 정도.
         float weight = Mathf.SmoothStep(0, 1, Mathf.Clamp01(Elapsed / Pan) * Mathf.Clamp01((Length - Elapsed) / Pan));
-        PrototypeView.Focus(combat.BossPosition.x, weight);
+        View.Focus(combat.BossPosition.x, weight);
     }
 
     // 띠, 이름 카드, 대사를 그린다.
@@ -55,7 +55,7 @@ public class BossEncounter : MonoBehaviour
     {
         if (!Playing) return;
         GUI.depth = -50;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         float t = Elapsed, bars = Mathf.Clamp01(t / .4f) * Mathf.Clamp01((Length - t) / .4f);
         float bar = JinaUI.H * .11f * bars;
         JinaUI.Fill(new Rect(0, 0, JinaUI.W, bar), Color.black);
@@ -118,7 +118,7 @@ public class BossTalk : NpcTalk
     void OnGUI()
     {
         if (combat == null) return;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         if (!IsOpen)
         {
             if (Near && !combat.Paused)
@@ -135,7 +135,7 @@ public class BossTalk : NpcTalk
 // 무릎 꿇고 흐느끼며 자기가 한 일을 말한다. 여기서는 시간과 대사를 맡고, 그림은 BossVisual이 그린다.
 public class BossRemorse : MonoBehaviour
 {
-    public PrototypeCombat combat;
+    public Combat combat;
     static readonly string[] Lines =
     {
         "…저 노인은… 내가… 내가 그리한 것이오?",

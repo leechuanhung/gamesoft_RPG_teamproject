@@ -7,7 +7,7 @@ using UnityEngine;
 //       도깨비를 이미 해결했으면 나루터로 옮기기만 한다.
 public class DevCheats : MonoBehaviour
 {
-    public PrototypeCombat combat;
+    public Combat combat;
     public const KeyCode PurifyAndFerry = KeyCode.F9;
     public static readonly Vector2 FerrySpot = new Vector2(WorldBuilder.Ferryman.x - 2, .3f);
     public float UsedAt { get; private set; } = -1;
@@ -29,7 +29,7 @@ public class DevCheats : MonoBehaviour
         bool purified = false;
         if (q.Outcome == EncounterOutcome.Unresolved)
         {
-            if (combat.Camp != null) foreach (var m in combat.Camp.mobs) combat.Camp.Hit(m, PrototypeCamp.GhostHealth);
+            if (combat.Camp != null) foreach (var m in combat.Camp.mobs) combat.Camp.Hit(m, Camp.GhostHealth);
             q.HearClue();
             // 달, 강, 산. 비석에서 어디까지 했든 거기서부터.
             int[] signs = { 2, 1, 3 };
@@ -41,7 +41,7 @@ public class DevCheats : MonoBehaviour
         var body = player.GetComponent<Rigidbody2D>();
         if (body != null) { body.velocity = Vector2.zero; body.position = FerrySpot; }
         if (combat.Maps != null) combat.Maps.Jump();
-        PrototypeView.Focus(0, 0);
+        View.Focus(0, 0);
         UsedAt = Time.time;
         said = purified ? "[개발자] 도깨비 정화 루트를 마치고 나루터로 왔습니다. (선악 +30)" : "[개발자] 나루터로 왔습니다.";
         return true;
@@ -51,7 +51,7 @@ public class DevCheats : MonoBehaviour
     void OnGUI()
     {
         if (UsedAt < 0 || Time.time - UsedAt > 3f || combat == null || combat.Paused) return;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         JinaUI.Toast(said);
     }
 }

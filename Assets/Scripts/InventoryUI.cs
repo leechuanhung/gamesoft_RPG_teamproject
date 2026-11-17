@@ -12,7 +12,7 @@ public class InventoryUI : MonoBehaviour
     public enum PageTab { Items, KeyItems, Skills, Weapons }
     private PageTab tab;
     private InventoryManager inventory;
-    private PrototypeCombat combat;
+    private Combat combat;
     private bool isOpen, previousCanMove;
     private float previousTimeScale;
     public const int Columns = 5, PageSize = 20, PageCount = 3;
@@ -21,7 +21,7 @@ public class InventoryUI : MonoBehaviour
     public bool IsOpen => isOpen;
     public int Selected => selected;
 
-    // 스킬 획득/장착은 보관함이 관리한다. PrototypeSkills는 스킬 사용/쿨타임/UI에 집중한다.
+    // 스킬 획득/장착은 보관함이 관리한다. Skills는 스킬 사용/쿨타임/UI에 집중한다.
     public const int MaxOwnedSkills = 20;
     public class SkillEntry
     {
@@ -111,8 +111,8 @@ public class InventoryUI : MonoBehaviour
     void Awake()
     {
         inventory = GetComponent<InventoryManager>();
-        UnlockSkill("retreat", "물러서기", "바라보는 방향 반대로 이동하며 잠시 무적", PrototypeSkills.RetreatCooldown, true);
-        UnlockSkill("rush_slash", "돌진베기", "전방으로 돌진하며 적에게 피해", PrototypeSkills.RushCooldown, true);
+        UnlockSkill("retreat", "물러서기", "바라보는 방향 반대로 이동하며 잠시 무적", Skills.RetreatCooldown, true);
+        UnlockSkill("rush_slash", "돌진베기", "전방으로 돌진하며 적에게 피해", Skills.RushCooldown, true);
         UnlockWeapon("hwando", "환도", "기본 근접 무기", "icon_sword", true);
         UnlockWeapon("bow", "활", "화살을 소비하는 원거리 무기", "icon_bow", true);
     }
@@ -173,7 +173,7 @@ public class InventoryUI : MonoBehaviour
 
     void ConnectCombat()
     {
-        var found = FindObjectOfType<PrototypeCombat>();
+        var found = FindObjectOfType<Combat>();
         if (found == null) return;
         combat = found;
         combat.Restarted += HandleRestart;
@@ -221,7 +221,7 @@ public class InventoryUI : MonoBehaviour
     {
         if (!isOpen || inventory == null) return;
         GUI.depth = -100;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
 
         const float cell = 54, gap = 6;
         float gridWidth = Columns * cell + (Columns - 1) * gap;
@@ -299,7 +299,7 @@ public class InventoryUI : MonoBehaviour
         Text(new Rect(content.x, content.y + 140, content.width, 82), "중요 아이템은 일반 보따리 60칸을 차지하지 않으며 직접 버릴 수 없습니다. 퀘스트에서 사용하면 보유 상태가 자동으로 바뀝니다.", 13, TextDark);
     }
 
-    // 스킬은 보관함에 보유 ID로 저장되고, Q/W/E 슬롯 데이터만 PrototypeSkills에 반영된다.
+    // 스킬은 보관함에 보유 ID로 저장되고, Q/W/E 슬롯 데이터만 Skills에 반영된다.
     void DrawSkills(Rect content)
     {
         if (combat == null || combat.Skills == null || combat.Skills.slots == null)
