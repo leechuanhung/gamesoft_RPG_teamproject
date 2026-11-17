@@ -13,7 +13,7 @@ public static class WorldChecks
         Physics2D.SyncTransforms();
         // 같은 높이로 이어진 땅은 충돌체 하나여야 한다: 이음매가 있으면 걷던 선비가 옆 조각의 모서리에 걸린다.
         Collider2D lastFloor = null; float lastTop = 0;
-        for (int x = -69; x < (int)WorldBuilder.HillEnd; x++)
+        for (int x = -69; x < (int)WorldBuilder.WorldEnd; x++)
         {
             if (x == (int)WorldBuilder.RiverLeft || x == (int)WorldBuilder.RiverRight) continue;   // the bank's very edge
             bool river = x > WorldBuilder.RiverLeft && x < WorldBuilder.RiverRight;
@@ -27,8 +27,10 @@ public static class WorldChecks
             lastFloor = floor.collider; lastTop = floor.point.y;
         }
         Require(!WorldBuilder.CanDetect(new Vector2(WorldBuilder.FerryStart + 2, .2f), new Vector2(WorldBuilder.EnemyMax, .7f)), "The boss never notices him at the ferry");
-        Require(WorldBuilder.GoalX > WorldBuilder.HillStart && WorldBuilder.GoalX < WorldBuilder.HillEnd, "The road to Hanyang is past the back hill");
-        Require(WorldBuilder.KongLair > WorldBuilder.HillStart + KongBoss.MeetRange && WorldBuilder.KongLair < WorldBuilder.GoalX, "Kongjwi waits on the hill, between its foot and the road");
+        Require(WorldBuilder.GoalX > WorldBuilder.ManorStart && WorldBuilder.GoalX < WorldBuilder.WorldEnd, "The road to the examination is past the councillor's house");
+        Require(WorldBuilder.OfficialX > WorldBuilder.ManorStart + FinalBoss.MeetRange && WorldBuilder.OfficialX < WorldBuilder.GoalX - 2, "The councillor waits between the gate of his house and the road");
+        Require(WorldBuilder.FortGateX > BeaconFort.All[BeaconFort.All.Length - 1].x && WorldBuilder.FortGateX < WorldBuilder.FortEnd, "The fortress gate is past every beacon");
+        Require(WorldBuilder.KongLair > WorldBuilder.HillStart + KongBoss.MeetRange && WorldBuilder.KongLair < WorldBuilder.HillEnd, "Kongjwi waits on the hill, between its foot and the fortress");
         foreach (var w in new[] { WorldBuilder.Hunjang, WorldBuilder.Yeot, WorldBuilder.Halmi })
             Require(w.x > WorldBuilder.KongStart && w.x < WorldBuilder.KongEnd && Mathf.Abs(w.x - WorldBuilder.Kongjwi.x) > 2 && Mathf.Abs(w.x - WorldBuilder.Patjwi.x) > 2, "New villagers stand apart in Kongbat");
         Require(WorldBuilder.PatjwiRaidX < WorldBuilder.Anak.x && WorldBuilder.PatjwiRaidX > WorldBuilder.KongStart, "Patjwi's refuge is the far left of the village");
@@ -42,7 +44,7 @@ public static class WorldChecks
         Require(!WorldBuilder.CanDetect(new Vector2(11.9f, .2f), new Vector2(13.2f, .7f)), "Village boundary must remain safe even near enemy");
         Require(Combat.EnemyMaxHealth == 200, "Health must be 200");
         Require(Combat.ElderCounterDamage * 3 >= Combat.EnemyMaxHealth && Combat.ElderCounterDamage * 2 < Combat.EnemyMaxHealth, "The elder's last blow takes a third of the boss");
-        foreach (var prop in new[] { "뒷산 독", "뒷산 발판", "뒷산 땅", "주막", "주막 주모", "주막 평상", "마을 기와집", "거북 받침 비석", "숲 소나무", "뱃사공 오두막", "갈대", "강물", "장승", "서낭나무", "서낭당 돌무더기", "팥쥐네 장독대", "잔치 명단", "콩밭 마을 우물", "콩밭 마을 빨랫줄" })
+        foreach (var prop in new[] { "봉수 군령판", "산성 우물", "버려진 역참", "무덤", "한양 가게", "홍살문", "좌의정 댁 누각", "뒷산 독", "뒷산 발판", "뒷산 땅", "주막", "주막 주모", "주막 평상", "마을 기와집", "거북 받침 비석", "숲 소나무", "뱃사공 오두막", "갈대", "강물", "장승", "서낭나무", "서낭당 돌무더기", "팥쥐네 장독대", "잔치 명단", "콩밭 마을 우물", "콩밭 마을 빨랫줄" })
             Require(GameObject.Find(prop) != null && GameObject.Find(prop).GetComponent<SpriteRenderer>().sprite != null, "Prop placed: " + prop);
         Require(GameObject.Find("주막 건물") == null && GameObject.Find("숲 수관") == null, "Placeholder blocks replaced");
         ArrowChecks.Run();

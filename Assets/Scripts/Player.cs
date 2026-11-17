@@ -40,6 +40,8 @@ public class Player : MonoBehaviour
         Stamina -= amount;
         return true;
     }
+    // 개발자 치트(DevCheats): 스테미너를 가득 채운다.
+    public void RefillStamina() { Stamina = MaxStamina; }
     // 달리기 속도 배율 (걷기 속도의 60%)
     public const float RunSpeedRate = 1.6f;
     private Rigidbody2D body;

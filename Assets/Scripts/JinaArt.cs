@@ -79,6 +79,13 @@ public static class JinaArt
         else if(path.StartsWith("16_Kong/")) { anchor.x=138; ppu=Load(Peddler).pixelsPerUnit; }
         // The Kongjwi demon (make_kong_boss.py): every frame on one canvas, feet at its bottom centre, the same blocks.
         else if(path.StartsWith("21_KongBoss/")) { rect=canvas; anchor=new Vector2(t.width*.5f,0); ppu=Load(Peddler).pixelsPerUnit; }
+        // Soldiers, the dueoksini and the councillor (make_soldier.py, make_road_mobs.py, make_final_boss.py): drawn on the
+        // seonbi's own 12 px art pixels, every frame on one canvas with the feet at its bottom centre. The wisp flies, so
+        // it hangs by its centre.
+        else if(path.StartsWith("22_Soldier/") || path.StartsWith("23_Mobs/") || path.StartsWith("25_Final/"))
+        { rect=canvas; anchor=new Vector2(t.width*.5f,path.StartsWith("23_Mobs/wisp") ? t.height*.5f : 0); ppu=546f/1.9f; }
+        // Hanyang's people (make_hanyang.py) are on Kongbat's grid: feet at x 138, the peddler's blocks.
+        else if(path.StartsWith("24_Hanyang/")) { anchor.x=138; ppu=Load(Peddler).pixelsPerUnit; }
         else if(path.StartsWith("04_Weapons"))
         {
             anchor=bounds.center; ppu=path.EndsWith("bow") ? bounds.height/BowHeight : bounds.width/(path.EndsWith("arrow") ? .7f : 1f);

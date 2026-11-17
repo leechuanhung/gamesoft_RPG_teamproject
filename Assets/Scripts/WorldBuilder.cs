@@ -42,7 +42,23 @@ public class WorldBuilder : MonoBehaviour
     };
     // 뒷산 곳곳에 엄폐물로 선 독.
     public static readonly float[] HillCrocks = { 207.5f, 218.5f, 229.5f, 238f };
-    public const float GoalX = 243f;
+    // 뒷산 너머 한양 가는 길(기획서.md 1-3): 봉화 산성(퍼즐, BeaconFort), 버려진 역참과 북망산 무덤길(일반 몬스터와
+    // 관군, RoadMobs), 한양 거리와 과거장 앞(HanyangTown), 좌의정 댁(최종 보스, FinalBoss).
+    // 과거장으로 가는 금빛 표식은 맨 끝에 있다.
+    public const float FortStart = HillEnd, FortEnd = 292f, StationEnd = 338f, GraveEnd = 384f, CityEnd = 430f, HallEnd = 470f;
+    public const float ManorStart = HallEnd, ManorEnd = 520f, WorldEnd = ManorEnd;
+    public const float FortGateX = 289f, OfficialX = 503f;
+    // 첫 마을 밖의 가게: 콩밭 마을 입구의 방물장수, 한양 잡화전 상인과 국밥집 주모(Shops.cs).
+    public static readonly Vector2 Bangmul = new Vector2(111.2f, .2f), Sangin = new Vector2(393.5f, .2f), Gukbap = new Vector2(414.5f, .2f);
+    // 산성과 무덤길의 높낮이: (왼쪽, 오른쪽, 윗면).
+    public static readonly (float left, float right, float top)[] FortSteps = { (246, 252, -.5f), (252, 258, .8f), (258, 266, 2f), (266, 272, .8f), (272, 292, -.5f) };
+    public static readonly (float left, float right, float top)[] GraveSteps = { (338, 346, -.5f), (346, 352, .8f), (352, 364, -.5f), (364, 370, 1.1f), (370, 384, -.5f) };
+    // 산성의 가장 높은 발판(봉수대 하나가 그 위에 있다), 역참과 무덤길의 발판.
+    public static readonly Vector2 FortPeak = new Vector2(269f, 3.7f);
+    public static readonly Vector2[] StationLedges = { new Vector2(299, 1.3f), new Vector2(304, 2.9f), new Vector2(321, 1.3f), new Vector2(326.5f, 2.9f) };
+    public static readonly Vector2[] GraveLedges = { new Vector2(349, 2.5f), new Vector2(358, 1.3f), new Vector2(367, 2.8f), new Vector2(377, 1.3f) };
+    public static readonly float[] Graves = { 342f, 356f, 361f, 374f, 381f };
+    public const float GoalX = WorldEnd - 3f;
     public static readonly Vector2 Ferryman = new Vector2(77f, .2f);
     // 물 띠의 바닥. 수면은 둑과 배 갑판보다 조금 아래.
     public const float WaterBottom = -1.5f;
@@ -59,13 +75,16 @@ public class WorldBuilder : MonoBehaviour
     public static readonly Vector2[] ForestLedges = { new Vector2(35, 1.3f), new Vector2(41, 2.9f), new Vector2(47, 1.3f), new Vector2(53, 2.8f), new Vector2(58.5f, 1.4f) };
     public const float LedgeWidth = 3f;
     // 구역마다 중심과 기물 뒤 배경 그림(먼 것은 카메라 따라 흐르고, 가까운 것은 고정).
-    static readonly (string art, float x)[] Backdrops = { ("stele", -55), ("camp", -26), ("village", 8), ("forest", 46), ("ferry", 87), ("kong", 130), ("pass", 174), ("pass", 222) };
+    static readonly (string art, float x)[] Backdrops = { ("stele", -55), ("camp", -26), ("village", 8), ("forest", 46), ("ferry", 87), ("kong", 130), ("pass", 174), ("pass", 222),
+        ("fort", 269), ("station", 315), ("grave", 361), ("city", 407), ("hall", 450), ("manor", 495) };
     // 맵마다 딛고 선 땅과 하늘: 그림 이름과 범위.
-    static readonly (string art, float left, float right)[] Lands = { ("stele", -70.5f, GateX), ("camp", GateX, VillageLeft), ("village", VillageLeft, ForestStart), ("forest", ForestStart, FerryStart), ("ferry", FerryStart, FerryEnd), ("kong", KongStart, KongEnd), ("pass", PassStart, PassEnd), ("hill", HillStart, HillEnd + 1) };
+    static readonly (string art, float left, float right)[] Lands = { ("stele", -70.5f, GateX), ("camp", GateX, VillageLeft), ("village", VillageLeft, ForestStart), ("forest", ForestStart, FerryStart), ("ferry", FerryStart, FerryEnd), ("kong", KongStart, KongEnd), ("pass", PassStart, PassEnd), ("hill", HillStart, HillEnd),
+        ("fort", FortStart, FortEnd), ("station", FortEnd, StationEnd), ("grave", StationEnd, GraveEnd), ("city", GraveEnd, CityEnd), ("hall", CityEnd, HallEnd), ("manor", ManorStart, ManorEnd + 1) };
     // 걷는 면은 땅 띠 윗면보다 이만큼 도트 아래(풀이 그 위로 솟음).
     const float GroundLip = 6;
 
-    public static string Area(float x) => x < GateX ? "옛 비석 터" : x < VillageLeft ? "일반 몬스터 지역" : x >= HillStart ? "뒷산" : x >= PassStart ? "고개와 서낭당" : x >= KongStart ? "콩밭 마을" : x >= FerryStart ? "나루터" : x >= ForestStart ? "보스 지역" : "리스폰 마을";
+    public static string Area(float x) => x < GateX ? "옛 비석 터" : x < VillageLeft ? "일반 몬스터 지역" : x >= ManorStart ? "좌의정 댁" : x >= CityEnd ? "과거장 앞"
+        : x >= GraveEnd ? "한양 거리" : x >= StationEnd ? "북망산 무덤길" : x >= FortEnd ? "버려진 역참" : x >= FortStart ? "봉화 산성" : x >= HillStart ? "뒷산" : x >= PassStart ? "고개와 서낭당" : x >= KongStart ? "콩밭 마을" : x >= FerryStart ? "나루터" : x >= ForestStart ? "보스 지역" : "리스폰 마을";
     // 도깨비가 선비를 알아챌 수 있는지(숲 안).
     public static bool CanDetect(Vector2 player, Vector2 enemy) => player.x >= ForestStart && player.x < FerryStart
         && Mathf.Abs(player.x - enemy.x) <= DetectionRange && Mathf.Abs(player.y - enemy.y) < 4f;
@@ -98,8 +117,14 @@ public class WorldBuilder : MonoBehaviour
         Tile("뒷산 배경", (HillStart + HillEnd) / 2, 4, HillEnd - HillStart, 12, new Color(.25f,.22f,.3f), sprite, false, -22);
         Tile("나루터 배경", (FerryStart + FerryEnd) / 2, 3.5f, FerryEnd - FerryStart, 11, new Color(.23f,.3f,.37f), sprite, false, -22);
         Tile("왼쪽 끝", -70.5f, 3, 1, 8, new Color(.3f,.3f,.38f), sprite, true);
-        Tile("오른쪽 끝", HillEnd + .5f, 3, 1, 8, new Color(.4f,.38f,.3f), sprite, true);
-        Tile("한양으로 가는 길", GoalX, 1, .4f, 3, new Color(1,.75f,.2f), sprite, false);
+        foreach (var (left, right, top) in FortSteps)
+            Tile("산성 땅", (left + right) / 2, (top - 1.5f) / 2, right - left, top + 1.5f, new Color(.42f,.44f,.4f), sprite, true);
+        Tile("역참 땅", (FortEnd + StationEnd) / 2, -1, StationEnd - FortEnd, 1, new Color(.56f,.48f,.36f), sprite, true);
+        foreach (var (left, right, top) in GraveSteps)
+            Tile("무덤길 땅", (left + right) / 2, (top - 1.5f) / 2, right - left, top + 1.5f, new Color(.32f,.28f,.34f), sprite, true);
+        Tile("한양 땅", (GraveEnd + WorldEnd) / 2, -1, WorldEnd - GraveEnd, 1, new Color(.56f,.55f,.53f), sprite, true);
+        Tile("오른쪽 끝", WorldEnd + .5f, 3, 1, 8, new Color(.4f,.38f,.3f), sprite, true);
+        Tile("과거장으로 가는 길", GoalX, 1, .4f, 3, new Color(1,.75f,.2f), sprite, false);
         Solids();
         for (int i = 0; i < 5; i++) Prop("숲 소나무", "pine", 32 + i * 6, -10, i % 2 == 1);
         Prop("마을 기와집", "house", 4.5f, -10);
@@ -122,6 +147,7 @@ public class WorldBuilder : MonoBehaviour
         foreach (var x in new[] { 66.5f, 79.2f, 100.8f, 109f }) Prop("갈대", "reeds", x, -4, x > 90);
         // 강: 둑 사이, 둑 바로 아래의 물 띠(바닥이 없다. Ferry 참고).
         for (float x = RiverLeft + 2; x < RiverRight; x += 4) Prop("강물", "water", x, 6).transform.position = new Vector3(x, WaterBottom, 0);
+        RoadProps();
         foreach (var (art, x) in Backdrops)
         {
             Prop("원경 " + art, "bg_" + art + "_far", x, -19).gameObject.AddComponent<ParallaxLayer>().home = x;
@@ -131,7 +157,10 @@ public class WorldBuilder : MonoBehaviour
         {
             Sky(art == "hill" ? "pass" : art, left, right);
             if (art == "pass") foreach (var (l, r, top) in PassSteps) Land(art, l, r, top);
-            else if (art == "hill") foreach (var (l, r, top) in HillSteps) Land("pass", l, r == HillEnd ? r + 1 : r, top);
+            else if (art == "hill") foreach (var (l, r, top) in HillSteps) Land("pass", l, r, top);
+            else if (art == "fort") foreach (var (l, r, top) in FortSteps) Land(art, l, r, top);
+            else if (art == "grave") foreach (var (l, r, top) in GraveSteps) Land(art, l, r, top);
+            else if (art == "manor") Land(art, left, right, -.5f);
             else if (art == "ferry") { Land(art, left, RiverLeft, -.5f); Land(art, RiverRight, right, -.5f); River(); }
             else Land(art, left, right, -.5f);
         }
@@ -139,6 +168,33 @@ public class WorldBuilder : MonoBehaviour
         foreach (var ledge in ForestLedges) Ledge("통나무 발판", "ledge_log", ledge);
         foreach (var (x, top, art) in HillLedges) Ledge("뒷산 발판", art, new Vector2(x, top));
         foreach (var x in HillCrocks) Prop("뒷산 독", "crock", x, -4).transform.position = new Vector3(x, Top(x), 0);
+        Ledge("산성 발판", "ledge_stone", FortPeak);
+        foreach (var ledge in StationLedges) Ledge("역참 발판", "ledge_log", ledge);
+        foreach (var ledge in GraveLedges) Ledge("무덤길 발판", "ledge_stone", ledge);
+    }
+
+    // 한양 가는 길의 기물: 산성의 군령판·소나무·성가퀴·우물, 역참과 수레, 무덤, 한양의 가게와 초롱, 홍살문, 누각.
+    void RoadProps()
+    {
+        Prop("봉수 군령판", "exam_board", BeaconFort.BoardX, -6);
+        Prop("산성 소나무", "pine", 249.5f, -10);
+        Prop("무너진 성가퀴", "fort_wall", 255f, -10).transform.position = new Vector3(255f, Top(255f), 0);
+        Prop("산성 성벽", "fort_wall", 263f, -12).transform.position = new Vector3(263f, Top(263f), 0);
+        Prop("산성 우물", "well", 275.8f, -6);
+        Prop("버려진 역참", "station_house", 311f, -10);
+        Prop("부서진 수레", "cart", 300.5f, -6);
+        Prop("역참 마른 나무", "dead_tree", 331.5f, -10);
+        foreach (var x in Graves) Prop("무덤", "grave", x, -6).transform.position = new Vector3(x, Top(x), 0);
+        Prop("무덤길 마른 나무", "dead_tree", 353.5f, -10);
+        Prop("무덤길 마른 나무", "dead_tree", 371.5f, -10, true);
+        Prop("한양 가게", "shop", 390.5f, -10);
+        Prop("한양 기와집", "house", 403f, -10);
+        Prop("한양 가게", "shop", 416.5f, -10, true);
+        foreach (var x in new[] { 397f, 413.2f, 423f, 451f, 467f, 474.5f, 487f, 516f }) Prop("청사초롱", "lantern", x, -5);
+        Prop("홍살문", "hongsal", 437f, -10);
+        Prop("과거 방", "exam_board", 447.5f, -6);
+        Prop("과거장 기와집", "house", 461f, -10);
+        Prop("좌의정 댁 누각", "pavilion", 504f, -12);
     }
 
     // 충돌체 위의 땅 그림: 화면 아래 너머까지 흙, 위에 풀.
@@ -196,6 +252,8 @@ public class WorldBuilder : MonoBehaviour
     {
         foreach (var (left, right, top) in PassSteps) if (x >= left && x < right) return top;
         foreach (var (left, right, top) in HillSteps) if (x >= left && x < right) return top;
+        foreach (var (left, right, top) in FortSteps) if (x >= left && x < right) return top;
+        foreach (var (left, right, top) in GraveSteps) if (x >= left && x < right) return top;
         return -.5f;
     }
 
@@ -288,6 +346,13 @@ public class MapAmbience : MonoBehaviour
         new Air { kind = Kind.Seed, a = new Color(1, .96f, .78f), b = new Color(1, .86f, .56f), count = 18, cloud = new Color(1, .96f, .86f, .92f), clouds = 5 },
         new Air { kind = Kind.Wind, a = new Color(1, .84f, .74f), b = new Color(.9f, .66f, .62f), count = 16, cloud = new Color(.9f, .56f, .5f, .75f), clouds = 5 },
         new Air { kind = Kind.Ash, a = new Color(.62f, .5f, .7f), b = new Color(.36f, .3f, .4f), count = 22, cloud = new Color(.5f, .36f, .46f, .8f), clouds = 4 },
+        // 봉화 산성: 아침 솔잎, 역참: 마른 바람, 무덤길: 도깨비불 같은 반딧불, 한양: 꽃잎, 과거장: 은행잎, 좌의정 댁: 붉은 재.
+        new Air { kind = Kind.Leaf, a = new Color(.5f, .66f, .42f), b = new Color(.7f, .74f, .5f), count = 16, cloud = new Color(.92f, .95f, .96f, .85f), clouds = 4 },
+        new Air { kind = Kind.Wind, a = new Color(.9f, .84f, .7f), b = new Color(.78f, .72f, .6f), count = 18, cloud = new Color(.86f, .86f, .84f, .9f), clouds = 5 },
+        new Air { kind = Kind.Firefly, a = new Color(.5f, .8f, 1), b = new Color(.7f, .9f, 1), count = 18, cloud = new Color(.36f, .26f, .44f, .7f), clouds = 3 },
+        new Air { kind = Kind.Petal, a = new Color(1, .86f, .9f), b = new Color(1, .96f, .9f), count = 12, cloud = new Color(1, 1, 1, .9f), clouds = 5 },
+        new Air { kind = Kind.Leaf, a = new Color(.96f, .82f, .3f), b = new Color(.86f, .7f, .24f), count = 20, cloud = new Color(1, .94f, .84f, .9f), clouds = 4 },
+        new Air { kind = Kind.Ash, a = new Color(1, .42f, .3f), b = new Color(.5f, .2f, .3f), count = 24, cloud = new Color(.3f, .12f, .2f, .7f), clouds = 3 },
     };
     const float ViewHalfW = 11, ViewHalfH = 5.6f;
     const int MaxMotes = 30, MaxClouds = 5, SmokeBits = 10;

@@ -181,6 +181,39 @@ public class EndingNarration : Narration
         return pages;
     }
     public static string Title(Kind kind) => kind == Kind.Sacrifice ? "희생 위의 승리" : kind == Kind.Purified ? "자비로운 해결사" : "토벌의 영웅";
+    // 한양: 좌의정이 쓰러진 다음 날 아침의 과거장. 선악으로 갈린다(기획서.md 4장 결말).
+    public enum Verdict { None, Loyal, Sword, Failed }
+    public static Verdict VerdictFor(QuestProgress q) => q.FinalOutcome == EncounterOutcome.Unresolved ? Verdict.None
+        : q.Honor >= 80 ? Verdict.Loyal : q.Honor >= 0 ? Verdict.Sword : Verdict.Failed;
+    public static string VerdictTitle(Verdict v) => v == Verdict.Loyal ? "성군의 신하" : v == Verdict.Sword ? "칼을 든 선비" : "낙방한 선비";
+    // `lostSomeone`: 노인이나 콩밭 마을 사람을 잃었다(희생 위의 길: 끝에 한 장이 붙는다).
+    public static string[][] Finale(Verdict v, bool lostSomeone)
+    {
+        var pages = new System.Collections.Generic.List<string[]>();
+        if (v == Verdict.Loyal)
+        {
+            pages.Add(new[] { "좌의정이 쓰러진 밤이 지나고", "과거장의 문이 열렸다" });
+            pages.Add(new[] { "붓을 들자 길에서 만난 얼굴들이 하나씩 떠올랐다", "도깨비의 사연, 강가의 은비녀, 콩밭 마을의 제사" });
+            pages.Add(new[] { "방이 붙던 날, 어린 임금은 장원의 답안을 오래 들여다보았다", "시관이 말했다. \"글보다 길이 먼저 답했습니다\"" });
+        }
+        else if (v == Verdict.Sword)
+        {
+            pages.Add(new[] { "좌의정이 쓰러진 밤이 지나고", "과거장의 문이 열렸다" });
+            pages.Add(new[] { "선비는 급제했다", "그러나 돌아보면 길에 남은 것은 무덤뿐이었다" });
+            pages.Add(new[] { "어린 임금은 칼 잘 쓰는 신하를 얻었고", "선비는 그 칼을 어디에 쓸지 아직 알지 못했다" });
+        }
+        else
+        {
+            pages.Add(new[] { "좌의정은 쓰러졌으나", "관군에게 쫓기던 선비의 이름은 이미 수배 방에 올라 있었다" });
+            pages.Add(new[] { "과거장에 들어섰으나 붓이 움직이지 않았다", "종이 위로 길에서 벤 얼굴들이 번졌다" });
+            pages.Add(new[] { "흩어지던 그림자가 귓가에 속삭였다", "\"너도 우리와 같다\"" });
+        }
+        if (lostSomeone) pages.Add(new[] { "방이 붙던 날, 선비는 길에 두고 온 이름들을 하나씩 불렀다", "대답하는 이는 없었다" });
+        return pages.ToArray();
+    }
+    // 화면에 남는 결말 제목: 한양까지 왔으면 과거장의 판정, 아니면 도깨비 결말.
+    public string TitleText => Final != Verdict.None ? VerdictTitle(Final) : Title(Ending);
+    public Verdict Final { get; private set; }
     const float FadeToBlack = 1f, TitleFade = 1.2f;
 
     // 시작한 순간부터 R까지 켜져 있다: 그 뒤로 게임은 멈춰 있다.
@@ -203,7 +236,18 @@ public class EndingNarration : Narration
             ? KongCoda(q.KongOutcome, combat.Kong == null || combat.Kong.Alive(KongVillage.Who.Patjwi), q.VillagersLost)
             : Coda(combat != null && combat.Kong != null && combat.Kong.Revealed, combat != null && combat.Kong != null && combat.Kong.Stayed,
                 JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0);
-        Begin(WithCoda(story, coda));
+        Final = q != null ? VerdictFor(q) : Verdict.None;
+        var pages = WithCoda(story, coda);
+        if (Final != Verdict.None)
+        {
+            // 도깨비 이야기의 마지막 장("한양으로 발길을 옮겼다")은 빼고 과거장의 아침을 잇는다.
+            var list = new System.Collections.Generic.List<string[]>(story);
+            list.RemoveAt(list.Count - 1);
+            list.Add(coda);
+            list.AddRange(Finale(Final, q.ElderDead || q.VillagersLost > 0));
+            pages = list.ToArray();
+        }
+        Begin(pages);
     }
     public void ResetEnding() { Active = IsPlaying = false; titleTime = -1; }
     protected override float Lead => FadeToBlack;
@@ -216,9 +260,10 @@ public class EndingNarration : Narration
         if (combat == null || combat.Quest == null) return;
         if (!Active)
         {
-            // 길은 뒷산 너머라서 콩쥐 요괴도 해결해야 한다.
+            // 과거장 가는 길은 좌의정 댁 너머라서 콩쥐 요괴와 좌의정도 해결해야 한다.
             bool kongDone = combat.KongBoss == null || combat.KongBoss.Resolved;
-            if (combat.EnemyDefeated && kongDone && combat.PlayerHealth > 0 && combat.player.transform.position.x > WorldBuilder.GoalX - 1)
+            bool finalDone = combat.FinalBoss == null || combat.FinalBoss.Resolved;
+            if (combat.EnemyDefeated && kongDone && finalDone && combat.PlayerHealth > 0 && combat.player.transform.position.x > WorldBuilder.GoalX - 1)
                 Play(For(combat.Quest.progress));
             return;
         }
@@ -237,7 +282,7 @@ public class EndingNarration : Narration
         float alpha = Mathf.Clamp01(titleTime / TitleFade), y = JinaUI.H / 2f;
         var sub = new Color(.92f, .9f, .85f, alpha * .9f);
         JinaUI.Text(new Rect(0, y - 96, JinaUI.W, 42), "결말", 21, sub, TextAnchor.MiddleCenter);
-        JinaUI.Text(new Rect(0, y - 48, JinaUI.W, 72), Title(Ending), 48, new Color(.95f, .85f, .6f, alpha), TextAnchor.MiddleCenter, true);
+        JinaUI.Text(new Rect(0, y - 48, JinaUI.W, 72), TitleText, 48, new Color(.95f, .85f, .6f, alpha), TextAnchor.MiddleCenter, true);
         JinaUI.Fill(new Rect(JinaUI.W / 2 - 120 * alpha, y + 30, 240 * alpha, 2), new Color(.95f, .85f, .6f, alpha * .7f));
         JinaUI.Text(new Rect(0, y + 48, JinaUI.W, 42), "R: 처음부터 다시 시작", 21, sub, TextAnchor.MiddleCenter);
     }

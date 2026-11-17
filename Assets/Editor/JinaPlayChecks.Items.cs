@@ -48,7 +48,7 @@ public static partial class JinaPlayChecks
         var maps=combat.Maps; var view=Camera.main.GetComponent<View>(); var player=combat.player.transform;
         var cam=Camera.main; float half=cam.orthographicSize*cam.aspect;
         View.Shake(0,.01f);   // an earlier check's shake would push the camera off
-        Check(Maps.All.Length==8 && Maps.Index(WorldBuilder.Spawn.x)==2 && Maps.Index(-50)==0 && Maps.Index(40)==3 && Maps.Index(90)==4 && Maps.Index(130)==5 && Maps.Index(170)==6 && Maps.Index(220)==7,"Eight maps, the village where he starts");
+        Check(Maps.All.Length==14 && Maps.Index(WorldBuilder.Spawn.x)==2 && Maps.Index(-50)==0 && Maps.Index(40)==3 && Maps.Index(90)==4 && Maps.Index(130)==5 && Maps.Index(170)==6 && Maps.Index(220)==7 && Maps.Index(WorldBuilder.GoalX)==13,"Fourteen maps, the village where he starts");
         Check(maps.Current==2 && !maps.Travelling,"He starts in the village");
         Call(view,"LateUpdate");
         Check(cam.transform.position.x+half<=WorldBuilder.ForestStart+.01f,"The camera stays inside the village");
@@ -335,7 +335,7 @@ public static partial class JinaPlayChecks
             string before=string.Join("",KongVillage.Lines(who,false,false,false,false,false,false)), after=string.Join("",KongVillage.Lines(who,false,false,false,false,false,true)), last=string.Join("",KongVillage.Lines(who,true,true,true,true,false,true));
             Check(before!=after && after!=last,"The villagers' talk moves with the story");
         }
-        foreach(var spot in RoadsideLore.Spots) Check(spot.x>-70 && spot.x<WorldBuilder.HillEnd && !string.IsNullOrEmpty(spot.said) && !string.IsNullOrEmpty(spot.prompt),"Lore spot "+spot.prompt);
+        foreach(var spot in RoadsideLore.Spots) Check(spot.x>-70 && spot.x<WorldBuilder.WorldEnd && !string.IsNullOrEmpty(spot.said) && !string.IsNullOrEmpty(spot.prompt),"Lore spot "+spot.prompt);
         var lore=combat.Lore; var p=combat.player.transform;
         p.position=new Vector3(RoadsideLore.Spots[0].x,p.position.y,0);
         Check(lore.Near()==0,"He can read what he stands by");

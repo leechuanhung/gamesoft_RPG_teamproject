@@ -321,21 +321,24 @@ public static class JinaUI
     }
 
     // 말하는 사람의 초상화(17_Portraits)가 왼쪽 끝 안에 들어가는 대화창. 이름표와 한 자씩 찍히는 대사.
-    // `menacing`이면 글자가 붉고, `toLeft`면 화면 왼쪽에 둔다. 창 영역을 돌려준다.
+    // `menacing`이면 글자가 붉고, `toLeft`면 화면 왼쪽에 둔다. 초상화가 없는 사람(`portrait` null)은 글만 넓게. 창 영역을 돌려준다.
     public static Rect TalkWindow(string name, string portrait, string line, string hint, bool menacing, float since = -1, bool toLeft = false)
     {
         const float h = 200;
-        var sprite = JinaArt.Portrait(portrait);
+        var sprite = portrait == null ? null : JinaArt.Portrait(portrait);
         // 초상화는 창 높이 그대로 얇은 테두리 안에 들어간다.
-        float ph = h - 24, pw = ph * sprite.rect.width / sprite.rect.height;
+        float ph = h - 24, pw = sprite == null ? 0 : ph * sprite.rect.width / sprite.rect.height;
         float w = Mathf.Min(toLeft ? Mathf.Max(640, W * .7f) : 880, W - 30);
         var box = new Rect(toLeft ? 16 : (W - w) / 2, H - h - 14, w, h);
         Fill(new Rect(box.x + 5, box.y + 6, box.width, box.height), new Color(0, 0, 0, .28f));
         Box(box, Paper, Wood, 3);
         var face = new Rect(box.x + 12, box.y + 12, pw, ph);
-        Box(new Rect(face.x - 2, face.y - 2, face.width + 4, face.height + 4), Wood, Wood, 2);
-        InventoryUI.DrawIcon(sprite, face);
-        float x = face.xMax + 20, tw = box.xMax - x - 18;
+        if (sprite != null)
+        {
+            Box(new Rect(face.x - 2, face.y - 2, face.width + 4, face.height + 4), Wood, Wood, 2);
+            InventoryUI.DrawIcon(sprite, face);
+        }
+        float x = sprite == null ? box.x + 26 : face.xMax + 20, tw = box.xMax - x - 18;
         var nameplate = new Rect(x, box.y + 14, Width(name, 18, true) + 28, 32);
         Box(nameplate, Wood, WoodLight, 1);
         Text(nameplate, name, 18, Gold, TextAnchor.MiddleCenter, true);

@@ -30,7 +30,7 @@ public static partial class JinaPlayChecks
         combat.Restart();
 
         // The back hill: a map of its own past the pass, ground at several heights, ledges stacked high, crocks for cover.
-        Check(Maps.Index(WorldBuilder.KongLair)==7 && WorldBuilder.GoalX>WorldBuilder.HillStart && WorldBuilder.Top(WorldBuilder.GoalX)==-.5f,"The back hill is the last map, the road at its end");
+        Check(Maps.Index(WorldBuilder.KongLair)==7 && WorldBuilder.GoalX>WorldBuilder.ManorStart && WorldBuilder.Top(WorldBuilder.GoalX)==-.5f,"The back hill past the pass, the road to the examination far beyond it");
         float highest=0; foreach(var l in WorldBuilder.HillLedges) highest=Mathf.Max(highest,l.top);
         Check(WorldBuilder.HillLedges.Length>=10 && highest>=4.4f && WorldBuilder.Top(223)>.9f,"More ledges than the forest, stacked higher, and rises in the ground");
         Physics2D.SyncTransforms();

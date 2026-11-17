@@ -70,6 +70,9 @@ public static partial class JinaPlayChecks
                 CheckKongVillage();
                 CheckKongBoss();
                 Polish();
+                Hanyang();
+                CheatPanel();
+                RoadShops();
                 PlayerFall();
                 Endings();
                 Check(!combat.BossPurified && !combat.EnemyDefeated && combat.EnemyHealth==Combat.EnemyMaxHealth,"Restart restores hostile boss");
