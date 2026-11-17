@@ -10,6 +10,21 @@ public class Camp : MonoBehaviour
 {
     public Combat combat;
     public const int GhostHealth = Combat.MonsterMaxHealth, CoinsPerGhost = 4, CoinsPerWaterGhost = 1;
+    // 들판 유령이 떨어뜨리는 엽전: 1~10문, 아래 비율대로 무작위 (비율 합이 100이 아니어도 됨)
+    static readonly int[] CoinAmounts = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+    static readonly float[] CoinWeights = { 22f, 18f, 15f, 12f, 10f, 8f, 7f, 5f, 2.5f, .5f };
+    static int RollCoins()
+    {
+        float total = 0;
+        foreach (var w in CoinWeights) total += w;
+        float roll = Random.Range(0f, total);
+        for (int i = 0; i < CoinWeights.Length; i++)
+        {
+            roll -= CoinWeights[i];
+            if (roll < 0) return CoinAmounts[i];
+        }
+        return CoinAmounts[0];
+    }
     // 날아다니는 구역, 사각형과 그림의 색, 되살아나는지, 무엇을 남기는지.
     public float minX = -38, maxX = -13;
     public Color body = new Color(.65f,.35f,.22f), tint = Color.white;
@@ -133,7 +148,10 @@ public class Camp : MonoBehaviour
             JinaFx.Rise(at, 12, river ? new Color(.7f, .9f, 1) : new Color(.86f, .72f, 1), .4f, 2.2f, 1.1f);
             JinaFx.Dots(at, 7, new Color(1, .84f, .4f), 2.6f, .55f, 0, 6);
             JinaFx.Stop(.08f);
-            if (combat != null) { combat.FindCoins(coins); if (river) combat.FellWaterGhost(); }
+            // 들판 유령은 1~10문 무작위, 물귀신은 원래대로
+            int gain = river ? coins : RollCoins();
+            if (combat != null) { combat.FindCoins(gain); if (river) combat.FellWaterGhost(); }
+            JinaFx.Word(at + Vector3.up * 1.2f, "+" + gain + "문", new Color(1f, .84f, .3f), 22);
         }
         if (Remaining == 0 && gate != null) gate.SetActive(false);
     }
