@@ -89,7 +89,7 @@ public static partial class JinaPlayChecks
             Check(shot.flipX==(direction<0),"Arrow faces shot direction");
             Capture("bow-release-"+(direction>0 ? "right" : "left"),new Vector3(0,1,-10),2);
             shot.enabled=false; shot.gameObject.name="Checked Arrow";
-            typeof(PrototypeCombat).GetMethod("ClearArrows",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(combat,null);
+            typeof(Combat).GetMethod("ClearArrows",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(combat,null);
         }
         Set(combat,"<UsingBow>k__BackingField",false);
 
@@ -114,9 +114,9 @@ public static partial class JinaPlayChecks
         Set(combat,"<PlayerHurtAt>k__BackingField",Time.time-SeonbiVisual.HurtLength-.01f); visual.SendMessage("LateUpdate");
         Check(body()==JinaArt.Player,"Recoil ends in idle");
         Set(combat,"<PlayerHurtAt>k__BackingField",-1f);
-        // 물러서기는 이제 Q 스킬이다(PrototypeSkills 0번 칸): 보는 반대쪽으로 빠르게 물러나고 잠시 무적.
+        // 물러서기는 이제 Q 스킬이다(Skills 0번 칸): 보는 반대쪽으로 빠르게 물러나고 잠시 무적.
         combat.Skills.ResetSkills();
-        typeof(PrototypeSkills).GetMethod("TryUse",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(combat.Skills,new object[]{0});
+        typeof(Skills).GetMethod("TryUse",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(combat.Skills,new object[]{0});
         Check(combat.player.Dodging,"Retreat skill starts the dash");
         Set(combat.player,"dodgeUntil",Time.time+1); visual.SendMessage("LateUpdate");
         Check(!combat.player.DashSlashing && body().EndsWith("player_dodge"),"Retreat is a backstep, not the rush's slash");
@@ -135,11 +135,11 @@ public static partial class JinaPlayChecks
         Set(combat.player,"dodgeUntil",0f); Set(combat,"skillInvulnerableUntil",0f); combat.Skills.ResetSkills();
         Call(dash,"FixedUpdate");
         // W 돌진베기: 돌진 그림, 지나가는 유령을 한 번만 벤다(돌진이 끝난 뒤에도 더 맞지 않는다).
-        typeof(PrototypeSkills).GetMethod("TryUse",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(combat.Skills,new object[]{1});
+        typeof(Skills).GetMethod("TryUse",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(combat.Skills,new object[]{1});
         Set(combat.player,"dodgeUntil",Time.time+1); visual.SendMessage("LateUpdate");
         Check(combat.player.DashSlashing && body().Contains("dash_slash_"),"Rush shows the dash slash");
         Call(dash,"FixedUpdate"); Call(dash,"FixedUpdate");
-        int rushCut=ghostHp-PrototypeCombat.CalcDamage(PrototypeCombat.DashSlashDamage,PrototypeCombat.MonsterDefense);
+        int rushCut=ghostHp-Combat.CalcDamage(Combat.DashSlashDamage,Combat.MonsterDefense);
         Check(ghost.hp==rushCut,"Rush cuts a ghost once: "+ghost.hp);
         Set(combat.player,"dodgeUntil",0f); Call(dash,"FixedUpdate"); Call(combat.Skills);
         Check(ghost.hp==rushCut,"No second cut when the rush ends");

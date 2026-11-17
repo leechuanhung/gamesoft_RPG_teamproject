@@ -5,7 +5,7 @@ using UnityEngine;
 // 게임 안 쓰러짐(SeonbiVisual.Fall)은 아래에서 그대로 재생되고 검은 화면에 가려진다.
 public class GameOver : MonoBehaviour
 {
-    public PrototypeCombat combat;
+    public Combat combat;
     // PlayerDownAt 뒤 초: 검은 화면이 닫히고, 각 자세가 시작되고, 무기가 떨어지고, 글이 나온다.
     public const float FadeIn = .15f, Slump = .35f, Kneel = .8f, Topple = 1.45f, Down = 1.75f, WeaponLands = .9f, TextAt = 2.3f;
     // 타격에 뒤로 밀리는 거리와 타격의 흰 번쩍임이 이어지는 시간.
@@ -59,7 +59,7 @@ public class GameOver : MonoBehaviour
         flash.enabled = false;
         if (!on) { shownFor = -1; landed = false; return; }
         float t = Elapsed;
-        if (shownFor != combat.PlayerDownAt) { shownFor = combat.PlayerDownAt; landed = false; PrototypeView.Shake(.25f, .35f); }
+        if (shownFor != combat.PlayerDownAt) { shownFor = combat.PlayerDownAt; landed = false; View.Shake(.25f, .35f); }
 
         int facing = combat.player.Facing;
         var source = combat.player.GetComponent<SpriteRenderer>();
@@ -76,7 +76,7 @@ public class GameOver : MonoBehaviour
         actor.transform.rotation = Quaternion.Euler(0, 0, actor.sprite == facedown ? 0 : -90 * tip * facing);
         // 처음엔 흰색, 가만히 누우면 빛이 빠진다.
         actor.color = Color.Lerp(Color.white, new Color(.55f, .55f, .6f), Mathf.Clamp01((t - Down) / 1.2f));
-        if (!landed && t >= Down) { landed = true; PrototypeView.Shake(.12f, .2f); }
+        if (!landed && t >= Down) { landed = true; View.Shake(.12f, .2f); }
 
         if (t < FlashLength)
         {
@@ -102,7 +102,7 @@ public class GameOver : MonoBehaviour
     {
         float t = Elapsed;
         if (t < TextAt) return;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         const float size = 30;
         float a = Mathf.Clamp01((t - TextAt) / .6f), b = Mathf.Clamp01((t - TextAt - .8f) / .6f), c = Mathf.Clamp01((t - TextAt - 1.6f) / .6f);
         float y = JinaUI.H * .22f;

@@ -13,7 +13,7 @@ using Who = KongVillage.Who;
 // 마을에서 토벌: 생존자의 외침과 팥쥐의 한마디.
 public class KongAftermath : MonoBehaviour
 {
-    public PrototypeCombat combat;
+    public Combat combat;
     public const float LineLength = 3.4f, RunSpeed = 3.4f;
     class Cue { public Who who; public bool seonbi, field, big; public string line; public System.Action act; public System.Func<bool> wait; public float length = LineLength; }
     readonly List<Cue> cues = new List<Cue>();
@@ -108,10 +108,10 @@ public class KongAftermath : MonoBehaviour
             Say(K, "안 돼… 안 돼, 눈 좀 떠 봐. 언니 왔어. 언니가 왔다니까…", () =>
             {
                 Kong.SetLook(K, VillagerVisual.Look.Bow, true); Turn(K, Kong.PersonX(P));
-                PrototypeView.Shake(.05f, .4f);
+                View.Shake(.05f, .4f);
             });
             Say(K, "내가… 내가 그랬어. 어머니도, 너도… 다 내가…");
-            var wail = Say(K, "팥쥐야아아아——!!", () => PrototypeView.Shake(.14f, 1.6f));
+            var wail = Say(K, "팥쥐야아아아——!!", () => View.Shake(.14f, 1.6f));
             wail.big = true; wail.length = 4.5f;
             Play("wail");
             return;
@@ -179,7 +179,7 @@ public class KongAftermath : MonoBehaviour
     void OnGUI()
     {
         if (!Playing || combat == null || combat.Paused || combat.PlayerHealth <= 0) return;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         var cue = cues[at];
         var head = cue.seonbi ? combat.player.transform.position + Vector3.up * 1.3f
             : cue.field ? Boss.Feet + Vector3.up * 1.3f : Kong.Head(cue.who);

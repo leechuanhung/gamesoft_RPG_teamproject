@@ -3,7 +3,7 @@ using UnityEngine;
 // 세계는 길게 이어진 땅 하나지만 맵이 따로따로인 것처럼 플레이된다. 카메라는 선비가 있는 맵 가장자리
 // 너머를 보여 주지 않고, 가장자리를 걸어 나가면 계속 걷는 동안 어둠을 지나 다음 맵으로 바뀐다:
 // 누를 키가 없다. 몬스터는 알아서 경계를 넘는다(도깨비는 마을까지 쫓아올 수 있음).
-public class PrototypeMaps : MonoBehaviour
+public class Maps : MonoBehaviour
 {
     public struct Map
     {
@@ -26,7 +26,7 @@ public class PrototypeMaps : MonoBehaviour
     // 맵이 바뀌기 전 경계를 얼마나 넘어 걷는지, 어둠이 닫히고 열리는 시간, 이름 카드.
     public const float Margin = .2f, FadeOut = .22f, FadeIn = .3f, CardLength = 2.4f;
 
-    public PrototypeCombat combat;
+    public Combat combat;
     public int Current { get; private set; } = Index(WorldBuilder.Spawn.x);
     public float LeftAt { get; private set; } = -1;
     public float EnteredAt { get; private set; } = -1;
@@ -91,7 +91,7 @@ public class PrototypeMaps : MonoBehaviour
     void OnGUI()
     {
         GUI.depth = -50;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         if (Cover > 0)
         {
             JinaUI.Fill(new Rect(0, 0, JinaUI.W, JinaUI.H), new Color(0, 0, 0, Cover));

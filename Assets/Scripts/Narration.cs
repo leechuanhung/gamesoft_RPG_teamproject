@@ -5,7 +5,7 @@ using UnityEngine;
 // 인트로는 시작할 때, 결말은 선비가 한양 가는 길에 닿았을 때 재생한다.
 public abstract class Narration : MonoBehaviour
 {
-    public PrototypeCombat combat;
+    public Combat combat;
     const float LineGap = 2.6f, FadeIn = 1.2f, Hold = 2.4f, FadeOut = 1f, PageGap = .6f, SkipHold = 1f;
     public bool IsPlaying { get; protected set; }
     protected string[][] pages;
@@ -55,7 +55,7 @@ public abstract class Narration : MonoBehaviour
     protected void DrawCover()
     {
         GUI.depth = -100;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         JinaUI.Fill(new Rect(0, 0, JinaUI.W, JinaUI.H), new Color(0, 0, 0, Cover));
     }
     // 지금 장의 줄들을 그린다.

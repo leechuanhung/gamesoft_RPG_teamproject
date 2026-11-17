@@ -3,9 +3,9 @@ using UnityEngine;
 
 // W 돌진베기의 피해(DashSlashAttack이 돌진하는 동안 부른다). 피해는 전투 쪽이 맡아서, 돌진 이동은
 // 적의 속사정을 몰라도 된다. 돌진베기의 피해는 여기 한 곳에서만 들어간다.
-public partial class PrototypeCombat
+public partial class Combat
 {
-    public const int DashSlashDamage = PrototypeSkills.RushDamage;
+    public const int DashSlashDamage = Skills.RushDamage;
 
     // `swept`에 닿은 도깨비·콩쥐 요괴·유령을 베고 뒷산의 독을 친다. `alreadyHit`: 이번 돌진에서 이미 벤 것
     // (도깨비는 enemy, 콩쥐는 KongBoss, 유령은 Mob, 독은 그 독). 돌진 한 번에 하나마다 한 번만 맞는다.

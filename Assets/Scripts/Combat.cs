@@ -2,12 +2,12 @@ using UnityEngine;
 
 // A small combat loop, attached automatically by the existing test scene: the seonbi's health and attacks,
 // restarts and pausing, and the managers it attaches (quest, camp, shops, village, story scenes).
-// The boss is in PrototypeCombat.Boss.cs and the arrows in PrototypeCombat.Arrows.cs.
-public partial class PrototypeCombat : MonoBehaviour
+// The boss is in Combat.Boss.cs and the arrows in Combat.Arrows.cs.
+public partial class Combat : MonoBehaviour
 {
     public bool InventoryPauseActive { get; set; }
     public event System.Action Restarted;
-    public PrototypePlayer player;
+    public Player player;
     public const int MaxPlayerHealth = 100;
     public int PlayerHealth { get; private set; } = MaxPlayerHealth;
     public const int PlayerAttack = 10;
@@ -16,7 +16,7 @@ public partial class PrototypeCombat : MonoBehaviour
     private float skillInvulnerableUntil;
     public bool SkillInvulnerable => Time.time < skillInvulnerableUntil;
     public void GrantSkillInvulnerable(float seconds) { skillInvulnerableUntil = Mathf.Max(skillInvulnerableUntil, Time.time + seconds); }
-    public PrototypeSkills Skills { get; private set; }
+    public Skills Skills { get; private set; }
     // A ward charm (JinaItems) takes the next blow in his place; the message shows for a moment after.
     public bool Warded { get; private set; }
     public float WardBrokeAt { get; private set; } = -1;
@@ -31,7 +31,7 @@ public partial class PrototypeCombat : MonoBehaviour
     // The elder's last blow takes a third of the boss's health.
     public const int ElderCounterDamage = 67;
     public int BossDefense = 0;
-    // ── 일반 몬스터 능력치 (PrototypeCamp.cs에서 사용) ──
+    // ── 일반 몬스터 능력치 (Camp.cs에서 사용) ──
     public const int MonsterMaxHealth = 30;
     public const int MonsterAttack = 10;
     public const int MonsterDefense = 0;
@@ -65,14 +65,14 @@ public partial class PrototypeCombat : MonoBehaviour
     public bool UsingBow { get; private set; }
     private bool alerted;
     private bool strikeElder;
-    public PrototypeCamp Camp { get; private set; }
+    public Camp Camp { get; private set; }
     // The river's water ghosts at the ferry. Felling KeepsakeAt of them (they rise again) frees the drowned
     // mother's keepsake, which goes into the inventory once a run.
-    public PrototypeCamp River { get; private set; }
+    public Camp River { get; private set; }
     public const int KeepsakeAt = 10;
     public int RiverFelled { get; private set; }
     public float KeepsakeFreedAt { get; private set; } = -1;
-    public PrototypeCamp[] Camps => new[] { Camp, River };
+    public Camp[] Camps => new[] { Camp, River };
     public void FellWaterGhost()
     {
         if (++RiverFelled != KeepsakeAt) return;
@@ -93,9 +93,9 @@ public partial class PrototypeCombat : MonoBehaviour
     public IntroNarration Intro { get; private set; }
     public EndingNarration Ending { get; private set; }
     public GameOver GameOver { get; private set; }
-    public PrototypeMaps Maps { get; private set; }
+    public Maps Maps { get; private set; }
     public Ferry Ferry { get; private set; }
-    public PrototypeHud Hud { get; private set; }
+    public Hud Hud { get; private set; }
     public MountainPass Pass { get; private set; }
     public KongVillage Kong { get; private set; }
     public KongNightStay Stay { get; private set; }
@@ -128,7 +128,7 @@ public partial class PrototypeCombat : MonoBehaviour
         PlayerDownAt = PlayerHurtAt = WardBrokeAt = CoinsFoundAt = -1;
         comboStep = -1; comboUntil = 0; lastPlayerHit = -1;
         JinaFx.Clear();
-        PrototypeView.Shake(0, .01f); PrototypeView.Focus(0, 0);
+        View.Shake(0, .01f); View.Focus(0, 0);
         playerArt.color = playerColor;
         player.RespawnAt(HillEntrance);
         UsingBow = false; Arrows = save.arrows; noArrowsUntil = 0;
@@ -165,9 +165,9 @@ public partial class PrototypeCombat : MonoBehaviour
         slash.sortingOrder = 3;
         Quest = gameObject.AddComponent<ElderQuest>();
         Quest.combat = this;
-        Camp = new GameObject("일반 몬스터와 봉인").AddComponent<PrototypeCamp>();
+        Camp = new GameObject("일반 몬스터와 봉인").AddComponent<Camp>();
         Camp.Initialize(this, playerArt.sprite);
-        River = new GameObject("나루터 물귀신").AddComponent<PrototypeCamp>();
+        River = new GameObject("나루터 물귀신").AddComponent<Camp>();
         River.InitializeRiver(this, playerArt.sprite);
         Tavern = gameObject.AddComponent<TavernShop>();
         Tavern.combat = this;
@@ -185,9 +185,9 @@ public partial class PrototypeCombat : MonoBehaviour
         BossTalk.combat = this;
         playerVisual = SeonbiVisual.Attach(player, this);
         player.gameObject.AddComponent<DashSlashAttack>().Initialize(this);
-        Maps = gameObject.AddComponent<PrototypeMaps>();
+        Maps = gameObject.AddComponent<Maps>();
         Maps.combat = this;
-        Hud = gameObject.AddComponent<PrototypeHud>();
+        Hud = gameObject.AddComponent<Hud>();
         Hud.combat = this;
         Ferry = gameObject.AddComponent<Ferry>();
         Ferry.combat = this;
@@ -215,7 +215,7 @@ public partial class PrototypeCombat : MonoBehaviour
         GameOver = gameObject.AddComponent<GameOver>();
         GameOver.combat = this;
         // 스킬: Q·W·E 스킬과 왼쪽 아래 스킬창
-        Skills = gameObject.AddComponent<PrototypeSkills>();
+        Skills = gameObject.AddComponent<Skills>();
         Skills.combat = this;
     }
 
@@ -251,7 +251,7 @@ public partial class PrototypeCombat : MonoBehaviour
         if (Skills != null) Skills.ResetSkills();
         comboStep = -1; comboUntil = 0; lastPlayerHit = -1;
         JinaFx.Clear();
-        PrototypeView.Shake(0, .01f);
+        View.Shake(0, .01f);
         playerArt.color = playerColor;
         player.Respawn();
         UsingBow = false;
@@ -313,7 +313,7 @@ public partial class PrototypeCombat : MonoBehaviour
         if ((Input.GetKeyDown(KeyCode.J) || Input.GetMouseButtonDown(0)) && Time.time >= nextAttack && UsingBow && Arrows <= 0)
             noArrowsUntil = Time.time + 1.5f;
         else if ((Input.GetKeyDown(KeyCode.J) || Input.GetMouseButtonDown(0)) && Time.time >= nextAttack && !player.Dodging
-            && player.UseStamina(PrototypeSkills.AttackStamina))
+            && player.UseStamina(Skills.AttackStamina))
         {
             // Another swing soon enough after the last goes on to the next step; otherwise it starts over.
             pendingStep = UsingBow ? 0 : Time.time <= comboUntil ? (comboStep + 1) % 3 : 0;
@@ -373,7 +373,7 @@ public partial class PrototypeCombat : MonoBehaviour
         if (player.IsGrounded) player.Lunge(attackFacing, step == 2 ? 5f : 1.6f, step == 2 ? .14f : .1f);
         if (!landed) return;
         JinaFx.Stop(step == 2 ? .09f : .045f);
-        PrototypeView.Shake(step == 2 ? .11f : .045f, step == 2 ? .2f : .1f);
+        View.Shake(step == 2 ? .11f : .045f, step == 2 ? .2f : .1f);
     }
 
     // 마우스 조준 ──
@@ -422,7 +422,7 @@ public partial class PrototypeCombat : MonoBehaviour
         lastPlayerHit = Time.time;
         JinaFx.Hit(chest, -player.Facing, new Color(1, .42f, .34f), 1.1f);
         JinaFx.Number(chest + Vector3.up * .5f, before - PlayerHealth, new Color(1, .46f, .38f), 22);
-        PrototypeView.Shake(.09f, .2f);
+        View.Shake(.09f, .2f);
         JinaFx.Stop(.06f);
         if (PlayerHealth > 0) { PlayerHurtAt = Time.time; return; }
         PlayerDownAt = Time.time;
@@ -435,7 +435,7 @@ public partial class PrototypeCombat : MonoBehaviour
     }
 
     // 막대 하나 그리기: 검은 테두리 + 어두운 바탕 + 비율만큼 채우기 + 가운데 글씨(그림자)
-    // 다른 파일에서도 PrototypeCombat.DrawBar(...)로 씀. GUI.matrix는 부르는 쪽에서 맞춤.
+    // 다른 파일에서도 Combat.DrawBar(...)로 씀. GUI.matrix는 부르는 쪽에서 맞춤.
     public static void DrawBar(Rect r, float ratio, Color fill, string text, int fontSize)
     {
         var old = GUI.color;
@@ -479,8 +479,8 @@ public partial class PrototypeCombat : MonoBehaviour
             "체력  " + Mathf.Max(0, PlayerHealth) + " / " + MaxPlayerHealth, 20);
 
         // 스테미너: 파란색
-        DrawBar(new Rect(x, staminaY, width, height), (float)player.Stamina / PrototypePlayer.MaxStamina, new Color(.25f, .55f, 1f),
-            "스테미너  " + player.Stamina + " / " + PrototypePlayer.MaxStamina, 20);
+        DrawBar(new Rect(x, staminaY, width, height), (float)player.Stamina / Player.MaxStamina, new Color(.25f, .55f, 1f),
+            "스테미너  " + player.Stamina + " / " + Player.MaxStamina, 20);
 
         GUI.matrix = oldMatrix;
     }
@@ -502,7 +502,7 @@ public partial class PrototypeCombat : MonoBehaviour
     }
     void OnGUI()
     {
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         DrawPlayerHealthBar();
         DrawBossHealthBar();
         if (PlayerHealth <= 0) return;

@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // 도깨비: 상태, 추격, 근접 공격, 돌진, 도약, 토벌과 정화.
-public partial class PrototypeCombat
+public partial class Combat
 {
     public int BossFacing { get; private set; } = -1;
     // 도깨비 쓰러짐과 정화 연출의 시작 시각(JinaActorVisual 참고).
@@ -76,7 +76,7 @@ public partial class PrototypeCombat
                         // 더 무거운 일격: 화면이 흔들리고 몽둥이가 내려친 프레임에서 머문다.
                         killedElder = true;
                         Quest.ShowElderDeath();
-                        PrototypeView.Shake(.12f, .4f);
+                        View.Shake(.12f, .4f);
                         DamageEnemy(ElderCounterDamage);
                     }
                 }
@@ -84,7 +84,7 @@ public partial class PrototypeCombat
                 // 몽둥이가 내려온다: 휩쓰는 빛과 땅에 닿은 곳의 먼지.
                 JinaFx.Arc((Vector3)lockedStrike + Vector3.up * .5f, BossFacing, -14, 1.45f, new Color(1, .74f, .6f), .18f);
                 JinaFx.Dust(new Vector3(lockedStrike.x, BossFeet.y, 0), BossFacing * .8f, 1.3f);
-                PrototypeView.Shake(.05f, .12f);
+                View.Shake(.05f, .12f);
                 windupUntil = -1;
                 bossRecoveryUntil = Time.time + (killedElder ? .7f : .24f);
                 enemyReadyAt = Time.time + .9f;
@@ -173,7 +173,7 @@ public partial class PrototypeCombat
     {
         var position = enemy.transform.position; position.y = BossGround; enemy.transform.position = position;
         Move = BossMove.Landed; moveUntil = Time.time + LandedLength;
-        PrototypeView.Shake(.17f, .4f);
+        View.Shake(.17f, .4f);
         JinaFx.Shock(BossFeet, 1.2f);
         bool onGround = player.IsGrounded && playerArt.bounds.min.y < -.3f;
         if (!moveHit && (enemy.bounds.Intersects(playerArt.bounds) || onGround && Mathf.Abs(player.transform.position.x - position.x) < SlamRadius)) { moveHit = true; HurtPlayer(BossAttack); }
@@ -223,7 +223,7 @@ public partial class PrototypeCombat
         JinaFx.Number(at + Vector3.up * .9f + Vector3.right * Random.Range(-.25f, .25f), before - EnemyHealth, amount > 30 ? new Color(1, .76f, .3f) : Color.white, amount > 30 ? 30 : 22);
         if (!EnemyDefeated) return;
         JinaFx.Stop(.16f);
-        PrototypeView.Shake(.2f, .4f);
+        View.Shake(.2f, .4f);
         // JinaActorVisual이 쓰러짐을 재생하는 동안 렌더러를 켜 두고, 그 뒤 스스로 숨는다.
         BossDownAt = Time.time;
         windupUntil = -1;

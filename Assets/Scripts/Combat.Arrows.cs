@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // 화살: 조준, 활을 떠나는 순간, 무언가에 맞을 때까지의 비행.
-public partial class PrototypeCombat
+public partial class Combat
 {
     private class FlyingArrow
     {
@@ -72,7 +72,7 @@ public partial class PrototypeCombat
                 float d = KongBoss.CrockArrowDistance(origin, direction, step, out int index);
                 if (d < enemyDistance) { enemyDistance = d; kong = false; crock = index; }
             }
-            PrototypeCamp.Mob mob = null; PrototypeCamp mobCamp = null;
+            Camp.Mob mob = null; Camp mobCamp = null;
             foreach (var camp in Camps)
                 if (camp != null)
                     foreach (var candidate in camp.mobs)

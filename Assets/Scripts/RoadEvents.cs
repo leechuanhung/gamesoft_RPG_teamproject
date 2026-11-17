@@ -7,7 +7,7 @@ using System.Collections.Generic;
 // 고원의 서낭당에서 한 판에 한 번 돌탑에 돌을 얹으면(엔터) 체력이 다 찬다.
 public class MountainPass : MonoBehaviour
 {
-    public PrototypeCombat combat;
+    public Combat combat;
     public const float RockEvery = 3.2f, RollSpeed = 4.2f, Radius = .48f, Fall = 25f, ShrineRange = 1.8f;
     public class Rock { public SpriteRenderer art; public float vy; }
     public readonly List<Rock> rocks = new List<Rock>();
@@ -70,7 +70,7 @@ public class MountainPass : MonoBehaviour
         ShrineAt = Time.time;
         if (ShrineUsed) { shrineSaid = "이미 돌을 얹었습니다. 걱정은 한 번이면 족합니다."; return false; }
         ShrineUsed = true;
-        combat.RestoreHealth(PrototypeCombat.MaxPlayerHealth);
+        combat.RestoreHealth(Combat.MaxPlayerHealth);
         shrineSaid = "돌 하나를 얹었습니다. 지나간 이들의 걱정 위에 내 걱정도 하나.\n몸이 가벼워집니다. (체력 회복)";
         return true;
     }
@@ -93,7 +93,7 @@ public class MountainPass : MonoBehaviour
     void OnGUI()
     {
         if (combat == null || combat.PlayerHealth <= 0 || combat.Paused) return;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         if (ShrineAt >= 0 && Time.time - ShrineAt < 3f)
             JinaUI.Toast(shrineSaid);
         if (NearShrine && !ShrineUsed) JinaUI.Prompt("Enter: 서낭당 돌무더기에 돌 얹기");
@@ -107,7 +107,7 @@ public class MountainPass : MonoBehaviour
 // 알려 주고, 콩밭 마을에서는 그곳 사람들이 믿는 것과 조용히 어긋난다.
 public class RoadsideLore : MonoBehaviour
 {
-    public PrototypeCombat combat;
+    public Combat combat;
     public const float Range = 1.1f, ShowFor = 5f;
     public struct Spot
     {
@@ -204,7 +204,7 @@ public class RoadsideLore : MonoBehaviour
     void OnGUI()
     {
         if (combat == null || combat.PlayerHealth <= 0 || combat.Paused) return;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         if (saidAt >= 0 && Time.time - saidAt < ShowFor) JinaUI.Toast(said);
         int i = Near();
         if (i >= 0 && !SomeoneElseHere()) JinaUI.Prompt("Enter: " + Spots[i].prompt);

@@ -9,7 +9,7 @@ public static class WorldChecks
     {
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         var world = new GameObject("World Check").AddComponent<WorldBuilder>();
-        world.Build(AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/PrototypeSquare.png"));
+        world.Build(AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Square.png"));
         Physics2D.SyncTransforms();
         // 같은 높이로 이어진 땅은 충돌체 하나여야 한다: 이음매가 있으면 걷던 선비가 옆 조각의 모서리에 걸린다.
         Collider2D lastFloor = null; float lastTop = 0;
@@ -40,8 +40,8 @@ public static class WorldChecks
         Require(WorldBuilder.CanDetect(new Vector2(WorldBuilder.ForestStart, .2f), enemy), "Detect at forest entrance");
         Require(!WorldBuilder.CanDetect(WorldBuilder.Spawn, enemy), "Spawn must be safe");
         Require(!WorldBuilder.CanDetect(new Vector2(11.9f, .2f), new Vector2(13.2f, .7f)), "Village boundary must remain safe even near enemy");
-        Require(PrototypeCombat.EnemyMaxHealth == 200, "Health must be 200");
-        Require(PrototypeCombat.ElderCounterDamage * 3 >= PrototypeCombat.EnemyMaxHealth && PrototypeCombat.ElderCounterDamage * 2 < PrototypeCombat.EnemyMaxHealth, "The elder's last blow takes a third of the boss");
+        Require(Combat.EnemyMaxHealth == 200, "Health must be 200");
+        Require(Combat.ElderCounterDamage * 3 >= Combat.EnemyMaxHealth && Combat.ElderCounterDamage * 2 < Combat.EnemyMaxHealth, "The elder's last blow takes a third of the boss");
         foreach (var prop in new[] { "뒷산 독", "뒷산 발판", "뒷산 땅", "주막", "주막 주모", "주막 평상", "마을 기와집", "거북 받침 비석", "숲 소나무", "뱃사공 오두막", "갈대", "강물", "장승", "서낭나무", "서낭당 돌무더기", "팥쥐네 장독대", "잔치 명단", "콩밭 마을 우물", "콩밭 마을 빨랫줄" })
             Require(GameObject.Find(prop) != null && GameObject.Find(prop).GetComponent<SpriteRenderer>().sprite != null, "Prop placed: " + prop);
         Require(GameObject.Find("주막 건물") == null && GameObject.Find("숲 수관") == null, "Placeholder blocks replaced");

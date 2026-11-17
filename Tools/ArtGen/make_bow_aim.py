@@ -9,10 +9,10 @@ from framelib import load, save, clean, preview_sheet, preview_dir
 root = sys.argv[1] + "/03_Player_Attack_Bow"
 
 B = 10
-ANGLE = 30                      # degrees; PrototypeCombat flies the arrow at the same angle
+ANGLE = 30                      # degrees; Combat flies the arrow at the same angle
 # Per frame: the pivot (x, y from the top) where the arm leaves the body, the cut line in front of the body, and
 # the line left of which the bow never reaches (above the hat and below the waist). The release frame leans
-# forward, so its arm starts further right; the follow-through holds the bow close. PrototypeCombat launches the
+# forward, so its arm starts further right; the follow-through holds the bow close. Combat launches the
 # arrow from the release frame (02), turned about its pivot.
 FRAMES = [((300, 255), 320, 395), ((290, 215), 310, 395), ((400, 245), 395, 395), ((330, 245), 335, 335)]
 # The cut: everything in front of the body between the hat and the waist, the bow tip above the hat, and the

@@ -9,7 +9,7 @@ using UnityEngine;
 // 화면 크기마다 -uishots 뒤 폴더에 <너비>x<높이>_<이름>.png를 저장하고 끝낸다.
 public class UiShots : MonoBehaviour
 {
-    PrototypeCombat combat;
+    Combat combat;
     string folder;
     int width, height;
 
@@ -30,7 +30,7 @@ public class UiShots : MonoBehaviour
     {
         Application.runInBackground = true;
         Directory.CreateDirectory(folder);
-        while ((combat = FindObjectOfType<PrototypeCombat>()) == null || combat.Ending == null || combat.Hud == null) yield return null;
+        while ((combat = FindObjectOfType<Combat>()) == null || combat.Ending == null || combat.Hud == null) yield return null;
         width = 1280; height = 720;
         yield return Size(width, height);
         yield return new WaitForSecondsRealtime(3.5f);

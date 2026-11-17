@@ -10,7 +10,7 @@ public class JinaActorVisual : MonoBehaviour
     // 인물 그림 1도트의 월드 크기(1.9칸에 546px일 때 12px). 동작은 도트 단위로 움직인다.
     protected const float ArtPixel=12f/(546f/1.9f);
     protected SpriteRenderer source,picture,glow;
-    protected PrototypeCombat combat;
+    protected Combat combat;
     protected string kind;
     protected float walkTime;
     // 그림이 그려진 방향과 지금 보는 방향(+1 오른쪽, -1 왼쪽).
@@ -31,7 +31,7 @@ public class JinaActorVisual : MonoBehaviour
     }
 
     // 사각형에 인물 그림을 붙인다. `kind`로 어떤 인물인지 고른다.
-    public static JinaActorVisual Attach(SpriteRenderer source,string kind,PrototypeCombat combat)
+    public static JinaActorVisual Attach(SpriteRenderer source,string kind,Combat combat)
     {
         var obj=source.gameObject;
         JinaActorVisual v=kind==JinaArt.Boss ? obj.AddComponent<BossVisual>()
@@ -363,14 +363,14 @@ public class PeddlerVisual : JinaActorVisual
 // 상대하는 손님 쪽, 애도 중에는 쓰러진 노인 쪽으로 돈다.
 public class KeeperVisual : MonoBehaviour
 {
-    private PrototypeCombat combat;
+    private Combat combat;
     private SpriteRenderer art;
     private Sprite idle;
     private Sprite[] runs;
     private float walkTime;
     private Vector3 last;
     // 주모 스프라이트에 프레임 담당을 붙인다.
-    public static KeeperVisual Attach(SpriteRenderer art,PrototypeCombat combat)
+    public static KeeperVisual Attach(SpriteRenderer art,Combat combat)
     {
         var v=art.gameObject.AddComponent<KeeperVisual>();
         v.art=art; v.combat=combat; v.idle=JinaArt.Prop("keeper");
@@ -414,7 +414,7 @@ public class FerrymanVisual : JinaActorVisual
 }
 
 // ===== 콩밭 마을 사람들 (VillagerVisual) =====
-// 콩밭 마을 사람들(보부상 격자에 왼쪽을 보고 그려짐): PrototypeKongVillage가 정한 쪽을 본다
+// 콩밭 마을 사람들(보부상 격자에 왼쪽을 보고 그려짐): KongVillage가 정한 쪽을 본다
 // (대화 중에는 선비를, 장면에서는 서로를). 콩쥐는 정체가 드러나면 어두워진다.
 // 요괴가 오면: 저주의 끈에 묶이고(요괴가 조이면 떤다), 그다음 죽어 눕는다.
 // 싸움 뒤: 콩쥐는 무릎 꿇거나, 엎드려 울거나, 눈을 내리깔고 선다. 우는 사람에게서는 눈물이 떨어진다.
@@ -500,12 +500,12 @@ public class GhostVisual : JinaActorVisual
     // 맞고도 서 있으면 잠깐 번쩍인다.
     public float HurtAt=-1;
     public void Hurt() { HurtAt=Time.time; }
-    // PrototypeCamp가 정하는 공격: AimX 쪽으로 준비 동작, StruckAt부터 휘두르기.
+    // Camp가 정하는 공격: AimX 쪽으로 준비 동작, StruckAt부터 휘두르기.
     public const float SwipeLength=.14f, StrikeLength=.32f, Lunge=.3f;
     public bool Winding;
     public float AimX, StruckAt=-1;
     private Sprite[] attacks;
-    // 휘두르기를 시작한다(PrototypeCamp가 부름).
+    // 휘두르기를 시작한다(Camp가 부름).
     public void Strike()
     {
         Winding=false; StruckAt=Time.time;
@@ -607,7 +607,7 @@ public class MonsterVisual : MonoBehaviour
             picture.flipX = movement > 0; // 원본 동물 그림은 왼쪽을 본다.
         bool teleported = Vector3.Distance(transform.position, lastPosition) > 2f;
         if (teleported) { phase = 0; picture.flipX = false; }
-        var combat = FindObjectOfType<PrototypeCombat>();
+        var combat = FindObjectOfType<Combat>();
         bool paused = combat != null && (combat.PlayerHealth <= 0 || combat.Paused);
         if (!paused) phase += Time.deltaTime * (Mathf.Abs(movement) > .0001f ? 12f : 3f);
         float bounce = paused ? 0 : Mathf.Abs(Mathf.Sin(phase)) * (Mathf.Abs(movement) > .0001f ? .07f : .015f);

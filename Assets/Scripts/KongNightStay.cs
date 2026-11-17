@@ -14,7 +14,7 @@ using Who = KongVillage.Who;
 //   어느 쪽이든 침묵, 그리고 뒷산으로 와 달라고 한다.
 public class KongNightStay : MonoBehaviour
 {
-    public PrototypeCombat combat;
+    public Combat combat;
     public enum Phase { None, Evening, Night, Morning, Parting }
     public Phase Now { get; private set; }
     public bool Playing => Now != Phase.None;
@@ -97,7 +97,7 @@ public class KongNightStay : MonoBehaviour
     private float zoom = 1;
     private Vector2 pivot = new Vector2(FrameW / 2, FrameH / 2);
     Vector3 At(float x, float y) => Dot(pivot.x + (x - pivot.x) * zoom, pivot.y + (y - pivot.y) * zoom);
-    void View(float z, float px, float py) { zoom = z; pivot = new Vector2(px, py); }
+    void CutView(float z, float px, float py) { zoom = z; pivot = new Vector2(px, py); }
 
     // 그림 층과 띠, 카메라 자리를 준비한다.
     void Start()
@@ -170,7 +170,7 @@ public class KongNightStay : MonoBehaviour
         inRoom = show;
         if (room != null) room.SetActive(show);
         var cam = Camera.main;
-        PrototypeView.FixedX = show ? RoomX : (float?)null;
+        View.FixedX = show ? RoomX : (float?)null;
         if (cam == null) return;
         if (show) { savedSize = cam.orthographicSize; cam.orthographicSize = FitSize(cam); }
         else cam.orthographicSize = savedSize > 0 ? savedSize : cam.orthographicSize;
@@ -290,7 +290,7 @@ public class KongNightStay : MonoBehaviour
         foreach (var r in layers) r.enabled = false;
         foreach (var m in motes) m.enabled = false;
         used = 0; ShadowShown = HoleShown = EyeShown = false;
-        View(1, FrameW / 2, FrameH / 2);
+        CutView(1, FrameW / 2, FrameH / 2);
         float t = Elapsed;
         if (Now == Phase.Evening) PoseEvening(t);
         else if (Now == Phase.Night) { if (t < RoomAt) PoseMoonlitHouse(t); else if (t >= CloseAt && t < CloseEnd) PoseDoor(t); else PoseRoomAtNight(t); }
@@ -311,7 +311,7 @@ public class KongNightStay : MonoBehaviour
     void PoseMoonlitHouse(float t)
     {
         // 불 켜진 문으로 천천히 다가간다.
-        View(1 + t * .007f, 560, 250);
+        CutView(1 + t * .007f, 560, 250);
         Put("ext_night");
         // 등불이 흔들리다 꺼진다: 그 문만 어두운 같은 집 그림을 위에 겹친다.
         float dark = t < LampOutAt ? Mathf.Clamp01((Mathf.Sin(t * 9) + Mathf.Sin(t * 13.7f)) * .06f) : Mathf.Clamp01((t - LampOutAt) / .4f);
@@ -370,7 +370,7 @@ public class KongNightStay : MonoBehaviour
     void PoseDoor(float t)
     {
         // 구멍이 뚫릴 창살로 다가간다.
-        View(1 + (t - CloseAt) * .012f, 590, 240);
+        CutView(1 + (t - CloseAt) * .012f, 590, 240);
         Put("close_paper");
         if (t >= HoleAt)
         {
@@ -398,7 +398,7 @@ public class KongNightStay : MonoBehaviour
     void PoseDawn(float t)
     {
         // 수탉이 선 담에서 천천히 물러난다.
-        View(1.05f - t * .01f, 1000, 330);
+        CutView(1.05f - t * .01f, 1000, 330);
         Put("ext_morning");
         if (t >= .9f && t < 3.2f) Put("ext_rooster");
     }
@@ -454,7 +454,7 @@ public class KongNightStay : MonoBehaviour
     void OnGUI()
     {
         GUI.depth = -60;
-        PrototypeKoreanUI.Apply();
+        KoreanUI.Apply();
         float sinceWake = Time.time - wokeAt;
         if (!Playing)
         {

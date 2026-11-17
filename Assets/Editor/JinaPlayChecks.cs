@@ -14,7 +14,7 @@ public static partial class JinaPlayChecks
     const string Key="JinaPlayChecks.Active";
     static int stage;
     static double due;
-    static PrototypeCombat combat;
+    static Combat combat;
     static SpriteRenderer boss;
     static int hp;
     static JinaPlayChecks() { EditorApplication.update += Tick; }
@@ -31,7 +31,7 @@ public static partial class JinaPlayChecks
         {
             if(stage==0) { due=EditorApplication.timeSinceStartup+1; stage=1; return; }
             if(EditorApplication.timeSinceStartup<due) return;
-            combat=UnityEngine.Object.FindObjectOfType<PrototypeCombat>();
+            combat=UnityEngine.Object.FindObjectOfType<Combat>();
             Check(combat!=null,"Combat scene started");
             boss=Field<SpriteRenderer>(combat,"enemy");
             if(stage==1)
@@ -64,7 +64,7 @@ public static partial class JinaPlayChecks
                 FlyingGhosts();
                 BossMoves();
                 Items();
-                Maps();
+                MapChecks();
                 CheckFerry();
                 Pass();
                 CheckKongVillage();
@@ -72,7 +72,7 @@ public static partial class JinaPlayChecks
                 Polish();
                 PlayerFall();
                 Endings();
-                Check(!combat.BossPurified && !combat.EnemyDefeated && combat.EnemyHealth==PrototypeCombat.EnemyMaxHealth,"Restart restores hostile boss");
+                Check(!combat.BossPurified && !combat.EnemyDefeated && combat.EnemyHealth==Combat.EnemyMaxHealth,"Restart restores hostile boss");
                 Check(combat.Quest.progress.Honor==0,"Restart resets honor");
                 combat.AddArrows(-5); Check(combat.Arrows==15,"Arrows spent");
                 combat.Restart(); Check(combat.Arrows==ShopRules.MaxArrows,"Restart refills quiver");
