@@ -20,14 +20,15 @@ public class Weapon : MonoBehaviour
         public bool alwaysDrawn;  // 검집 없이 항상 뽑고 있음
         public string art;        // 전용 그림 경로 (없으면 환도 그림)
         public Vector2 grip;      // 그림에서 손잡이를 쥐는 점(픽셀, 왼쪽 아래 기준)
+        public float dropChance;  // 들판 몹이 떨어뜨릴 확률 (0이면 안 떨어뜨림, .05f = 5%)
     }
 
     public static readonly Dictionary<string, Stats> All = new Dictionary<string, Stats>
     {
         ["hwando"] = new Stats { id = "hwando", name = "환도", combo = true,
-            damage = Combat.SwordDamage, stamina = Skills.AttackStamina, reach = 1.35f, carryScale = .92f },
+            damage = Combat.SwordDamage, stamina = Skills.AttackStamina, reach = 1.35f, carryScale = .92f, dropChance = .05f },
         ["bow"] = new Stats { id = "bow", name = "활", ranged = true,
-            damage = Combat.ArrowDamage, stamina = Skills.AttackStamina, interval = .65f, hitDelay = SeonbiVisual.BowReleaseDelay, carryScale = 1f },
+            damage = Combat.ArrowDamage, stamina = Skills.AttackStamina, interval = .65f, hitDelay = SeonbiVisual.BowReleaseDelay, carryScale = 1f, dropChance = .05f },
         // 단검: 데미지 5, 스테미너 7, 사거리 1.2칸, 콤보 없음, 빠름.
         ["dagger"] = new Stats { id = "dagger", name = "단검",
             damage = 5, stamina = 7, reach = 1.2f, interval = .25f, hitDelay = .1f, carryScale = 1f, alwaysDrawn = true,
