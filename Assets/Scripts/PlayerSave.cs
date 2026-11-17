@@ -13,7 +13,7 @@ public class PlayerSaveData
     public float hp;
 }
 
-public class PlayerLocalSave : MonoBehaviour
+public class PlayerSave : MonoBehaviour
 {
     [Header("저장할 플레이어")]
     [SerializeField] private Transform player;
