@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 // 스킬 3칸 (Q·W·E). 쿨타임을 관리하고 화면 왼쪽 아래에 스킬창을 그린다.
 //   Q 물러서기: 보는 방향 반대로 빠르게 물러나며 1.5초 무적
@@ -29,6 +29,9 @@ public class PrototypeSkills : MonoBehaviour
         public bool empty;
     }
     public Slot[] slots;
+
+    // 돌진이 끝나는 시각과 시작 위치 (끝나는 순간 지나온 구간에 한 번 피해)
+    private float rushEndsAt = -1, rushStartX;
 
     void Awake()
     {
