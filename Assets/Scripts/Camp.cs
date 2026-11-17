@@ -44,7 +44,11 @@ public class Camp : MonoBehaviour
         public float home, ready, windup = -1, phase;
         public Vector2 strike;
         public float vanishAt = -1;
+        public float respawnAt = -1;   // 이 시각에 다시 나타남 (-1이면 안 나타남)
     }
+    public const float RespawnDelay = 5f;   // 들판 몹이 죽고 다시 나타나기까지(초)
+    public const int SealKills = 100;       // 이만큼 쓰러뜨리면 비석 길 봉인이 풀림
+    public int Kills { get; private set; }  // 지금까지 쓰러뜨린 수
     public readonly List<Mob> mobs = new List<Mob>();
     private GameObject gate;
     public int Remaining { get { int n = 0; foreach (var m in mobs) if (m.hp > 0) n++; return n; } }
@@ -107,11 +111,20 @@ public class Camp : MonoBehaviour
         foreach (var m in mobs)
             if (m.hp <= 0) Revive(m);
     }
+    // 들판 범위 안 무작위 위치에 다시 나타남 (선비와 3칸 이상 떨어진 곳)
+    void RespawnRandom(Mob m, Vector3 player)
+    {
+        float x = Random.Range(minX, maxX);
+        for (int i = 0; i < 10 && Mathf.Abs(x - player.x) < 3f; i++) x = Random.Range(minX, maxX);
+        Revive(m);
+        m.art.transform.position = new Vector3(x, Random.Range(HoverY, 2f), 0);
+        JinaFx.Rise(m.art.transform.position, 8, new Color(.86f, .72f, 1), .3f, 1.2f, .6f);
+    }
     // 쓰러진 유령을 처음 자리에서 되살린다.
     void Revive(Mob m)
     {
         m.art.gameObject.SetActive(true);
-        m.vanishAt = -1;
+        m.vanishAt = -1; m.respawnAt = -1;
         m.hp = GhostHealth; m.windup = -1; m.ready = Time.time + 1;
         m.art.transform.position = new Vector3(m.home, HoverY, 0);
         m.art.enabled = true;
@@ -122,6 +135,8 @@ public class Camp : MonoBehaviour
     public void ResetCamp()
     {
         foreach (var m in mobs) Revive(m);
+        Kills = 0;
+        
         wasInside = false;
         if (gate != null) gate.SetActive(true);
     }
@@ -140,12 +155,14 @@ public class Camp : MonoBehaviour
             // 움찔 물러나 한 박자 늦어진다.
             m.visual.Hurt();
             m.art.transform.position = at + Vector3.right * away * .24f;
-            m.windup = -1; m.visual.Winding = false; m.ready = Mathf.Max(m.ready, Time.time + .35f);
+            m.windup = -1; m.visual.Winding = false; m.ready = Mathf.Max(m.ready, Time.time + .35f);    
         }
         if (m.hp <= 0)
         {
             m.visual.Down(); m.windup = -1; m.visual.Winding = false;
             m.vanishAt = Time.time + 1.5f;
+            Kills++;
+            if (!river) m.respawnAt = Time.time + RespawnDelay;
             // 넋이 빠져나오고, 갖고 있던 동전이 반짝인다.
             JinaFx.Rise(at, 12, river ? new Color(.7f, .9f, 1) : new Color(.86f, .72f, 1), .4f, 2.2f, 1.1f);
             JinaFx.Dots(at, 7, new Color(1, .84f, .4f), 2.6f, .55f, 0, 6);
@@ -155,7 +172,8 @@ public class Camp : MonoBehaviour
             if (combat != null) { combat.FindCoins(gain); if (river) combat.FellWaterGhost(); }
             JinaFx.Word(at + Vector3.up * 1.2f, "+" + gain + "문", new Color(1f, .84f, .3f), 22);
         }
-        if (Remaining == 0 && gate != null) gate.SetActive(false);
+        // 100마리 쓰러뜨리면 봉인이 풀림 (한 번 풀리면 다시 잠기지 않음)
+        if (gate != null && Kills >= SealKills) gate.SetActive(false);
     }
     // Whether the blow landed on anything.
     // damage를 넘기지 않으면 환도 데미지(10), 스킬은 Slash(area, 20)처럼 원하는 데미지를 넘김
@@ -209,6 +227,7 @@ public class Camp : MonoBehaviour
                     m.art.gameObject.SetActive(false);
                     m.vanishAt = -1;
                 }
+                if (m.respawnAt >= 0 && Time.time >= m.respawnAt) RespawnRandom(m, p);
                 continue;
             }
             var pos = m.art.transform.position;

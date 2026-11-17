@@ -28,7 +28,7 @@ public class Weapon : MonoBehaviour
             damage = Combat.SwordDamage, stamina = Skills.AttackStamina, reach = 1.35f, carryScale = .92f },
         ["bow"] = new Stats { id = "bow", name = "활", ranged = true,
             damage = Combat.ArrowDamage, stamina = Skills.AttackStamina, interval = .65f, hitDelay = SeonbiVisual.BowReleaseDelay, carryScale = 1f },
-        // 단검: 데미지 5, 스테미너 7, 사거리 1.2칸, 콤보 없음, 빠름. 그림은 환도를 38%로 줄여 임시 사용.
+        // 단검: 데미지 5, 스테미너 7, 사거리 1.2칸, 콤보 없음, 빠름.
         ["dagger"] = new Stats { id = "dagger", name = "단검",
             damage = 5, stamina = 7, reach = 1.2f, interval = .25f, hitDelay = .1f, carryScale = 1f, alwaysDrawn = true,
             art = "04_Weapons/dagger", grip = new Vector2(78, 78) },
