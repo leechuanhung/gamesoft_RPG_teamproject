@@ -48,6 +48,8 @@ public class Camp : MonoBehaviour
     }
     public const float RespawnDelay = 5f;   // 들판 몹이 죽고 다시 나타나기까지(초)
     public const int SealKills = 100;       // 이만큼 쓰러뜨리면 비석 길 봉인이 풀림
+    public const float WeaponDropChance = .005f;               // 무기 드랍 확률 0.5%
+    static readonly string[] DropWeapons = { "hwando", "bow" }; // 들판 몹이 떨어뜨리는 무기
     public int Kills { get; private set; }  // 지금까지 쓰러뜨린 수
     public readonly List<Mob> mobs = new List<Mob>();
     private GameObject gate;
@@ -162,7 +164,11 @@ public class Camp : MonoBehaviour
             m.visual.Down(); m.windup = -1; m.visual.Winding = false;
             m.vanishAt = Time.time + 1.5f;
             Kills++;
-            if (!river) m.respawnAt = Time.time + RespawnDelay;
+            // 들판 몹: 아직 없고 땅에도 없는 환도·활을 0.5% 확률로 떨어뜨림
+            if (!river)
+                foreach (var id in DropWeapons)
+                    if (Random.value < WeaponDropChance && !WeaponPickup.Owned(id) && !WeaponPickup.Lying(id))
+                        WeaponPickup.Drop(combat, id, at);
             // 넋이 빠져나오고, 갖고 있던 동전이 반짝인다.
             JinaFx.Rise(at, 12, river ? new Color(.7f, .9f, 1) : new Color(.86f, .72f, 1), .4f, 2.2f, 1.1f);
             JinaFx.Dots(at, 7, new Color(1, .84f, .4f), 2.6f, .55f, 0, 6);

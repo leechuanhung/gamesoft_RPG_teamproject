@@ -63,9 +63,9 @@ public partial class Combat : MonoBehaviour
     private SeonbiVisual playerVisual;
     public ElderQuest Quest { get; private set; }
     // ── 무기: 1·2칸 장착(보따리 무기 탭), S로 전환. 수치는 Weapon.cs ──
-    public readonly string[] EquippedWeapons = { "hwando", "bow" };
+    public readonly string[] EquippedWeapons = { "dagger", null };
     public int ActiveWeaponSlot { get; private set; }
-    public string CurrentWeapon => EquippedWeapons[ActiveWeaponSlot] ?? EquippedWeapons[1 - ActiveWeaponSlot] ?? "hwando";
+    public string CurrentWeapon => EquippedWeapons[ActiveWeaponSlot] ?? EquippedWeapons[1 - ActiveWeaponSlot] ?? "dagger";
     public Weapon.Stats CurrentStats => Weapon.Get(CurrentWeapon);
     public bool UsingBow => CurrentStats.ranged;
     private Weapon.Stats pendingWeapon;
@@ -261,6 +261,8 @@ public partial class Combat : MonoBehaviour
         playerArt.color = playerColor;
         player.Respawn();
         ActiveWeaponSlot = 0;
+        EquippedWeapons[0] = "dagger"; EquippedWeapons[1] = null;
+        WeaponPickup.ClearAll();
         Arrows = ShopRules.MaxArrows;
         noArrowsUntil = 0;
         alerted = false;
