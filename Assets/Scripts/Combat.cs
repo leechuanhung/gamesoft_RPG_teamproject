@@ -62,7 +62,13 @@ public partial class Combat : MonoBehaviour
     private float lastPlayerHit = -1;
     private SeonbiVisual playerVisual;
     public ElderQuest Quest { get; private set; }
-    public bool UsingBow { get; private set; }
+    // ── 무기: 1·2칸 장착(보따리 무기 탭), S로 전환. 수치는 Weapon.cs ──
+    public readonly string[] EquippedWeapons = { "hwando", "bow" };
+    public int ActiveWeaponSlot { get; private set; }
+    public string CurrentWeapon => EquippedWeapons[ActiveWeaponSlot] ?? EquippedWeapons[1 - ActiveWeaponSlot] ?? "hwando";
+    public Weapon.Stats CurrentStats => Weapon.Get(CurrentWeapon);
+    public bool UsingBow => CurrentStats.ranged;
+    private Weapon.Stats pendingWeapon;
     private bool alerted;
     private bool strikeElder;
     public Camp Camp { get; private set; }
@@ -131,7 +137,7 @@ public partial class Combat : MonoBehaviour
         View.Shake(0, .01f); View.Focus(0, 0);
         playerArt.color = playerColor;
         player.RespawnAt(HillEntrance);
-        UsingBow = false; Arrows = save.arrows; noArrowsUntil = 0;
+        ActiveWeaponSlot = 0; Arrows = save.arrows; noArrowsUntil = 0;
         ClearArrows();
         if (Quest != null) Quest.progress.RewindKong(save.honor, save.lost);
         if (Kong != null) Kong.ResetRaid();
@@ -254,7 +260,7 @@ public partial class Combat : MonoBehaviour
         View.Shake(0, .01f);
         playerArt.color = playerColor;
         player.Respawn();
-        UsingBow = false;
+        ActiveWeaponSlot = 0;
         Arrows = ShopRules.MaxArrows;
         noArrowsUntil = 0;
         alerted = false;
@@ -302,7 +308,7 @@ public partial class Combat : MonoBehaviour
             return;
         }
         // 무기 스왑: Q → S (Q는 스킬로 사용)
-        if (Input.GetKeyDown(KeyCode.S)) UsingBow = !UsingBow;
+        if (Input.GetKeyDown(KeyCode.S) && EquippedWeapons[1 - ActiveWeaponSlot] != null) ActiveWeaponSlot = 1 - ActiveWeaponSlot;
         if (!EnemyDefeated && Input.GetKeyDown(KeyCode.F)
             && Vector2.Distance(player.transform.position, enemy.transform.position) < 2.2f
             && TryPurifyBoss())
@@ -313,22 +319,24 @@ public partial class Combat : MonoBehaviour
         if ((Input.GetKeyDown(KeyCode.J) || Input.GetMouseButtonDown(0)) && Time.time >= nextAttack && UsingBow && Arrows <= 0)
             noArrowsUntil = Time.time + 1.5f;
         else if ((Input.GetKeyDown(KeyCode.J) || Input.GetMouseButtonDown(0)) && Time.time >= nextAttack && !player.Dodging
-            && player.UseStamina(Skills.AttackStamina))
+            && player.UseStamina(CurrentStats.stamina))
         {
-            // Another swing soon enough after the last goes on to the next step; otherwise it starts over.
-            pendingStep = UsingBow ? 0 : Time.time <= comboUntil ? (comboStep + 1) % 3 : 0;
-            comboStep = UsingBow ? -1 : pendingStep;
-            float swing = SeonbiVisual.SwordLength(pendingStep);
-            nextAttack = Time.time + (UsingBow ? .65f : swing);
-            comboUntil = UsingBow ? 0 : nextAttack + ComboWindow;
-            player.SlowUntil = Time.time + (UsingBow ? .3f : swing);
+            var w = CurrentStats;
+            pendingWeapon = w;
+            // 콤보 무기(환도)만 3연격, 나머지는 늘 같은 동작
+            pendingStep = w.combo && Time.time <= comboUntil ? (comboStep + 1) % 3 : 0;
+            comboStep = w.combo ? pendingStep : -1;
+            float swing = w.combo ? SeonbiVisual.SwordLength(pendingStep) : w.interval;
+            nextAttack = Time.time + swing;
+            comboUntil = w.combo ? nextAttack + ComboWindow : 0;
+            player.SlowUntil = Time.time + (w.ranged ? .3f : swing);
             // 마우스 조준: 커서 쪽으로 몸을 돌리고, 활은 커서 높이에 따라 위·수평·아래 조준
             player.Face(MouseSide());
             attackFacing = player.Facing;
-            pendingBow = UsingBow;
-            pendingAim = UsingBow ? MouseAim() : 0;
-            playerImpactAt = Time.time + (pendingBow ? SeonbiVisual.BowReleaseDelay : SeonbiVisual.SwordHit(pendingStep));
-            if (playerVisual != null) playerVisual.Attack(UsingBow, attackFacing, pendingAim, pendingStep);
+            pendingBow = w.ranged;
+            pendingAim = w.ranged ? MouseAim() : 0;
+            playerImpactAt = Time.time + (w.combo ? SeonbiVisual.SwordHit(pendingStep) : w.hitDelay);
+            if (playerVisual != null) playerVisual.Attack(w.ranged, attackFacing, pendingAim, pendingStep);
         }
         if (playerImpactAt >= 0 && Time.time >= playerImpactAt)
         {
@@ -337,15 +345,24 @@ public partial class Combat : MonoBehaviour
             else
             {
                 slashUntil = Time.time + .13f;
-                bool heavy = pendingStep == 2;
-                Vector2 center = (Vector2)player.transform.position + Vector2.right * attackFacing * (heavy ? 1.1f : .95f);
-                var attackBounds = new Bounds(center, heavy ? new Vector3(1.75f, 1.15f, 1) : new Vector3(1.35f, .9f, 1));
+                var w = pendingWeapon ?? Weapon.Get("hwando");
+                bool heavy = w.combo && pendingStep == 2;
+                float reach = heavy ? 1.75f : w.reach;
+                Vector2 center = (Vector2)player.transform.position + Vector2.right * attackFacing * (.28f + reach / 2);
+                var attackBounds = new Bounds(center, new Vector3(reach, heavy ? 1.15f : .9f, 1));
+                int damage = w.damage;
                 bool landed = false;
-                if (!EnemyDefeated && attackBounds.Intersects(enemy.bounds)) { DamageEnemy(SwordDamage); landed = true; }
-                if (KongBoss != null && KongBoss.Fighting && attackBounds.Intersects(KongBoss.HurtBox) && KongBoss.Damage(SwordDamage, true)) landed = true;
+                if (!EnemyDefeated && attackBounds.Intersects(enemy.bounds)) { DamageEnemy(damage); landed = true; }
+                if (KongBoss != null && KongBoss.Fighting && attackBounds.Intersects(KongBoss.HurtBox) && KongBoss.Damage(damage, true)) landed = true;
                 if (KongBoss != null && KongBoss.BlowCrocks(attackBounds)) landed = true;
-                foreach (var camp in Camps) if (camp != null && camp.Slash(attackBounds)) landed = true;
+                foreach (var camp in Camps) if (camp != null && camp.Slash(attackBounds, damage)) landed = true;
                 SwordFeel(pendingStep, landed);
+                // 콤보 없는 근접 무기(단검): 휘두를 때 흰 칼빛
+                if (!w.combo)
+                {
+                    var feet = player.transform.position; feet.y = playerArt.bounds.min.y;
+                    JinaFx.Arc(feet + new Vector3(attackFacing * .52f, .78f, 0), attackFacing, -30, .48f, new Color(.95f, .97f, 1));
+                }
             }
         }
         AdvanceArrows(Time.deltaTime);

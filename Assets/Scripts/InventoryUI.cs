@@ -87,7 +87,8 @@ public class InventoryUI : MonoBehaviour
         public bool combatReady;
     }
     private readonly List<WeaponEntry> weapons = new List<WeaponEntry>();
-    private readonly string[] equippedWeapons = { "hwando", "bow" };
+    static readonly string[] defaultWeapons = { "hwando", "bow" };
+    private string[] equippedWeapons => combat != null ? combat.EquippedWeapons : defaultWeapons;
     public IReadOnlyList<WeaponEntry> OwnedWeapons => weapons;
     public string EquippedWeapon(int index) => index >= 0 && index < 2 ? equippedWeapons[index] : null;
 
@@ -115,6 +116,7 @@ public class InventoryUI : MonoBehaviour
         UnlockSkill("rush_slash", "돌진베기", "전방으로 돌진하며 적에게 피해", Skills.RushCooldown, true);
         UnlockWeapon("hwando", "환도", "기본 근접 무기", "icon_sword", true);
         UnlockWeapon("bow", "활", "화살을 소비하는 원거리 무기", "icon_bow", true);
+        UnlockWeapon("dagger", "단검", "짧고 빠른 근접 무기 (콤보 없음)", "icon_sword", true);
     }
 
     void Update()
