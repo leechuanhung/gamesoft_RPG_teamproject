@@ -162,7 +162,7 @@ public class PrototypeCamp : MonoBehaviour
             if (screen.z < 0 || screen.x < -80 || screen.x > Screen.width + 80) continue;
             float width = 100, height = 20;
             var r = new Rect(screen.x - width / 2, Screen.height - screen.y - height, width, height);
-            PrototypeCombat.DrawBar(r, (float)m.hp / GhostHealth, new Color(.9f, .2f, .2f), m.hp + " / " + GhostHealth, 17);
+            PrototypeCombat.DrawBar(r, (float)m.hp / GhostHealth, new Color(.9f, .2f, .2f), m.hp + " / " + GhostHealth, 15);
         }
         GUI.matrix = oldMatrix;
     }
