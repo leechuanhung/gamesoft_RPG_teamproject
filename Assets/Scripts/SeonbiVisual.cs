@@ -11,8 +11,9 @@ public class SeonbiVisual : MonoBehaviour
     private float attackTime=10;
     private const float SheathDelay=3f, SheathMotion=.32f;
     private float swordOutTime;
-    string EquippedWeapon => combat.UsingBow ? "04_Weapons/bow" : combat.CurrentStats.art ??
-    (combat.CurrentStats.alwaysDrawn || swordOutTime>SheathMotion*.5f ? "04_Weapons/hwando" : "04_Weapons/hwando_sheathed");
+    string EquippedWeapon => combat.UsingBow ? "04_Weapons/bow"
+        : combat.CurrentStats.alwaysDrawn || swordOutTime>SheathMotion*.5f ? (combat.CurrentStats.art ?? "04_Weapons/hwando")
+        : (combat.CurrentStats.sheathedArt ?? combat.CurrentStats.art ?? "04_Weapons/hwando_sheathed");
     private bool bowAttack;
     private bool stabAttack;   // 단검 공격 중 (전용 그림을 손에 들고 휘두름)
     private int attackFacing=1,attackAim,attackStep;
@@ -30,6 +31,8 @@ public class SeonbiVisual : MonoBehaviour
         if(attackStep==2) return t<.18f ? 1 : t<.32f ? 2 : 3;
         return Mathf.Min(3,(int)(t/(SwordDuration/4)));
     }
+    // 전용 그림 무기를 휘두르는 시간: 콤보 무기(명검)는 환도와 같은 단계별 시간, 아니면 공격 간격
+    float StabLength() => combat.CurrentStats.combo ? SwordLength(attackStep) : combat.CurrentStats.interval;
     // Struck down: reel back, knees give way, then a quarter turn onto his back.
     public const float FallLength=.85f;
     // A hit he survives: he reels back for a moment (the death recoil frame), unless mid-swing.
@@ -74,7 +77,7 @@ public class SeonbiVisual : MonoBehaviour
         else if(combat.Paused) ResetMovementPose();
         if(combat.UsingBow) swordOutTime=0;
         else if(!combat.Paused) swordOutTime=Mathf.Max(0,swordOutTime-Time.deltaTime);
-        float duration=bowAttack ? BowDuration : stabAttack ? combat.CurrentStats.interval : SwordLength(attackStep);
+        float duration=bowAttack ? BowDuration : stabAttack ? StabLength() : SwordLength(attackStep);
         bool attacking=attackTime<duration;
         int facing=attacking ? attackFacing : player.Facing;
         bool airborne=!player.IsGrounded && combat.PlayerHealth>0;
@@ -163,11 +166,11 @@ public class SeonbiVisual : MonoBehaviour
             // Lower the blade as the right arm swings back, lift it on the forward swing.
             angle=Mathf.Clamp(hand.x*facing*35f,-16f,16f);
         }
-        // 단검 공격: 위로 든 칼끝을 앞아래로 내려 벰
-        if(stabAttack && attackTime<combat.CurrentStats.interval)
+        // 전용 그림 무기 공격: 1타 내려베기, 2타 올려베기, 3타 머리 위에서 크게 내려찍기
+        if(stabAttack && attackTime<StabLength())
         {
-            float k=attackTime/combat.CurrentStats.interval;
-            angle=Mathf.Lerp(60f,-70f,k);
+            float k=attackTime/StabLength();
+            angle=attackStep==1 ? Mathf.Lerp(-70f,70f,k) : attackStep==2 ? Mathf.Lerp(100f,-80f,k*k) : Mathf.Lerp(60f,-70f,k);
         }
         if(!bow)
         {

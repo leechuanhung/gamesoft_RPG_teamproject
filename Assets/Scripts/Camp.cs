@@ -47,7 +47,7 @@ public class Camp : MonoBehaviour
         public float respawnAt = -1;   // 이 시각에 다시 나타남 (-1이면 안 나타남)
     }
     public const float RespawnDelay = 2f;   // 들판 몹이 죽고 다시 나타나기까지(초)
-    public const int SealKills = 100;       // 이만큼 쓰러뜨리면 비석 길 봉인이 풀림
+    public const int SealKills = 30;       // 이만큼 쓰러뜨리면 비석 길 봉인이 풀림
     public int Kills { get; private set; }  // 지금까지 쓰러뜨린 수
     public readonly List<Mob> mobs = new List<Mob>();
     private GameObject gate;

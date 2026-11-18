@@ -361,11 +361,18 @@ public partial class Combat : MonoBehaviour
                 if (KongBoss != null && KongBoss.BlowCrocks(attackBounds)) landed = true;
                 foreach (var camp in Camps) if (camp != null && camp.Slash(attackBounds, damage)) landed = true;
                 SwordFeel(pendingStep, landed);
-                // 콤보 없는 근접 무기(단검): 휘두를 때 흰 칼빛
-                if (!w.combo)
+                // 전용 그림 근접 무기: 단검은 흰 칼빛, 명검은 칼 크기에 맞춘 검은 칼빛
+                if (w.art != null)
                 {
                     var feet = player.transform.position; feet.y = playerArt.bounds.min.y;
-                    JinaFx.Arc(feet + new Vector3(attackFacing * .52f, .78f, 0), attackFacing, -30, .48f, new Color(.95f, .97f, 1));
+                    if (w.combo)
+                    {
+                        // 1타 내려베기, 2타 올려베기, 3타(가장 큼) 수평으로 크게
+                        float size = w.carryScale * (pendingStep == 2 ? 1.1f : .8f);
+                        float tilt = pendingStep == 1 ? 58 : pendingStep == 2 ? 0 : -30;
+                        JinaFx.Arc(feet + new Vector3(attackFacing * (.15f + size * .35f), .85f, 0), attackFacing, tilt, size, new Color(.08f, .05f, .1f));
+                    }
+                    else JinaFx.Arc(feet + new Vector3(attackFacing * .52f, .78f, 0), attackFacing, -30, .48f, new Color(.95f, .97f, 1));
                 }
             }
         }
@@ -384,10 +391,12 @@ public partial class Combat : MonoBehaviour
     void SwordFeel(int step, bool landed)
     {
         var feet = player.transform.position; feet.y = playerArt.bounds.min.y;
-        if (step == 1) JinaFx.Arc(feet + new Vector3(attackFacing * .78f, .92f, 0), attackFacing, 58, .9f, new Color(.92f, .96f, 1));
+        // 전용 그림 무기(명검)는 칼빛을 따로 그리므로 환도 칼빛은 건너뜀
+        bool ownArc = pendingWeapon != null && pendingWeapon.art != null;
+        if (step == 1 && !ownArc) JinaFx.Arc(feet + new Vector3(attackFacing * .78f, .92f, 0), attackFacing, 58, .9f, new Color(.92f, .96f, 1));
         if (step == 2)
         {
-            JinaFx.Arc(feet + new Vector3(attackFacing * 1.25f, .9f, 0), attackFacing, 0, 1.3f, new Color(1, .93f, .68f), .22f);
+            if (!ownArc) JinaFx.Arc(feet + new Vector3(attackFacing * 1.25f, .9f, 0), attackFacing, 0, 1.3f, new Color(1, .93f, .68f), .22f);
             JinaFx.Dust(feet + Vector3.right * -attackFacing * .4f, -attackFacing * 1.4f, 1.2f);
             JinaFx.Dust(feet, -attackFacing * .6f, .9f);
         }

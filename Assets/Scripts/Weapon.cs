@@ -21,18 +21,23 @@ public class Weapon : MonoBehaviour
         public string art;        // 전용 그림 경로 (없으면 환도 그림)
         public Vector2 grip;      // 그림에서 손잡이를 쥐는 점(픽셀, 왼쪽 아래 기준)
         public float dropChance;  // 들판 몹이 떨어뜨릴 확률 (0이면 안 떨어뜨림, .05f = 5%)
+        public string sheathedArt; // 검집에 꽂았을 때 그림 (없으면 art 그대로)
     }
 
     public static readonly Dictionary<string, Stats> All = new Dictionary<string, Stats>
     {
         ["hwando"] = new Stats { id = "hwando", name = "환도", combo = true,
-            damage = Combat.SwordDamage, stamina = Skills.AttackStamina, reach = 1.35f, carryScale = .92f, dropChance = .05f },
+            damage = Combat.SwordDamage, stamina = Skills.AttackStamina, reach = 1.35f, carryScale = .92f, dropChance = .09f },
         ["bow"] = new Stats { id = "bow", name = "활", ranged = true,
-            damage = Combat.ArrowDamage, stamina = Skills.AttackStamina, interval = .65f, hitDelay = SeonbiVisual.BowReleaseDelay, carryScale = 1f, dropChance = .05f },
+            damage = Combat.ArrowDamage, stamina = Skills.AttackStamina, interval = .65f, hitDelay = SeonbiVisual.BowReleaseDelay, carryScale = 1f, dropChance = .09f },
         // 단검: 데미지 5, 스테미너 7, 사거리 1.2칸, 콤보 없음, 빠름.
         ["dagger"] = new Stats { id = "dagger", name = "단검",
             damage = 5, stamina = 7, reach = 1.2f, interval = .25f, hitDelay = .1f, carryScale = 1f, alwaysDrawn = true,
             art = "04_Weapons/dagger", grip = new Vector2(78, 78) },
+        // 명검: 환도보다 강하고 긴 3연격 검. 들판 몹 1% 드랍.
+        ["myeonggeom"] = new Stats { id = "myeonggeom", name = "명검", combo = true,
+            damage = 18, stamina = 12, reach = 1.6f, carryScale = 1.56f, dropChance = .01f,
+            art = "04_Weapons/myeonggeom", sheathedArt = "04_Weapons/myeonggeom_sheathed", grip = new Vector2(126, 150) },
     };
 
     // id로 무기 정보 찾기 (모르는 id면 환도)
