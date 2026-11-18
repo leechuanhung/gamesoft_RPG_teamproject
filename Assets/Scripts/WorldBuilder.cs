@@ -3,8 +3,52 @@ using UnityEngine;
 
 // ===== 땅·기물·배경·발판 배치 (WorldBuilder) =====
 // 이어진 구역들은 플레이어가 오가는 동안 퀘스트 상태를 유지한다(Maps가 각각을 맵으로 보여 줌).
+// 세계는 두 가지로 생긴다: 씬에 아무것도 없으면 실행할 때 코드로 짓고(Build), 에디터 메뉴 "지나가던 선비 > 세계를
+// 씬에 굽기"로 구워 두었으면 씬의 것을 그대로 쓴다(Baked, Ensure). 구운 세계는 무리별로 묶여 있다:
+// 기물·배경·발판은 씬에서 옮기고 복사해도 되고(게임 논리와 상관없는 꾸밈), 땅과 하늘(땅 띠, 하늘, 강, 땅 충돌체,
+// 끝 벽)은 맵 경계와 지형 높이(Top)에 맞춰져 있으므로 씬에서 고르지 못하게 잠가 둔다.
+// NPC·보스·봉수대·조사 지점의 자리는 아래 상수들이 정하고, 씬 창에는 이름표로만 보인다(OnDrawGizmos).
 public class WorldBuilder : MonoBehaviour
 {
+    // 씬에 구운 세계인지, 그리고 구울 때의 배치 판. 코드에서 기물·지형 배치를 바꾸면 Layout을 올린다:
+    // 그러면 오래된 구운 세계로 실행할 때 다시 구우라고 알린다(다시 구워도 씬에서 옮긴 기물은 남는다).
+    public bool Baked;
+    public int BakedLayout;
+    public const int Layout = 1;
+    public const string GroundGroup = "땅과 하늘 (지형에 맞춰져 있음)", BackdropGroup = "배경", PropGroup = "기물", LedgeGroup = "발판";
+    // 실행할 때 쓸 세계: 씬에 구운 것이 있으면 그것, 없으면 코드로 새로 짓는다.
+    public static WorldBuilder Ensure(Sprite square)
+    {
+        foreach (var w in FindObjectsOfType<WorldBuilder>())
+        {
+            if (!w.Baked) continue;
+            if (w.BakedLayout != Layout)
+                Debug.LogWarning("씬에 구운 세계가 지금 코드의 배치보다 오래됐습니다. 메뉴 '지나가던 선비 > 세계를 씬에 굽기'로 다시 구우세요(씬에서 옮긴 기물은 그대로 남습니다).");
+            HidePlaceholders();
+            return w;
+        }
+        var world = new GameObject("네 구역 지도").AddComponent<WorldBuilder>();
+        world.Build(square);
+        return world;
+    }
+    // 무리 하나(없으면 만든다). 구운 세계를 씬에서 다루기 쉽게 오브젝트를 무리별로 묶는다.
+    public Transform Group(string name)
+    {
+        var found = transform.Find(name);
+        if (found != null) return found;
+        var group = new GameObject(name).transform;
+        group.SetParent(transform, false);
+        return group;
+    }
+    // 처음 테스트 장면의 자리 표시 상자를 숨긴다.
+    static void HidePlaceholders()
+    {
+        foreach (var name in new[] { "Ground", "Step", "Island", "Finish Ground", "Goal" })
+        {
+            var old = GameObject.Find(name);
+            if (old != null) old.SetActive(false);
+        }
+    }
     public const float VillageLeft = -12f;
     public const float ForestStart = 28f;
     public const float EnemyHome = 46f;
@@ -92,11 +136,7 @@ public class WorldBuilder : MonoBehaviour
     // 땅, 기물, 배경, 발판을 모두 배치한다.
     public void Build(Sprite sprite)
     {
-        foreach (var name in new[] { "Ground", "Step", "Island", "Finish Ground", "Goal" })
-        {
-            var old = GameObject.Find(name);
-            if (old != null) old.SetActive(false);
-        }
+        HidePlaceholders();
         Tile("비석 지역 땅", -55, -1, 30, 1, new Color(.36f,.34f,.43f), sprite, true);
         Tile("일반 몬스터 땅", -26, -1, 28, 1, new Color(.4f,.3f,.27f), sprite, true);
         Tile("마을 땅", 8, -1, 40, 1, new Color(.48f,.4f,.28f), sprite, true);
@@ -146,12 +186,12 @@ public class WorldBuilder : MonoBehaviour
         Prop("서낭당 돌무더기", "cairn", ShrineX, -4).transform.position = new Vector3(ShrineX, Top(ShrineX), 0);
         foreach (var x in new[] { 66.5f, 79.2f, 100.8f, 109f }) Prop("갈대", "reeds", x, -4, x > 90);
         // 강: 둑 사이, 둑 바로 아래의 물 띠(바닥이 없다. Ferry 참고).
-        for (float x = RiverLeft + 2; x < RiverRight; x += 4) Prop("강물", "water", x, 6).transform.position = new Vector3(x, WaterBottom, 0);
+        for (float x = RiverLeft + 2; x < RiverRight; x += 4) Prop("강물", "water", x, 6, false, Group(GroundGroup)).transform.position = new Vector3(x, WaterBottom, 0);
         RoadProps();
         foreach (var (art, x) in Backdrops)
         {
-            Prop("원경 " + art, "bg_" + art + "_far", x, -19).gameObject.AddComponent<ParallaxLayer>().home = x;
-            Prop("근경 " + art, "bg_" + art + "_near", x, -18);
+            Prop("원경 " + art, "bg_" + art + "_far", x, -19, false, Group(BackdropGroup)).gameObject.AddComponent<ParallaxLayer>().home = x;
+            Prop("근경 " + art, "bg_" + art + "_near", x, -18, false, Group(BackdropGroup));
         }
         foreach (var (art, left, right) in Lands)
         {
@@ -178,7 +218,7 @@ public class WorldBuilder : MonoBehaviour
     {
         Prop("봉수 군령판", "exam_board", BeaconFort.BoardX, -6);
         Prop("산성 소나무", "pine", 249.5f, -10);
-        Prop("무너진 성가퀴", "fort_wall", 255f, -10).transform.position = new Vector3(255f, Top(255f), 0);
+        Prop("무너진 성가퀴", "fort_wall_broken", 255f, -10).transform.position = new Vector3(255f, Top(255f), 0);
         Prop("산성 성벽", "fort_wall", 263f, -12).transform.position = new Vector3(263f, Top(263f), 0);
         Prop("산성 우물", "well", 275.8f, -6);
         Prop("버려진 역참", "station_house", 311f, -10);
@@ -190,10 +230,12 @@ public class WorldBuilder : MonoBehaviour
         Prop("한양 가게", "shop", 390.5f, -10);
         Prop("한양 기와집", "house", 403f, -10);
         Prop("한양 가게", "shop", 416.5f, -10, true);
-        foreach (var x in new[] { 397f, 413.2f, 423f, 451f, 467f, 474.5f, 487f, 516f }) Prop("청사초롱", "lantern", x, -5);
+        foreach (var x in new[] { 397f, 413.2f, 423f, 451f, 467f, 479f, 487f, 516f }) Prop("청사초롱", "lantern", x, -5);
         Prop("홍살문", "hongsal", 437f, -10);
         Prop("과거 방", "exam_board", 447.5f, -6);
         Prop("과거장 기와집", "house", 461f, -10);
+        Prop("좌의정 댁 솟을대문", "manor_gate", 473.5f, -10);
+        foreach (var x in new[] { 483.5f, 494.5f }) Prop("석등", "stone_lantern", x, -6);
         Prop("좌의정 댁 누각", "pavilion", 504f, -12);
     }
 
@@ -201,39 +243,42 @@ public class WorldBuilder : MonoBehaviour
     void Land(string art, float left, float right, float top)
     {
         var land = new GameObject("지면 " + art).AddComponent<SpriteRenderer>();
-        land.transform.SetParent(transform);
+        land.transform.SetParent(Group(GroundGroup));
         land.sprite = JinaArt.Strip("ground_" + art);
         land.drawMode = SpriteDrawMode.Tiled;
         land.size = new Vector2(right - left, land.sprite.bounds.size.y);
         land.transform.position = new Vector3((left + right) / 2, top + GroundLip / JinaArt.PropPixelsPerUnit, 0);
         land.sortingOrder = 2;
+        WorldArt.Mark(land, WorldArt.Kind.Strip, "ground_" + art);
     }
     // 맵의 하늘: 색 한 줄을 가로로 늘이고, 지평선은 땅 가까이.
     void Sky(string art, float left, float right)
     {
         var sky = new GameObject("하늘 " + art).AddComponent<SpriteRenderer>();
-        sky.transform.SetParent(transform);
+        sky.transform.SetParent(Group(GroundGroup));
         sky.sprite = JinaArt.Prop("sky_" + art);
         sky.transform.position = new Vector3((left + right) / 2, -4f, 0);
         sky.transform.localScale = new Vector3((right - left) * JinaArt.PropPixelsPerUnit, 1, 1);
         sky.sortingOrder = -21;
+        WorldArt.Mark(sky, WorldArt.Kind.Prop, "sky_" + art);
     }
     // 강 수면 띠 아래의 어두운 물.
     void River()
     {
         var deep = new GameObject("깊은 강물").AddComponent<SpriteRenderer>();
-        deep.transform.SetParent(transform);
+        deep.transform.SetParent(Group(GroundGroup));
         deep.sprite = JinaArt.Strip("river_deep");
         deep.drawMode = SpriteDrawMode.Tiled;
         deep.size = new Vector2(RiverRight - RiverLeft, deep.sprite.bounds.size.y);
         deep.transform.position = new Vector3((RiverLeft + RiverRight) / 2, WaterBottom + .1f, 0);
         deep.sortingOrder = 5;
+        WorldArt.Mark(deep, WorldArt.Kind.Strip, "river_deep");
     }
 
     // 한 방향 발판: 아래에서 뚫고 뛰어올라 윗면에 선다.
     void Ledge(string label, string art, Vector2 top)
     {
-        var image = Prop(label, art, top.x, -3);
+        var image = Prop(label, art, top.x, -3, false, Group(LedgeGroup));
         // 그려진 턱은 그림 윗변에서 2도트 아래.
         float height = image.sprite.bounds.size.y, lip = 2 / JinaArt.PropPixelsPerUnit;
         image.transform.position = new Vector3(top.x, top.y - height + lip, 0);
@@ -257,16 +302,17 @@ public class WorldBuilder : MonoBehaviour
         return -.5f;
     }
 
-    // 도트 기물은 땅 표면(y = -0.5)에 선다.
-    SpriteRenderer Prop(string label, string art, float x, int order, bool flip = false)
+    // 도트 기물은 땅 표면(y = -0.5)에 선다. `group`을 주지 않으면 기물 무리에 든다.
+    SpriteRenderer Prop(string label, string art, float x, int order, bool flip = false, Transform group = null)
     {
         var prop = new GameObject(label);
-        prop.transform.SetParent(transform);
+        prop.transform.SetParent(group != null ? group : Group(PropGroup));
         prop.transform.position = new Vector3(x, -.5f, 0);
         var image = prop.AddComponent<SpriteRenderer>();
         image.sprite = JinaArt.Prop(art);
         image.sortingOrder = order;
         image.flipX = flip;
+        WorldArt.Mark(image, WorldArt.Kind.Prop, art);
         return image;
     }
 
@@ -274,7 +320,7 @@ public class WorldBuilder : MonoBehaviour
     void Tile(string label, float x, float y, float width, float height, Color color, Sprite sprite, bool solid, int order = 0)
     {
         var tile = new GameObject(label);
-        tile.transform.SetParent(transform);
+        tile.transform.SetParent(Group(GroundGroup));
         tile.transform.position = new Vector3(x, y, 0);
         tile.transform.localScale = new Vector3(width, height, 1);
         var art = tile.AddComponent<SpriteRenderer>();
@@ -298,7 +344,7 @@ public class WorldBuilder : MonoBehaviour
             var run = solids[i];
             while (i + 1 < solids.Count && Joins(run, solids[i + 1])) run.xMax = solids[++i].xMax;
             var box = new GameObject("땅 충돌체");
-            box.transform.SetParent(transform);
+            box.transform.SetParent(Group(GroundGroup));
             box.transform.position = run.center;
             box.layer = 8;
             box.AddComponent<BoxCollider2D>().size = run.size;
@@ -306,24 +352,54 @@ public class WorldBuilder : MonoBehaviour
         solids.Clear();
     }
     static bool Joins(Rect a, Rect b) => Mathf.Abs(a.xMax - b.xMin) < .01f && Mathf.Abs(a.yMin - b.yMin) < .01f && Mathf.Abs(a.yMax - b.yMax) < .01f;
-}
 
-// ===== 원경 패럴랙스 (ParallaxLayer) =====
-// 먼 배경 층이 깊이감을 위해 카메라를 따라 조금 흐른다. 각 층은 구역보다 2칸 넓게 그려져 있고
-// 그 이상 밀리지 않으므로 옆 구역으로 넘어가지 않는다.
-public class ParallaxLayer : MonoBehaviour
-{
-    public float home, factor = .15f;
-    public const float MaxShift = 2f;
-    // 카메라 위치에 따라 배경 층을 조금 움직인다.
-    void LateUpdate()
+#if UNITY_EDITOR
+    // ── 씬 창의 이름표 ──
+    // 게임 논리가 쓰는 자리(코드의 상수)를 씬 창에 보여 준다. 씬에서 옮길 수는 없고, 옮기려면 위의 상수를 고친다.
+    public static System.Collections.Generic.IEnumerable<(Vector2 at, string label, Color colour)> Markers()
     {
-        var cam = Camera.main;
-        if (cam == null) return;
-        var p = transform.position;
-        p.x = home + Mathf.Clamp((cam.transform.position.x - home) * factor, -MaxShift, MaxShift);
-        transform.position = p;
+        Color who = new Color(1, .86f, .45f), boss = new Color(1, .42f, .42f), thing = new Color(.6f, .9f, 1), look = new Color(.78f, .78f, .78f);
+        yield return (Spawn, "선비 시작", Color.white);
+        yield return (Tavern, "주모 (주막)", who);
+        yield return (Peddler, "보부상", who);
+        yield return (Elder, "노인", who);
+        yield return (Stone, "비석 (부적 퍼즐)", thing);
+        yield return (new Vector2(EnemyHome, .2f), "도깨비", boss);
+        yield return (Ferryman, "뱃사공", who);
+        yield return (Kongjwi, "콩쥐", who); yield return (Patjwi, "팥쥐", who); yield return (Anak, "아낙", who); yield return (Namu, "나무꾼", who);
+        yield return (Hunjang, "훈장", who); yield return (Yeot, "엿장수", who); yield return (Halmi, "할멈", who);
+        yield return (new Vector2(KongLair, Top(KongLair)), "콩쥐 요괴", boss);
+        yield return (new Vector2(ShrineX, Top(ShrineX)), "서낭당", thing);
+        foreach (var b in BeaconFort.All) yield return (new Vector2(b.x, b.top), "봉수대: " + b.place, thing);
+        yield return (new Vector2(FortGateX, -.5f), "산성 문", thing);
+        foreach (var p in HanyangTown.People) yield return (new Vector2(p.x, -.5f), p.name, who);
+        for (int i = 1; i < TavernShop.Stalls.Length; i++) yield return (TavernShop.Stalls[i].at, TavernShop.Stalls[i].title, who);
+        for (int i = 1; i < PeddlerShop.Stalls.Length; i++) yield return (PeddlerShop.Stalls[i].at, PeddlerShop.Stalls[i].title, who);
+        yield return (new Vector2(OfficialX, -.5f), "좌의정 (최종 보스)", boss);
+        yield return (new Vector2(GoalX, -.5f), "과거장 (결말)", new Color(1, .75f, .2f));
+        foreach (var s in RoadsideLore.Spots) yield return (new Vector2(s.x, Top(s.x)), "조사: " + s.prompt, look);
     }
+    // 맵 경계와 이름, 자리 이름표를 그린다(씬 창의 Gizmos로 켜고 끈다).
+    void OnDrawGizmos()
+    {
+        var style = new GUIStyle(UnityEditor.EditorStyles.boldLabel) { fontSize = 11 };
+        foreach (var map in Maps.All)
+        {
+            Gizmos.color = new Color(1, 1, 1, .35f);
+            Gizmos.DrawLine(new Vector3(map.left, -2, 0), new Vector3(map.left, 9, 0));
+            style.normal.textColor = new Color(1, 1, 1, .8f);
+            UnityEditor.Handles.Label(new Vector3(map.left + .3f, 8.8f, 0), map.name, style);
+        }
+        foreach (var (at, label, colour) in Markers())
+        {
+            var feet = new Vector3(at.x, at.y < -.4f ? at.y : at.y - .7f, 0);
+            Gizmos.color = colour;
+            Gizmos.DrawWireCube(feet + Vector3.up * .9f, new Vector3(.8f, 1.8f, 0));
+            style.normal.textColor = colour;
+            UnityEditor.Handles.Label(feet + Vector3.up * 2.3f, label, style);
+        }
+    }
+#endif
 }
 
 // ===== 맵별 분위기 효과 (MapAmbience) =====

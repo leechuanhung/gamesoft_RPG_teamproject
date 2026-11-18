@@ -2,7 +2,8 @@
 # becomes. All on the seonbi's 12 px art pixels, facing left (toward the seonbi coming from the left).
 #   25_Final/official_<pose>: the man, the seonbi's height and build: a red danryeong robe with a crane badge, a
 #       horn belt slung under his belly, the black samo hat with its two wings, a long black beard.
-#       idle, cup (holding out the drink), blank (his face gone smooth as an egg: the start of the change).
+#       idle, cup (holding out the drink), blank (his face gone smooth as an egg: the start of the change),
+#       down (what is left when the eodugsini crumbles: the man on his back, still faceless; 56x56 canvas).
 #       Feet on the bottom centre of a 40x56 block canvas.
 #   25_Final/final_<pose>: the eodugsini councillor. The faceless egg head of the dalgyal-gwisin under his samo,
 #       split from brow to chin by a mouth of teeth that opens sideways; red eyes in the hair that hangs to his
@@ -246,6 +247,12 @@ def seal_mark():
 os.makedirs(f"{ROOT}/25_Final", exist_ok=True)
 for pose in ('idle', 'cup', 'blank'):
     Image.fromarray(big(to_image(official(pose), OW, OH))).save(f"{ROOT}/25_Final/official_{pose}.png")
+# the faceless man left lying when the creature crumbles: the blank pose turned a quarter, head to the left
+lying = np.rot90(to_image(official('blank'), OW, OH), 1)
+ys, xs = np.where(lying[..., 3] > 0); lying = lying[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+corpse = np.zeros((OH, 56, 4), np.uint8); h, w = lying.shape[:2]
+corpse[OH - 1 - h:OH - 1, (56 - w) // 2:(56 - w) // 2 + w] = lying
+Image.fromarray(big(corpse)).save(f"{ROOT}/25_Final/official_down.png")
 for pose in ('idle_00', 'idle_01', 'open', 'reach', 'raise', 'cast', 'death_00'):
     Image.fromarray(big(to_image(creature(pose), W, H))).save(f"{ROOT}/25_Final/final_{pose}.png")
 # crumbling into the dark, like the other bosses

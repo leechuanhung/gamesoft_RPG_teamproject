@@ -16,7 +16,7 @@ public static partial class JinaPlayChecks
         Check(WorldBuilder.Top(256)==.8f && WorldBuilder.Top(262)==2f && WorldBuilder.Top(280)==-.5f && WorldBuilder.Top(367)==1.1f && WorldBuilder.Top(WorldBuilder.GoalX)==-.5f,"The fortress and the grave road rise and fall");
         Physics2D.SyncTransforms();
         Check(Physics2D.Raycast(new Vector2(WorldBuilder.FortPeak.x,6),Vector2.down,2.5f,1<<8).collider!=null,"The fortress's highest ledge can be stood on");
-        foreach(var prop in new[]{"봉수 군령판","산성 소나무","무너진 성가퀴","산성 우물","버려진 역참","부서진 수레","무덤","한양 가게","청사초롱","홍살문","과거 방","좌의정 댁 누각"})
+        foreach(var prop in new[]{"봉수 군령판","산성 소나무","무너진 성가퀴","산성 우물","버려진 역참","부서진 수레","무덤","한양 가게","청사초롱","홍살문","과거 방","좌의정 댁 솟을대문","석등","좌의정 댁 누각"})
             Check(GameObject.Find(prop)!=null && GameObject.Find(prop).GetComponent<SpriteRenderer>().sprite!=null,"Prop placed: "+prop);
         foreach(var kind in new[]{"blade","bow"}) for(int r=1;r<=3;r++)
             foreach(var pose in new[]{"idle","walk_00","walk_01","walk_02","walk_03","ready","strike","hurt","down"}) Check(JinaArt.Load("22_Soldier/"+kind+"_"+r+"_"+pose)!=null,"Soldier frame "+kind+r+pose);
@@ -26,6 +26,18 @@ public static partial class JinaPlayChecks
         // Soldiers stand the seonbi's height, the councillor towers over him.
         float seonbi=JinaArt.Load(JinaArt.Player).bounds.size.y;
         Check(Mathf.Abs(JinaArt.Load("22_Soldier/blade_1_idle").bounds.size.y-2.2f)<.4f && JinaArt.Load("25_Final/final_idle_00").bounds.size.y>seonbi*2,"Soldiers on his scale, the councillor towering");
+
+        // The back hill stays shut until Kongjwi is dealt with: fleeing her fight into the fortress would skip her.
+        var kongBoss=combat.KongBoss;
+        Check(kongBoss.Sealed,"Miasma shuts the end of the back hill while she waits");
+        Physics2D.SyncTransforms();
+        var wall=Physics2D.Raycast(new Vector2(WorldBuilder.HillEnd-3,.3f),Vector2.right,4,1<<8);
+        Check(wall.collider!=null && !wall.collider.usedByEffector && wall.point.x<WorldBuilder.HillEnd,"…a wall he cannot walk through");
+        Capture("hill-miasma",new Vector3(WorldBuilder.HillEnd-4,1.6f,-10),3.5f);
+        Set(kongBoss,"<Now>k__BackingField",KongBoss.Phase.Slain); Call(kongBoss);
+        Check(!kongBoss.Sealed,"Dealt with, the miasma lifts");
+        combat.Restart(); Call(kongBoss);
+        Check(kongBoss.Sealed,"Restart brings it back");
 
         // ── Soldiers by honour ──
         Check(RoadMobs.Rank(0)==0 && RoadMobs.Rank(30)==0 && RoadMobs.Rank(-1)==1 && RoadMobs.Rank(-29)==1 && RoadMobs.Rank(-30)==2 && RoadMobs.Rank(-59)==2 && RoadMobs.Rank(-60)==3 && RoadMobs.Rank(-200)==3,"Honour picks the soldiers' rank");
@@ -126,11 +138,15 @@ public static partial class JinaPlayChecks
         var boss=combat.FinalBoss;
         Check(boss.Now==FinalBoss.Phase.Waiting,"The councillor waits in his pavilion");
         var good=FinalBoss.BanquetLines(false,true,true); var bad=FinalBoss.BanquetLines(true,false,false);
-        Check(good[good.Length-1].said==FinalBoss.LastLine && bad[bad.Length-1].said==FinalBoss.LastLine && good[1].said!=bad[1].said && good[1].thought && bad[1].said.Contains("밥그릇"),"He fears his good karma, or his greed and his own rice bowl");
+        var goodThought=System.Array.Find(good,l=>l.thought && l.who==FinalBoss.Official); var badThought=System.Array.Find(bad,l=>l.thought && l.who==FinalBoss.Official);
+        Check(good[good.Length-1].said==FinalBoss.LastLine && bad[bad.Length-1].said==FinalBoss.LastLine && goodThought.said.Contains("선업") && badThought.said.Contains("밥그릇"),"He fears his good karma, or his greed and his own rice bowl");
+        Check(System.Array.Exists(good,l=>l.said.Contains("열두 살")) && System.Array.Exists(good,l=>l.said.Contains("망령들에게")) && System.Array.Exists(good,l=>l.said.Contains("도깨비")),"He speaks of the boy king, of the face he sold to the old kingdom's ghosts, and of the curses on the road");
         bool sensed=false; foreach(var l in good) if(l.who==FinalBoss.Seonbi && l.said.Contains("눈코입")) sensed=true;
         Check(sensed,"The seonbi sees the faceless reflection in his cup");
         Goto(WorldBuilder.OfficialX-5); Call(boss);
-        Check(boss.Now==FinalBoss.Phase.Banquet && combat.Paused && boss.Cutscene && combat.CanRetryOnRoad,"Coming near opens the banquet, and saves the road");
+        Check(boss.Now==FinalBoss.Phase.Waiting,"Not yet: the banquet opens at his table");
+        Goto(WorldBuilder.OfficialX-3); Call(boss);
+        Check(boss.Now==FinalBoss.Phase.Banquet && combat.Paused && boss.Cutscene && combat.CanRetryOnRoad,"Coming to his table opens the banquet, and saves the road");
         Capture("road-manor-banquet",new Vector3(WorldBuilder.OfficialX-2.5f,1.8f,-10),3.5f);
         while(boss.Now==FinalBoss.Phase.Banquet) boss.NextLine();
         Check(boss.Now==FinalBoss.Phase.Changing,"The last line starts the change");
@@ -161,11 +177,14 @@ public static partial class JinaPlayChecks
         Check(boss.Damage(FinalBoss.MaxHealth) && boss.Resolved && q.FinalOutcome==EncounterOutcome.Slain && q.Honor==honour+10,"Struck down: +10");
         Set(boss,"<DownAt>k__BackingField",Time.time-1.3f); Call(boss,"LateUpdate");
         Check(Field<SpriteRenderer>(boss,"picture").sprite.name.EndsWith("final_death_01"),"He crumbles into the dark");
+        Set(boss,"<DownAt>k__BackingField",Time.time-FinalBoss.DeathLength-.01f); Call(boss,"LateUpdate");
+        Check(!Field<SpriteRenderer>(boss,"picture").enabled && Field<SpriteRenderer>(boss,"human").enabled && Field<SpriteRenderer>(boss,"human").sprite.name.EndsWith("official_down"),"…and the faceless man is left lying");
+        Capture("road-final-corpse",new Vector3(boss.Feet.x,1.4f,-10),3f);
         Check(!combat.CanRetryOnRoad,"No road checkpoint once he is gone");
 
         // Negative honour: his change calls the soldiers in.
         combat.Restart(); q.SacrificeElder();
-        Goto(WorldBuilder.OfficialX-5); Call(boss);
+        Goto(WorldBuilder.OfficialX-3); Call(boss);
         while(boss.Now==FinalBoss.Phase.Banquet) boss.NextLine();
         Set(boss,"<ChangedAt>k__BackingField",Time.time-FinalBoss.ChangeLength-.01f); Call(boss);
         var (b2,w2)=RoadMobs.Squad(RoadMobs.Rank(q.Honor));

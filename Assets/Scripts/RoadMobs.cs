@@ -24,7 +24,7 @@ public class RoadMobs : MonoBehaviour
     public static (int blades, int bows) Squad(int rank) => rank <= 0 ? (0, 0) : rank == 1 ? (1, 1) : rank == 2 ? (2, 1) : (2, 2);
     public const float WispSpeed = 2.4f, WispDash = 9f, WispDashLength = .45f, WispWindup = .55f, WispCooldown = 1.5f;
     public const float BruteSpeed = 1.3f, BruteWindup = .7f, BruteCooldown = 1.7f, BruteReach = 1.9f;
-    public const float SoldierSpeed = 2.0f, BladeReach = 1.5f, BowNear = 3.5f, BowFar = 8.5f, ArrowSpeed = 10f;
+    public const float SoldierSpeed = 2.0f, BladeReach = 1.6f, BowNear = 3.5f, BowFar = 8.5f, ArrowSpeed = 10f;
     public const float Sight = 10f, DownLength = 1.4f;
     public static float BladeWindup(int rank) => rank >= 3 ? .4f : rank == 2 ? .48f : .55f;
     public static float BowDraw(int rank) => rank >= 3 ? .6f : rank == 2 ? .72f : .85f;
@@ -131,8 +131,10 @@ public class RoadMobs : MonoBehaviour
         return true;
     }
     // 관군이 나타나며 외치는 말: 무장이 높을수록 확신에 차 있다.
-    public static string SquadShout(int rank) => rank >= 3 ? "저 살인마 선비다! 이번엔 놓치지 마라, 쳐라!"
-        : rank == 2 ? "수배된 선비가 저기 있다! 포위하라!" : "거기 선비, 멈춰라! 길에서 사람을 해쳤다는 그자가 아니냐!";
+    // 선악이 음수인 것은 선비가 요괴를 끌고 다니는 동안 사람들이 죽었기 때문이다. 소문은 그것을 선비 탓으로 돌린다.
+    public static string SquadShout(int rank) => rank >= 3 ? "좌의정 대감의 명이다! 저 선비는 산 채로 잡든 죽이든 상관없다, 쳐라!"
+        : rank == 2 ? "요괴를 끌고 다니며 마을을 피로 물들였다는 선비가 저놈이다! 포위하라!"
+        : "거기 선비, 멈춰라! 네가 지나는 마을마다 사람이 죽어 나간다는 소문이 파다하다!";
     // 선악이 0 이상일 때 좌의정 댁에 들어왔다가 물러나는 관군 둘: 다치지도 덤비지도 않는다.
     public void CallWitnesses(int map, float left, string shout)
     {
@@ -249,6 +251,8 @@ public class RoadMobs : MonoBehaviour
     }
 
     float Ground(float x) => WorldBuilder.Top(x);
+    // 무리 안에서의 자리(0~2): 칼병은 선비와 서로 다른 거리에 서고, 활병도 서로 다른 거리에서 쏜다. 겹쳐 서지 않게.
+    static int Slot(Mob m) => (int)(m.phase / 1.7f + .5f) % 3;
     void Walk(Mob m, float toward, float speed, float dt)
     {
         float before = m.pos.x;
@@ -331,7 +335,7 @@ public class RoadMobs : MonoBehaviour
         }
         float dx = p.x - m.pos.x;
         if (here && Mathf.Abs(dx) < BladeReach && Mathf.Abs(p.y - m.pos.y) < 1.8f && Time.time >= m.ready) { Face(m, p.x); m.windup = Time.time + BladeWindup(m.rank); return; }
-        if (here && Mathf.Abs(dx) < Sight + 4) Walk(m, p.x - Mathf.Sign(dx) * 1.1f, SoldierSpeed + m.rank * .15f, dt);
+        if (here && Mathf.Abs(dx) < Sight + 4) Walk(m, p.x - Mathf.Sign(dx) * (.9f + Slot(m) * .3f), SoldierSpeed + m.rank * .15f, dt);
         else Walk(m, m.home, SoldierSpeed * .5f, dt);
         if (here) Face(m, p.x);
     }
@@ -350,7 +354,7 @@ public class RoadMobs : MonoBehaviour
         float dx = p.x - m.pos.x, d = Mathf.Abs(dx);
         if (!here) { Walk(m, m.home, SoldierSpeed * .5f, dt); return; }
         if (d < BowNear) Walk(m, m.pos.x - Mathf.Sign(dx) * 2, SoldierSpeed * .9f, dt);
-        else if (d > BowFar) Walk(m, p.x - Mathf.Sign(dx) * (BowFar - 1), SoldierSpeed, dt);
+        else if (d > BowFar) Walk(m, p.x - Mathf.Sign(dx) * (BowFar - 1 - Slot(m) * 1.2f), SoldierSpeed, dt);
         Face(m, p.x);
         if (d <= BowFar + .5f && Time.time >= m.ready) m.windup = Time.time + BowDraw(m.rank);
     }

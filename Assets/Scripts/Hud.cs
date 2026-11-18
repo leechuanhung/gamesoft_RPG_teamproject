@@ -41,6 +41,9 @@ public class Hud : MonoBehaviour
     {
         var q = combat.Quest.progress;
         float x = combat.player.transform.position.x;
+        // 관군은 어느 맵에서든 가장 급한 일이다.
+        if (combat.Mobs != null && combat.Maps != null && combat.Mobs.SoldiersAlive(combat.Maps.Current) > 0)
+            return "관군이 선비를 쫓고 있습니다! 물리치거나 맵 밖으로 빠져나가세요.";
         if (!combat.EnemyDefeated)
         {
             if (q.HasCharm) return "도깨비 가까이에서 F로 저주를 풀거나, 칼로 쓰러뜨리세요. 해결하면 숲 끝 가시덤불이 걷힙니다.";
@@ -53,7 +56,7 @@ public class Hud : MonoBehaviour
         if (x >= WorldBuilder.FortStart) return RoadGoal(x);
         if (x < WorldBuilder.FerryStart) return "숲 동쪽 끝을 지나 나루터로 가세요.";
         if (x < WorldBuilder.RiverRight) return "뱃사공과 이야기하고, 나룻배로 강을 건너세요.";
-        if (boss != null && boss.Resolved) return "뒷산을 지나 산성으로 가세요. 산성 너머가 한양입니다.";
+        if (boss != null && boss.Resolved) return "독기가 걷혔습니다. 뒷산 너머 산성으로 가세요. 산성 너머가 한양입니다.";
         if (x < WorldBuilder.KongEnd && combat.Kong != null && !combat.Kong.Revealed)
         {
             if (!combat.Kong.Stayed) return combat.Kong.ReadyForNight ? "마을 사람들과 모두 이야기했습니다. 콩쥐에게 다시 말을 걸어 보세요."
@@ -71,7 +74,6 @@ public class Hud : MonoBehaviour
         if (fin != null && fin.Fighting) return fin.Dark ? "어둠이 짙어졌습니다! 그림자가 지는 자리를 피하며 좌의정을 쓰러뜨리세요."
             : "어둑시니 좌의정을 쓰러뜨리세요. 땅에 그림자가 지면 피하고, 팔을 휩쓸면 뛰어넘으세요.";
         if (fin != null && fin.Resolved) return "좌의정 댁 오른쪽 끝 금빛 표식을 지나면 과거장입니다.";
-        if (mobs != null && combat.Maps != null && mobs.SoldiersAlive(combat.Maps.Current) > 0) return "관군이 선비를 쫓고 있습니다! 물리치거나 맵 밖으로 빠져나가세요.";
         if (x < WorldBuilder.FortEnd && fort != null && !fort.Open)
             return fort.ReadOrders ? BeaconFort.Route + " (" + fort.Step + "/5)" : "산성 문이 닫혀 있습니다. 산성 입구의 봉수 군령판을 읽어 보세요.";
         if (x < WorldBuilder.GraveEnd) return "역참과 무덤길을 지나 한양으로 가세요. 도깨비불은 빛을 모은 뒤 날아듭니다.";

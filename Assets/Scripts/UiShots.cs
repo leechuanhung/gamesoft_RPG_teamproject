@@ -134,7 +134,7 @@ public class UiShots : MonoBehaviour
         combat.Town.Talk(mudang);
         yield return new WaitForSecondsRealtime(1.5f);
         yield return Shot("road_mudang");
-        Fresh(WorldBuilder.OfficialX - 5); Solve();
+        Fresh(WorldBuilder.OfficialX - 3); Solve();
         yield return Until(() => combat.FinalBoss.Now == FinalBoss.Phase.Banquet, 3);
         yield return new WaitForSecondsRealtime(1.2f);
         yield return Shot("final_banquet0");
@@ -147,6 +147,10 @@ public class UiShots : MonoBehaviour
         Set(combat.FinalBoss, "ChangedAt", Time.time - FinalBoss.ChangeLength - .01f);
         yield return new WaitForSecondsRealtime(1.5f);
         yield return Shot("final_fight");
+        // 뒷산 끝 독기 장막의 알림.
+        Fresh(WorldBuilder.HillEnd - 1.2f); Solve();
+        yield return new WaitForSecondsRealtime(.6f);
+        yield return Shot("hill_miasma");
         // 콩밭 마을 방물장수, 한양 잡화전과 국밥집, 몬스터 이름과 처치 알림.
         Fresh(WorldBuilder.Bangmul.x); Solve();
         combat.Peddler.OpenAt(PeddlerShop.Kongbat);

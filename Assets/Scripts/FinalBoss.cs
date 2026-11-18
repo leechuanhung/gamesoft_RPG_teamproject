@@ -6,6 +6,8 @@ using UnityEngine;
 // 들은 뒤로 한양에 드는 선비를 경계해 왔다. 선악이 0 이상이면 선비의 선한 기운과 선업을, 음수면 살의와 탐욕을 보고
 // 자기 밥그릇을 빼앗길까 두려워한다. 과거 전날 밤 자기 집 누각(WorldBuilder.ManorStart~ManorEnd)에서 술로 달래려
 // 하지만, 선이든 악이든 길에서 요괴와 숱하게 부딪혀 온 선비는 술잔에 비친 눈코입 없는 얼굴을 본능으로 알아챈다.
+// 좌의정은 망한 나라의 망령들에게 얼굴을 팔았다. 그 대가로 망령들은 한양 가는 길마다 저주를 걸어(미혹된 도깨비, 물귀신)
+// 지방 선비들이 과거장에 닿지 못하게 했고, 벼슬은 그에게 값을 치른 자들의 몫이 되었다. 술자리 끝에 그가 털어놓는다.
 // 대화가 끝나면 어둑시니 좌의정으로 변한다(띠, 카메라, 얼굴이 지워지고 검은 형체가 부풀고 번쩍, 포효, 이름 카드).
 // 선악이 음수면 관군이 "내 그럴 줄 알았다"며 몰려와 선비를 치고(RoadMobs.CallSquad), 0 이상이면 들어왔다가
 // "저런 선비가 역모일 리 없다"며 물러난다. 쓰러뜨리면 +10. 싸움(이동, 공격, 던지는 것)은 FinalBoss.Fight.cs.
@@ -21,7 +23,7 @@ public partial class FinalBoss : MonoBehaviour
     public bool Cutscene => Now == Phase.Banquet || Now == Phase.Changing;
     public const string Name = "어둑시니 좌의정", Epithet = "얼굴을 팔아 권세를 산 자", Official = "좌의정 엄탁", Seonbi = "선비";
     public const string LastLine = "그렇다면 그 목, 내가 먼저 치마!", Roar = "흐흐흐… 이 나라는 내 것이다!";
-    public const float MeetRange = 6.5f, ChangeLength = 4.2f, BlankAt = .6f, SwellAt = 1.3f, FlashAt = 2.2f, CardAt = 2.4f, RoarUntil = 3.4f;
+    public const float MeetRange = 3.4f, ChangeLength = 4.2f, BlankAt = .6f, SwellAt = 1.3f, FlashAt = 2.2f, CardAt = 2.4f, RoarUntil = 3.4f;
     public const float DeathLength = 2.4f;
     public static readonly float Home = WorldBuilder.OfficialX;
     public Vector3 Feet => transform.position;
@@ -46,8 +48,9 @@ public partial class FinalBoss : MonoBehaviour
     public static Line[] BanquetLines(bool wicked, bool invited, bool warned)
     {
         var said = new List<Line>();
-        said.Add(new Line(Official, invited ? "왔는가. 먼 길 오느라 고생이 많았네. 자, 앉게. 한잔 받게. 내일이면 급제할 몸이 아닌가."
-            : "불청객이로군. 그래도 먼 길 왔으니 앉게. 한잔 받게. 과거 보러 온 선비를 박대할 수야 있나."));
+        said.Add(new Line(Official, invited ? "왔는가. 먼 길 오느라 고생이 많았네. 앉게, 한잔 받게. 내일이면 급제할 몸이 아닌가."
+            : "불청객이로군. 그래도 과거 보러 온 선비를 박대할 수야 있나. 앉게, 한잔 받게."));
+        said.Add(new Line(Official, "전하께서는 아직 열두 살이시네. 누군가는 이 나라를 대신 짊어져야 하지. 그게 나일세."));
         if (wicked)
         {
             said.Add(new Line(Official, "(…살기. 그리고 탐욕. 저 눈빛은 내 밥그릇을 노리는 눈이다. 공수가 말한 선비가 바로 이놈이로구나.)", true));
@@ -61,6 +64,9 @@ public partial class FinalBoss : MonoBehaviour
         said.Add(new Line(Seonbi, "(술잔을 드는 순간 등줄기가 서늘해졌다. 도깨비 숲에서, 강물 위에서, 뒷산에서 맡았던 바로 그 냄새.)", true));
         said.Add(new Line(Seonbi, warned ? "…무당의 말이 맞았군요. 대감, 잔에 비친 얼굴에 눈코입이 없습니다." : "…대감, 잔에 비친 얼굴에 눈코입이 없습니다."));
         said.Add(new Line(Official, "눈치가 빠르군. 그 무당 년의 공수가 틀리지 않았어. '업 많은 선비가 네 목을 치리라'…"));
+        said.Add(new Line(Official, "얼굴 따위는 진작에 팔았네. 망한 나라의 망령들에게 말일세. 이 나라의 권세와 바꾸기엔 싼값이었지."));
+        said.Add(new Line(Official, "그들은 한양 가는 길마다 저주를 걸어 주었네. 산에는 미혹된 도깨비를, 강에는 물귀신을."));
+        said.Add(new Line(Official, "길이 막히니 시골 선비들은 과거장에 닿지 못하고, 벼슬은 내게 값을 치른 자들의 몫이 되었지. …자네만 빼고."));
         said.Add(new Line(Official, LastLine));
         return said.ToArray();
     }
@@ -243,8 +249,11 @@ public partial class FinalBoss : MonoBehaviour
         Flash(picture, Mathf.Clamp01(1 - (t - FlashAt) / .45f), new Color(1, .92f, .9f));
         if (t < RoarUntil) picture.transform.position += Vector3.right * Shudder(t, .04f);
     }
+    // 어둠이 흩어진 자리에는 얼굴 없는 좌의정이 쓰러져 남는다.
+    public const float CorpseAt = 1.5f;
     void DrawDeath(float t, bool flip)
     {
+        if (t >= CorpseAt) Show(human, JinaArt.Load("25_Final/official_down"), Feet, flip, Mathf.Clamp01((t - CorpseAt) / .8f));
         if (t >= DeathLength) return;
         Show(picture, JinaArt.Load(Pose(t < 1.1f ? "death_00" : t < 1.7f ? "death_01" : "death_02")), Feet, flip, t > 1.7f ? 1 - (t - 1.7f) / (DeathLength - 1.7f) : 1);
         picture.transform.localScale = Vector3.one * Size;

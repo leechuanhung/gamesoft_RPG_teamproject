@@ -15,8 +15,8 @@ public class View : MonoBehaviour
     {
         if (target != null && FindObjectOfType<Combat>() == null)
         {
-            var world = new GameObject("네 구역 지도").AddComponent<WorldBuilder>();
-            world.Build(target.GetComponent<SpriteRenderer>().sprite);
+            // 씬에 구운 세계가 있으면 그것을, 없으면 코드로 새로 짓는다.
+            WorldBuilder.Ensure(target.GetComponent<SpriteRenderer>().sprite);
             target.GetComponent<Player>().SetSpawn(WorldBuilder.Spawn);
             var combat = gameObject.AddComponent<Combat>();
             combat.player = target.GetComponent<Player>();

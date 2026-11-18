@@ -8,7 +8,9 @@
 #   her bundle on her head)
 # Props at one texel per art pixel, 24 per unit, standing on their bottom edge (13_Props):
 #   beacon_off, beacon_on (a round stone beacon tower), fort_gate_shut, fort_gate_open, fort_wall, station_house,
-#   cart, grave, dead_tree, shop, lantern, hongsal (the red arrow gate), exam_board, pavilion, drink_table
+#   cart, grave, dead_tree, shop, lantern, hongsal (the red arrow gate), exam_board, pavilion, drink_table,
+#   fort_wall_broken (the collapsed battlement of the beacon puzzle), manor_gate (the councillor's tall gate),
+#   stone_lantern
 # Usage: python make_hanyang.py Assets/Resources/JinaV4
 import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
@@ -260,6 +262,55 @@ def fort_wall():
     c.paint(c.rect(0, 52, 30, G) & wall, MOSS)
     return c
 
+def fort_wall_broken():
+    """The collapsed battlement the beacon orders speak of: the right half of the wall fallen into a heap of stones,
+    one crenel left leaning, grass in the cracks."""
+    c = Canvas(96, 62); G = 61
+    wall = c.poly([(0, 16), (44, 16), (52, 28), (60, 26), (70, 40), (82, 44), (95, 52), (95, G), (0, G)])
+    for x in range(0, 44, 14): wall |= c.rect(x, 6, x + 7, 16)
+    stones(c, wall, 0, 95, 6, G, 6, 12)
+    c.paint(wall & c.rect(60, 0, 96, G), STONE2)
+    c.layer(c.poly([(46, 10), (53, 8), (56, 18), (49, 20)]), STONE)                     # the leaning crenel
+    for x, y, w in ((58, 52, 9), (68, 54, 7), (78, 50, 8), (86, 55, 7), (64, 46, 6)):    # fallen stones
+        c.layer(c.rect(x, y, x + w, y + 4), STONE); c.paint(c.rect(x, y, x + w, y), STONE3)
+    c.paint(c.line([(30, 20), (36, 34), (33, 44)]) & wall, DARK)
+    c.paint(c.rect(0, 54, 24, G) & wall, MOSS); c.paint(c.rect(50, 30, 53, 33) & wall, MOSS)
+    return c
+
+def manor_gate():
+    """The councillor's tall gate (sosul-daemun): a raised tiled roof over open red-brown leaves, lower walls either
+    side, a nameboard, a red lantern."""
+    c = Canvas(128, 112); G = 111
+    for x0, x1 in ((0, 38), (90, 127)):                                                   # the side walls
+        w = c.rect(x0, 50, x1, G); c.layer(w, PLASTER2)
+        c.paint(c.rect(x0, 50, x1, 58), STONE2); c.paint(c.rect(x0, G - 10, x1, G), STONE)
+        r = c.poly([(x0 - 2, 50), (x1 + 2, 50), (x1 - 2, 42), (x0 + 2, 42)]) & c.rect(0, 0, 127, G); c.layer(r, TILE)
+    c.layer(c.rect(40, 30, 45, G) | c.rect(83, 30, 88, G), WOOD)                         # pillars
+    c.paint(c.rect(43, 30, 45, G) | c.rect(86, 30, 88, G), WOOD2)
+    c.layer(c.rect(46, 40, 82, G), DARK)
+    for x0 in (46, 74):                                                                   # open leaves
+        c.layer(c.rect(x0, 44, x0 + 8, G - 1), (120, 52, 40)); c.paint(c.rect(x0 + 6, 44, x0 + 8, G - 1), (90, 36, 30))
+        for y in range(50, G - 4, 10): c.paint(c.rect(x0 + 3, y, x0 + 4, y), GOLD2)
+    c.layer(c.rect(36, 30, 92, 34), WOOD2)
+    c.layer(c.rect(52, 34, 76, 40), WOOD); c.paint(c.rect(54, 35, 74, 39), (40, 34, 40))  # nameboard
+    for x in range(57, 72, 5): c.paint(c.rect(x, 36, x + 2, 38), GOLD)
+    roof = c.poly([(24, 24), (30, 30), (64, 32), (98, 30), (104, 24), (92, 20), (82, 6), (46, 6), (36, 20)])
+    c.layer(roof, TILE)
+    for x in range(28, 102, 4): c.paint(c.line([(x - (x - 64) / 8, 7), (x, 32)]) & roof, TILE2)
+    c.layer(c.rect(44, 2, 84, 6), TILE2)
+    lamp = c.ellipse(85, 36, 93, 46); c.layer(c.rect(89, 34, 89, 36), DARK); c.layer(lamp, RED); c.paint(c.ellipse(87, 38, 90, 43) & lamp, (255, 170, 120))
+    return c
+
+def stone_lantern():
+    """A granite garden lantern (seokdeung) with a lit fire chamber."""
+    c = Canvas(24, 56); G = 55
+    c.layer(c.rect(4, G - 6, 19, G), STONE); c.paint(c.rect(4, G - 6, 19, G - 6), STONE3)
+    c.layer(c.rect(9, 24, 14, G - 7), STONE); c.paint(c.rect(13, 24, 14, G - 7), STONE2)
+    c.layer(c.rect(5, 20, 18, 23), STONE)
+    box = c.rect(6, 10, 17, 19); c.layer(box, STONE); c.paint(c.rect(9, 12, 14, 17), (255, 196, 110)); c.paint(c.rect(10, 13, 13, 16), (255, 236, 170))
+    c.layer(c.poly([(1, 10), (22, 10), (16, 4), (7, 4)]), STONE2); c.layer(c.rect(10, 0, 13, 4), STONE)
+    return c
+
 def station_house():
     """The abandoned post station: a tiled roof with a hole torn in it, a door hanging off, a faded signboard."""
     c = Canvas(130, 90); G = 89
@@ -410,5 +461,6 @@ for name, draw in (("sangin", sangin), ("yusaeng", yusaeng), ("cheongji", cheong
 for name, draw in (("beacon_off", lambda: beacon(False)), ("beacon_on", lambda: beacon(True)), ("fort_gate_shut", lambda: fort_gate(False)),
                    ("fort_gate_open", lambda: fort_gate(True)), ("fort_wall", fort_wall), ("station_house", station_house), ("cart", cart),
                    ("grave", grave), ("dead_tree", dead_tree), ("shop", shop), ("lantern", lantern), ("hongsal", hongsal),
-                   ("exam_board", exam_board), ("pavilion", pavilion), ("drink_table", drink_table)):
+                   ("exam_board", exam_board), ("pavilion", pavilion), ("drink_table", drink_table),
+                   ("fort_wall_broken", fort_wall_broken), ("manor_gate", manor_gate), ("stone_lantern", stone_lantern)):
     save(draw(), name)
