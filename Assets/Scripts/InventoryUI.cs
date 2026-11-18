@@ -87,7 +87,8 @@ public class InventoryUI : MonoBehaviour
         public bool combatReady;
     }
     private readonly List<WeaponEntry> weapons = new List<WeaponEntry>();
-    private readonly string[] equippedWeapons = { "hwando", "bow" };
+    static readonly string[] defaultWeapons = { "dagger", null };
+    private string[] equippedWeapons => combat != null ? combat.EquippedWeapons : defaultWeapons;
     public IReadOnlyList<WeaponEntry> OwnedWeapons => weapons;
     public string EquippedWeapon(int index) => index >= 0 && index < 2 ? equippedWeapons[index] : null;
 
@@ -95,6 +96,19 @@ public class InventoryUI : MonoBehaviour
     {
         if (string.IsNullOrEmpty(id) || weapons.Count >= 20 || weapons.Exists(w => w.id == id)) return false;
         weapons.Add(new WeaponEntry { id = id, name = name, description = description, icon = icon, combatReady = combatReady });
+        return true;
+    }
+
+    public bool HasWeapon(string id) => weapons.Exists(w => w.id == id);
+
+    // 땅에서 주운 무기를 보따리에 넣고, 빈 무기 칸이 있으면 바로 장착
+    public bool GiveWeapon(string id)
+    {
+        bool added = id == "hwando" ? UnlockWeapon("hwando", "환도", "기본 근접 무기", "icon_sword", true)
+                   : id == "bow" ? UnlockWeapon("bow", "활", "화살을 소비하는 원거리 무기", "icon_bow", true)
+                   : false;
+        if (!added) return false;
+        for (int i = 0; i < 2; i++) if (equippedWeapons[i] == null) { EquipWeapon(id, i); break; }
         return true;
     }
 
@@ -113,8 +127,8 @@ public class InventoryUI : MonoBehaviour
         inventory = GetComponent<InventoryManager>();
         UnlockSkill("retreat", "물러서기", "바라보는 방향 반대로 이동하며 잠시 무적", Skills.RetreatCooldown, true);
         UnlockSkill("rush_slash", "돌진베기", "전방으로 돌진하며 적에게 피해", Skills.RushCooldown, true);
-        UnlockWeapon("hwando", "환도", "기본 근접 무기", "icon_sword", true);
-        UnlockWeapon("bow", "활", "화살을 소비하는 원거리 무기", "icon_bow", true);
+        // 처음엔 단검만. 환도·활은 들판 몹이 떨어뜨림 (WeaponPickup.cs)
+        UnlockWeapon("dagger", "단검", "짧고 빠른 근접 무기 (콤보 없음)", "icon_sword", true);
     }
 
     void Update()
@@ -212,6 +226,8 @@ public class InventoryUI : MonoBehaviour
         tab = PageTab.Items;
         collectionPage = 0;
         skillReadyAt.Clear();
+        // 재시작하면 주운 무기를 잃고 단검만 남음
+        weapons.RemoveAll(w => w.id != "dagger");
     }
 
     void OnDisable() { CloseInventory(); }
