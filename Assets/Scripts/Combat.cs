@@ -330,7 +330,7 @@ public partial class Combat : MonoBehaviour
             // 콤보 무기(환도)만 3연격, 나머지는 늘 같은 동작
             pendingStep = w.combo && Time.time <= comboUntil ? (comboStep + 1) % 3 : 0;
             comboStep = w.combo ? pendingStep : -1;
-            float swing = w.combo ? SeonbiVisual.SwordLength(pendingStep) : w.interval;
+            float swing = w.Swing(pendingStep);
             nextAttack = Time.time + swing;
             comboUntil = w.combo ? nextAttack + ComboWindow : 0;
             player.SlowUntil = Time.time + (w.ranged ? .3f : swing);
@@ -339,7 +339,7 @@ public partial class Combat : MonoBehaviour
             attackFacing = player.Facing;
             pendingBow = w.ranged;
             pendingAim = w.ranged ? MouseAim() : 0;
-            playerImpactAt = Time.time + (w.combo ? SeonbiVisual.SwordHit(pendingStep) : w.hitDelay);
+            playerImpactAt = Time.time + w.HitAt(pendingStep);
             if (playerVisual != null) playerVisual.Attack(w.ranged, attackFacing, pendingAim, pendingStep);
         }
         if (playerImpactAt >= 0 && Time.time >= playerImpactAt)
@@ -354,7 +354,7 @@ public partial class Combat : MonoBehaviour
                 float reach = heavy ? 1.75f : w.reach;
                 Vector2 center = (Vector2)player.transform.position + Vector2.right * attackFacing * (.28f + reach / 2);
                 var attackBounds = new Bounds(center, new Vector3(reach, heavy ? 1.15f : .9f, 1));
-                int damage = w.damage;
+                int damage = w.Damage(pendingStep);
                 bool landed = false;
                 if (!EnemyDefeated && attackBounds.Intersects(enemy.bounds)) { DamageEnemy(damage); landed = true; }
                 if (KongBoss != null && KongBoss.Fighting && attackBounds.Intersects(KongBoss.HurtBox) && KongBoss.Damage(damage, true)) landed = true;
