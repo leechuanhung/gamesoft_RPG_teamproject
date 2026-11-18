@@ -309,6 +309,8 @@ public partial class Combat : MonoBehaviour
             if (Move != BossMove.None) EndMove(0);
             return;
         }
+                // 테스트용 치트: F1을 누르면 모든 무기 획득
+        if (Input.GetKeyDown(KeyCode.F1)) GiveAllWeapons();
         // 무기 스왑: Q → S (Q는 스킬로 사용)
         if (Input.GetKeyDown(KeyCode.S) && EquippedWeapons[1 - ActiveWeaponSlot] != null) ActiveWeaponSlot = 1 - ActiveWeaponSlot;
         if (!EnemyDefeated && Input.GetKeyDown(KeyCode.F)
@@ -414,7 +416,15 @@ public partial class Combat : MonoBehaviour
         float angle = Mathf.Atan2(d.y, Mathf.Abs(d.x)) * Mathf.Rad2Deg;
         return angle > 15f ? 1 : angle < -15f ? -1 : 0;
     }
-
+        // 테스트용: 무기 표(Weapon.cs)의 모든 무기를 보따리에 넣음
+    void GiveAllWeapons()
+    {
+        var ui = FindObjectOfType<InventoryUI>();
+        if (ui == null) return;
+        foreach (var id in Weapon.All.Keys) ui.GiveWeapon(id);
+        WeaponPickup.ClearAll();   // 땅에 떨어져 있던 무기는 치움
+        JinaFx.Word(player.transform.position + Vector3.up * 1.5f, "모든 무기 획득!", new Color(1f, .9f, .5f), 22);
+    }
     // 스킬 공격: area 안의 보스와 일반 몬스터에게 damage만큼 피해
     public void SkillHit(Bounds area, int damage)
     {
