@@ -47,7 +47,7 @@ public class Camp : MonoBehaviour
         public float respawnAt = -1;   // 이 시각에 다시 나타남 (-1이면 안 나타남)
     }
     public const float RespawnDelay = 2f;   // 들판 몹이 죽고 다시 나타나기까지(초)
-    public const int SealKills = 100;       // 이만큼 쓰러뜨리면 비석 길 봉인이 풀림
+    public const int SealKills = 30;       // 이만큼 쓰러뜨리면 비석 길 봉인이 풀림
     public int Kills { get; private set; }  // 지금까지 쓰러뜨린 수
     public readonly List<Mob> mobs = new List<Mob>();
     private GameObject gate;
@@ -162,6 +162,8 @@ public class Camp : MonoBehaviour
             m.visual.Down(); m.windup = -1; m.visual.Winding = false;
             m.vanishAt = Time.time + 1.5f;
             Kills++;
+            // 들판 몹: 4~10 무작위 (Random.Range의 끝 숫자는 포함 안 돼서 +1)
+            if (combat != null) combat.GainExp(river ? Combat.WaterGhostExp : Random.Range(Combat.GhostExpMin, Combat.GhostExpMax + 1));
             if (!river) m.respawnAt = Time.time + RespawnDelay;
             // 들판 몹: 무기 표(Weapon.cs)의 dropChance 확률로, 아직 없고 땅에도 없는 무기를 떨어뜨림
             if (!river)
