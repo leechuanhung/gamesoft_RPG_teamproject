@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 // A small combat loop, attached automatically by the existing test scene: the seonbi's health and attacks,
 // restarts and pausing, and the managers it attaches (quest, camp, shops, village, story scenes).
@@ -128,7 +129,7 @@ public partial class Combat : MonoBehaviour
     {
         if (!Checkpoint.HasValue) { Restart(); return; }
         var save = Checkpoint.Value;
-        PlayerHealth = MaxPlayerHealth;
+        PlayerHealth = MaxHealth;
         nextAttack = slashUntil = invulnerableUntil = hitFlashUntil = 0;
         playerImpactAt = -1;
         PlayerDownAt = PlayerHurtAt = WardBrokeAt = CoinsFoundAt = -1;
@@ -153,7 +154,7 @@ public partial class Combat : MonoBehaviour
     {
         if (PlayerHealth <= 0) return;
         int before = PlayerHealth;
-        PlayerHealth = Mathf.Clamp(PlayerHealth + amount, 1, MaxPlayerHealth);
+        PlayerHealth = Mathf.Clamp(PlayerHealth + amount, 1, MaxHealth);
         if (PlayerHealth <= before) return;
         var chest = player.transform.position + Vector3.up * .3f;
         JinaFx.Rise(chest, 12, new Color(.62f, 1, .66f), .5f, 1.5f, .8f);
@@ -238,7 +239,8 @@ public partial class Combat : MonoBehaviour
     public void Restart()
     {
         if (enemy == null) return;
-        PlayerHealth = MaxPlayerHealth;
+        ResetLevel();
+        PlayerHealth = MaxHealth;
         EnemyHealth = EnemyMaxHealth;
         enemy.transform.position = new Vector3(WorldBuilder.EnemyHome, .7f, 0);
         enemy.enabled = true;
@@ -309,8 +311,10 @@ public partial class Combat : MonoBehaviour
             if (Move != BossMove.None) EndMove(0);
             return;
         }
-                // 테스트용 치트: F1을 누르면 모든 무기 획득
-        if (Input.GetKeyDown(KeyCode.F1)) GiveAllWeapons();
+        // 테스트용 치트: F3을 누르면 모든 무기 획득 (F1·F2는 PlayerSave가 씀)
+        if (Input.GetKeyDown(KeyCode.F3)) GiveAllWeapons();
+        // 테스트용 치트: F4를 누르면 경험치 +100
+        if (Input.GetKeyDown(KeyCode.F4)) GainExp(100);
         // 무기 스왑: Q → S (Q는 스킬로 사용)
         if (Input.GetKeyDown(KeyCode.S) && EquippedWeapons[1 - ActiveWeaponSlot] != null) ActiveWeaponSlot = 1 - ActiveWeaponSlot;
         if (!EnemyDefeated && Input.GetKeyDown(KeyCode.F)
@@ -513,32 +517,81 @@ public partial class Combat : MonoBehaviour
         GUI.color = old;
     }
 
-    // 화면 오른쪽 아래: 선비 체력(위)과 스테미너(아래)
+    // 아래 UI 전체 너비 (체력·스테미너 길이). Skills.cs도 이 값을 씀
+    public const float HudWidth = 720;
+
+    // 화면 아래 가운데: 체력(맨 위), 스테미너, 그 아래 왼쪽에 스킬창(Skills.cs), 오른쪽에 레벨 칸
     void DrawPlayerHealthBar()
     {
         if (PlayerHealth <= 0 || Paused) return;
         var oldMatrix = GUI.matrix;
         GUI.matrix = Matrix4x4.identity;
 
-        float width = 380, height = 34, gap = 10, margin = 24;
-        float x = Screen.width - margin - width;
-        float staminaY = Screen.height - margin - height;
-        float healthY = staminaY - gap - height;
+        // 스킬창과 같은 값 (Skills.cs: 칸 64, 아래 여백 20)
+        float skillSize = 64, skillBottom = 20;
+        float skillsY = Screen.height - skillBottom - skillSize;
+
+        float width = HudWidth, gap = 8;
+        float x = (Screen.width - width) / 2;
+        float staminaY = skillsY - 14 - 30;                     // 스킬창 위로 14 띄우고 스테미너 (높이 30)
+        float healthY = staminaY - gap - 34;                    // 그 위에 체력 (높이 34)
 
         // 체력: 50% 초과 초록, 25% 초과 노랑, 그 이하 빨강
-        float hp = (float)PlayerHealth / MaxPlayerHealth;
+        float hp = (float)PlayerHealth / MaxHealth;
         Color hpColor = hp > .5f ? new Color(.3f, .85f, .3f) : hp > .25f ? new Color(.95f, .75f, .2f) : new Color(.9f, .2f, .2f);
-        DrawBar(new Rect(x, healthY, width, height), hp, hpColor,
-            "체력  " + Mathf.Max(0, PlayerHealth) + " / " + MaxPlayerHealth, 20);
+        DrawBar(new Rect(x, healthY, width, 34), hp, hpColor,
+            "체력  " + Mathf.Max(0, PlayerHealth) + " / " + MaxHealth, 20);
 
-        // 스테미너: 파란색
-        DrawBar(new Rect(x, staminaY, width, height), (float)player.Stamina / Player.MaxStamina, new Color(.25f, .55f, 1f),
-            "스테미너  " + player.Stamina + " / " + Player.MaxStamina, 20);
+        // 스테미너: 파란색, 체력과 같은 길이
+        DrawBar(new Rect(x, staminaY, width, 30), (float)player.Stamina / player.MaxStamina, new Color(.25f, .55f, 1f),
+            "스테미너  " + player.Stamina + " / " + player.MaxStamina, 18);
+
+        // 레벨 + 경험치: 막대 오른쪽 끝에 맞춘 칸, 스킬 칸과 같은 높이. 모은 경험치만큼 노랗게 차오름
+        float expRatio = MaxedLevel ? 1 : (float)Exp / ExpToNext(Level);
+        // 두 번째 무기 칸(끝: x + 360) 바로 옆부터 체력바 오른쪽 끝까지
+        float levelX = x + 5 * (skillSize + gap) + 8;
+        var levelRect = new Rect(levelX, skillsY, x + width - levelX, skillSize);
+        DrawBar(levelRect, expRatio, new Color(.85f, .65f, .2f),
+            MaxedLevel ? "Lv." + Level + "\nMAX" : "Lv." + Level + "\n" + Exp + " / " + ExpToNext(Level), 18);
+
+        // 장착 무기 2칸: QWE(3칸) 바로 오른쪽, 스킬 칸과 같은 크기. 그림만 표시
+        //   지금 손에 든 무기 칸은 금색으로 칠함, 빈 칸은 테두리만
+        for (int i = 0; i < 2; i++)
+        {
+            string id = EquippedWeapons[i];
+            bool holding = id != null && id == CurrentWeapon;
+            var slot = new Rect(x + (3 + i) * (skillSize + gap) + 8, skillsY, skillSize, skillSize);
+            DrawBar(slot, holding ? 1 : 0, new Color(1f, .86f, .35f, .35f), "", 18);
+            if (id == null) continue;
+            var icon = WeaponIcon(Weapon.Get(id));
+            if (icon == null) continue;
+            var tex = icon.texture;
+            var tr = icon.textureRect;
+            var uv = new Rect(tr.x / tex.width, tr.y / tex.height, tr.width / tex.width, tr.height / tex.height);
+            // 그림 비율 유지해서 칸 안에 맞춤
+            float s = skillSize - 8;
+            float iw = tr.width >= tr.height ? s : s * tr.width / tr.height;
+            float ih = tr.width >= tr.height ? s * tr.height / tr.width : s;
+            GUI.DrawTextureWithTexCoords(new Rect(slot.x + 4 + (s - iw) / 2, slot.y + 4 + (s - ih) / 2, iw, ih), tex, uv);
+        }
 
         GUI.matrix = oldMatrix;
     }
-    
-    // 화면 상단 중앙 보스 체력바 (보스와 마주친 뒤부터 표시, 쓰러뜨리거나 정화하면 숨김)
+
+    // 무기 그림 (한 번 불러오면 저장해 두고 다시 씀)
+    readonly Dictionary<string, Sprite> weaponIcons = new Dictionary<string, Sprite>();
+    Sprite WeaponIcon(Weapon.Stats w)
+    {
+        if (!weaponIcons.TryGetValue(w.id, out var sprite))
+        {
+            // 활은 bow 그림, 그림이 따로 없는 환도는 hwando 그림, 단검과 명검은 각자 그림
+            sprite = JinaArt.Load(w.id == "bow" ? "04_Weapons/bow" : w.art ?? "04_Weapons/hwando");
+            weaponIcons[w.id] = sprite;
+        }
+        return sprite;
+    }
+
+    // 도깨비(보스) 체력바: 화면 위 가운데
     void DrawBossHealthBar()
     {
         if (!alerted || EnemyDefeated || PlayerHealth <= 0 || Paused) return;
@@ -553,6 +606,7 @@ public partial class Combat : MonoBehaviour
 
         GUI.matrix = oldMatrix;
     }
+
     void OnGUI()
     {
         KoreanUI.Apply();
