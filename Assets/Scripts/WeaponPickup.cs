@@ -41,7 +41,7 @@ public class WeaponPickup : MonoBehaviour
         p.combat = combat;
         p.droppedAt = Time.time;
         p.art = obj.AddComponent<SpriteRenderer>();
-        p.art.sprite = JinaArt.Load(id == "bow" ? "04_Weapons/bow" : "04_Weapons/hwando");
+        p.art.sprite = JinaArt.Load(id == "bow" ? "04_Weapons/bow" : Weapon.Get(id).art ?? "04_Weapons/hwando");
         p.art.sortingOrder = 4;
         // 그림이 몇 픽셀이든 Size 칸에 맞게 줄임
         var size = p.art.sprite.bounds.size;
