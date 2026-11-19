@@ -47,7 +47,7 @@ public class Weapon : MonoBehaviour
         // 명검: 1타 13, 2타 15, 3타 18 / 스테미너 10 / 사거리 1.4칸 / 한 타 0.35초 / 들판 몹 1% 드랍
         ["myeonggeom"] = new Stats { id = "myeonggeom", name = "명검", combo = true,
             damage = 18, comboDamage = new[] { 13, 15, 18 }, comboInterval = .4f,
-            stamina = 10, reach = 1.4f, carryScale = 1.56f, dropChance = .01f,
+            stamina = 10, reach = 1.4f, carryScale = 1.84f, dropChance = .01f,
             art = "04_Weapons/myeonggeom", sheathedArt = "04_Weapons/myeonggeom_sheathed", grip = new Vector2(126, 150) },
     };
 

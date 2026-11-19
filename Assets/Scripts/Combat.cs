@@ -371,6 +371,21 @@ public partial class Combat : MonoBehaviour
                         float size = w.carryScale * (pendingStep == 2 ? 1.1f : .8f);
                         float tilt = pendingStep == 1 ? 58 : pendingStep == 2 ? 0 : -30;
                         JinaFx.Arc(feet + new Vector3(attackFacing * (.15f + size * .35f), .85f, 0), attackFacing, tilt, size, new Color(.08f, .05f, .1f));
+                        // 명검 3타: 더 화려하게
+                        if (pendingStep == 2)
+                        {
+                            var fxCenter = feet + new Vector3(attackFacing * (.15f + size * .35f), .85f, 0);
+                            // 겹친 보랏빛 칼빛(더 크게) + 반대로 남는 잔상
+                            JinaFx.Arc(fxCenter + new Vector3(attackFacing * .2f, .1f, 0), attackFacing, 15, size * 1.2f, new Color(.45f, .15f, .6f), .28f);
+                            JinaFx.Arc(fxCenter, attackFacing, -20, size * .9f, new Color(.25f, .05f, .3f), .22f);
+                            // 검보라 기운이 튀고 피어오름, 칼끝 번쩍임, 발밑 흙먼지
+                            JinaFx.Dots(fxCenter, 18, new Color(.3f, .1f, .4f), 4f, .6f);
+                            JinaFx.Rise(fxCenter, 14, new Color(.55f, .25f, .75f), .5f, 2f, .8f);
+                            JinaFx.Glint(fxCenter + Vector3.right * attackFacing * size * .4f, new Color(.8f, .5f, 1f));
+                            JinaFx.Dust(feet + Vector3.right * attackFacing * .6f, attackFacing * 1.6f, 1.4f);
+                            // 맞혔으면 화면을 더 세게 흔들고 잠깐 더 멈춤
+                            if (landed) { View.Shake(.16f, .25f); JinaFx.Stop(.12f); }
+                        }
                     }
                     else JinaFx.Arc(feet + new Vector3(attackFacing * .52f, .78f, 0), attackFacing, -30, .48f, new Color(.95f, .97f, 1));
                 }
