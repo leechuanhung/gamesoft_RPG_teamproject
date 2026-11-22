@@ -194,6 +194,12 @@ public partial class Combat : MonoBehaviour
         RevivedOnRoadAt = Time.time;
     }
     public bool Paused => (KongBoss != null && KongBoss.Cutscene) || (FinalBoss != null && FinalBoss.Cutscene) || (Town != null && Town.IsOpen) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || InventoryPauseActive || (Cheats != null && Cheats.Open);
+    public void SetPlayerHealthFromSave(int health)
+    {
+        PlayerHealth = Mathf.Clamp(health, 0, MaxPlayerHealth);
+        if (PlayerHealth > 0) PlayerDownAt = -1;
+        else PlayerDownAt = Time.time;
+    }
     public void RestoreHealth(int amount)
     {
         if (PlayerHealth <= 0) return;
