@@ -241,7 +241,8 @@ public class Hud : MonoBehaviour
         int i = combat.Maps.Current; var all = Maps.All;
         string route = (i > 0 ? all[i - 1].name + "  ←  " : "") + "[ " + all[i].name + " ]" + (i + 1 < all.Length ? "  →  " + all[i + 1].name : "");
         float w = Mathf.Min(JinaUI.Width(route, 12) + 24, JinaUI.W - 20);
-        var r = new Rect((JinaUI.W - w) / 2, JinaUI.H - 30, w, 22);
+        // 왼쪽 아래, 스킬창(아래에서 약 100픽셀) 바로 위
+        var r = new Rect(16, JinaUI.H - 30, w, 22);   // 왼쪽 아래
         JinaUI.HudPanel(r);
         JinaUI.Text(r, route, 12, JinaUI.Bright, TextAnchor.MiddleCenter);
     }

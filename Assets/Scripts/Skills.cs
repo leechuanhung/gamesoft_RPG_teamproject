@@ -88,13 +88,17 @@ public class Skills : MonoBehaviour
     // ── 화면 왼쪽 아래 스킬창 ──
     void OnGUI()
     {
-        if (combat == null || combat.PlayerHealth <= 0 || slots == null) return;
+        // 보따리(I)·대화·상점·컷신 중에는 체력바처럼 스킬창도 숨김
+        if (combat == null || combat.PlayerHealth <= 0 || combat.Paused || slots == null) return;
         var oldMatrix = GUI.matrix;
         var oldColor = GUI.color;
         GUI.matrix = Matrix4x4.identity;
 
-        float size = 64, gap = 8, marginX = 20, marginY = 20;
+
+        float size = 64, gap = 8, marginY = 20;
         float y = Screen.height - marginY - size;
+        // 체력·스테미너 막대(너비 520, 화면 가운데)의 왼쪽 끝에 맞춤
+        float startX = (Screen.width - Combat.HudWidth) / 2;
         var keyStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.UpperLeft, fontSize = 13, fontStyle = FontStyle.Bold };
         var nameStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.LowerCenter, fontSize = 11 };
         var cdStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 20, fontStyle = FontStyle.Bold };
@@ -102,7 +106,7 @@ public class Skills : MonoBehaviour
         for (int i = 0; i < slots.Length; i++)
         {
             var s = slots[i];
-            var r = new Rect(marginX + i * (size + gap), y, size, size);
+            var r = new Rect(startX + i * (size + gap), y, size, size);
 
             // 금빛 테두리와 바탕
             GUI.color = new Color(.8f, .65f, .35f, .9f);

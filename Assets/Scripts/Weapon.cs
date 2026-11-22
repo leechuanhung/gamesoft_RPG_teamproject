@@ -21,18 +21,34 @@ public class Weapon : MonoBehaviour
         public string art;        // 전용 그림 경로 (없으면 환도 그림)
         public Vector2 grip;      // 그림에서 손잡이를 쥐는 점(픽셀, 왼쪽 아래 기준)
         public float dropChance;  // 들판 몹이 떨어뜨릴 확률 (0이면 안 떨어뜨림, .05f = 5%)
+        public string sheathedArt; // 검집에 꽂았을 때 그림 (없으면 art 그대로)
+        public int[] comboDamage;     // 콤보 무기: 1·2·3타 데미지 (없으면 damage)
+        public float comboInterval;   // 콤보 무기: 한 타마다 걸리는 시간(초) (0이면 환도 기본값)
+
+        // 이번 타(step 0·1·2)에 걸리는 시간, 맞는 시점, 데미지
+        public float Swing(int step) => combo ? (comboInterval > 0 ? comboInterval : SeonbiVisual.SwordLength(step)) : interval;
+        public float HitAt(int step) => combo ? SeonbiVisual.SwordHit(step) * Swing(step) / SeonbiVisual.SwordLength(step) : hitDelay;
+        public int Damage(int step) => combo && comboDamage != null ? comboDamage[step] : damage;
     }
 
     public static readonly Dictionary<string, Stats> All = new Dictionary<string, Stats>
     {
+        // 환도: 1타 6, 2타 10, 3타 14 / 스테미너 8 / 사거리 1.35칸 / 한 타 0.3초
         ["hwando"] = new Stats { id = "hwando", name = "환도", combo = true,
-            damage = Combat.SwordDamage, stamina = Skills.AttackStamina, reach = 1.35f, carryScale = .92f, dropChance = .05f },
+            damage = 10, comboDamage = new[] { 6, 10, 14 }, comboInterval = .35f,
+            stamina = 8, reach = 1.35f, carryScale = .92f, dropChance = .05f },
+        // 활: 데미지 10 / 스테미너 6 / 0.65초마다
         ["bow"] = new Stats { id = "bow", name = "활", ranged = true,
-            damage = Combat.ArrowDamage, stamina = Skills.AttackStamina, interval = .65f, hitDelay = SeonbiVisual.BowReleaseDelay, carryScale = 1f, dropChance = .05f },
-        // 단검: 데미지 5, 스테미너 7, 사거리 1.2칸, 콤보 없음, 빠름.
+            damage = Combat.ArrowDamage, stamina = 6, interval = .65f, hitDelay = SeonbiVisual.BowReleaseDelay, carryScale = 1f, dropChance = .05f },
+        // 단검: 데미지 5 / 스테미너 4 / 사거리 1.1칸 / 0.25초마다
         ["dagger"] = new Stats { id = "dagger", name = "단검",
-            damage = 5, stamina = 7, reach = 1.2f, interval = .25f, hitDelay = .1f, carryScale = 1f, alwaysDrawn = true,
+            damage = 5, stamina = 4, reach = 1.1f, interval = .25f, hitDelay = .1f, carryScale = 1f, alwaysDrawn = true,
             art = "04_Weapons/dagger", grip = new Vector2(78, 78) },
+        // 명검: 1타 13, 2타 15, 3타 18 / 스테미너 10 / 사거리 1.4칸 / 한 타 0.35초 / 들판 몹 1% 드랍
+        ["myeonggeom"] = new Stats { id = "myeonggeom", name = "명검", combo = true,
+            damage = 18, comboDamage = new[] { 13, 15, 18 }, comboInterval = .4f,
+            stamina = 10, reach = 1.4f, carryScale = 1.84f, dropChance = .01f,
+            art = "04_Weapons/myeonggeom", sheathedArt = "04_Weapons/myeonggeom_sheathed", grip = new Vector2(126, 150) },
     };
 
     // id로 무기 정보 찾기 (모르는 id면 환도)
