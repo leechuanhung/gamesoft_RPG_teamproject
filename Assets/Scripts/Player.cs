@@ -29,11 +29,15 @@ public class Player : MonoBehaviour
     public float HasteUntil { get; set; }
     public bool Hasted => Time.time < HasteUntil;
     // ── 스테미너 ──
-    public const int MaxStamina = 100;
-    public const int StaminaPerSecond = 5;    // 초당 회복량 (0.2초마다 1씩)
-    public int Stamina { get; private set; } = MaxStamina;
+    public const int BaseMaxStamina = 100;                      // Lv.1 최대 스테미너
+    public int MaxStamina { get; set; } = BaseMaxStamina;       // 레벨업마다 +5 (Combat.Level.cs)
+    public const float BaseStaminaPerSecond = 5f;   // Lv.1 초당 회복량
+    public float StaminaPerSecond { get; set; } = BaseStaminaPerSecond;   // 10레벨마다 +0.5 (Combat.Level.cs)
+    public int Stamina { get; private set; } = BaseMaxStamina;
     private float staminaTimer;
     // 스테미너가 충분하면 amount만큼 깎고 true, 모자라면 깎지 않고 false
+    // 스테미너를 amount만큼 채움 (최대치를 넘지 않음)
+    public void RestoreStamina(int amount) { Stamina = Mathf.Min(MaxStamina, Stamina + amount); }
     public bool UseStamina(int amount)
     {
         if (Stamina < amount) return false;

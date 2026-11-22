@@ -5,15 +5,17 @@ public class SeonbiVisual : MonoBehaviour
     private Combat combat;
     private SpriteRenderer source,body,weapon,gripFingers;
     private Sprite fingerSprite;
-    private Sprite[] swordFrames,bowFrames,bowUpFrames,bowDownFrames,jumpFrames,walkFrames,runFrames,hitFrames,dashFrames;
+    private Sprite[] swordFrames,emptySwordFrames,bowFrames,bowUpFrames,bowDownFrames,jumpFrames,walkFrames,runFrames,hitFrames,dashFrames;
     private bool wasAirborne;
     private float airTime,landingTime,walkTime;
     private float attackTime=10;
     private const float SheathDelay=3f, SheathMotion=.32f;
     private float swordOutTime;
-    string EquippedWeapon => combat.UsingBow ? "04_Weapons/bow" :
-        swordOutTime>SheathMotion*.5f ? "04_Weapons/hwando" : "04_Weapons/hwando_sheathed";
+    string EquippedWeapon => combat.UsingBow ? "04_Weapons/bow"
+        : combat.CurrentStats.alwaysDrawn || swordOutTime>SheathMotion*.5f ? (combat.CurrentStats.art ?? "04_Weapons/hwando")
+        : (combat.CurrentStats.sheathedArt ?? combat.CurrentStats.art ?? "04_Weapons/hwando_sheathed");
     private bool bowAttack;
+    private bool stabAttack;   // 단검 공격 중 (전용 그림을 손에 들고 휘두름)
     private int attackFacing=1,attackAim,attackStep;
     private float nextDust,nextGhost;
     private bool wasDodging;
@@ -28,6 +30,16 @@ public class SeonbiVisual : MonoBehaviour
         if(attackStep==1) return t<.06f ? 0 : t<.24f ? 1 : 0;
         if(attackStep==2) return t<.18f ? 1 : t<.32f ? 2 : 3;
         return Mathf.Min(3,(int)(t/(SwordDuration/4)));
+    }
+    // 전용 그림 무기를 휘두르는 시간: 콤보 무기(명검)는 환도와 같은 단계별 시간, 아니면 공격 간격
+    float StabLength() => combat.CurrentStats.Swing(attackStep);
+    // 전용 그림 무기 공격 중 몸 그림: 걷기 그림의 팔 흔들기를 빌려 씀 (0·1 팔 뒤 → 2·3 팔 앞)
+    //   1타·3타: 팔을 뒤에서 앞으로 크게 휘두름 / 2타(올려베기): 앞에서 짧게
+    int StabFrame()
+    {
+        float k=attackTime/StabLength();
+        if(attackStep==1) return k<.5f ? 3 : 2;
+        return k<.2f ? 0 : k<.4f ? 1 : k<.7f ? 2 : 3;
     }
     // Struck down: reel back, knees give way, then a quarter turn onto his back.
     public const float FallLength=.85f;
@@ -47,6 +59,7 @@ public class SeonbiVisual : MonoBehaviour
         v.gripFingers=v.MakePart("무기 쥔 손",7);
         v.gripFingers.sprite=v.fingerSprite;
         v.swordFrames=JinaArt.Frames("02_Player_Attack_Sword/sword_attack_");
+        v.emptySwordFrames=JinaArt.Frames("02_Player_Attack_Sword/sword_attack_empty_");
         v.bowFrames=JinaArt.Frames("03_Player_Attack_Bow/bow_attack_");
         v.bowUpFrames=JinaArt.Frames("03_Player_Attack_Bow/bow_up_");
         v.bowDownFrames=JinaArt.Frames("03_Player_Attack_Bow/bow_down_");
@@ -62,7 +75,7 @@ public class SeonbiVisual : MonoBehaviour
         var art=new GameObject(name).AddComponent<SpriteRenderer>(); art.sortingOrder=order; return art;
     }
     // aim: +1 up, -1 down, 0 level (bow only).
-    public void Attack(bool bow,int facing,int aim=0,int step=0) { bowAttack=bow; attackFacing=facing; attackAim=bow ? aim : 0; attackStep=bow ? 0 : step; attackTime=0; swordOutTime=bow ? 0 : SwordLength(step)+SheathDelay+SheathMotion; }
+    public void Attack(bool bow,int facing,int aim=0,int step=0) { bowAttack=bow; stabAttack=!bow && combat.CurrentStats.art!=null; attackFacing=facing; attackAim=bow ? aim : 0; attackStep=bow ? 0 : step; attackTime=0; swordOutTime=bow ? 0 : SwordLength(step)+SheathDelay+SheathMotion; }
     public void ResetPose() { swordOutTime=0; ResetMovementPose(); }
     void ResetMovementPose() { attackTime=10; walkTime=0; airTime=0; landingTime=0; wasAirborne=false; }
     void LateUpdate()
@@ -73,7 +86,7 @@ public class SeonbiVisual : MonoBehaviour
         else if(combat.Paused) ResetMovementPose();
         if(combat.UsingBow) swordOutTime=0;
         else if(!combat.Paused) swordOutTime=Mathf.Max(0,swordOutTime-Time.deltaTime);
-        float duration=bowAttack ? BowDuration : SwordLength(attackStep);
+        float duration=bowAttack ? BowDuration : combat.CurrentStats.Swing(attackStep);
         bool attacking=attackTime<duration;
         int facing=attacking ? attackFacing : player.Facing;
         bool airborne=!player.IsGrounded && combat.PlayerHealth>0;
@@ -100,7 +113,7 @@ public class SeonbiVisual : MonoBehaviour
         bool dashSlashing=dodging && player.DashSlashing;
         var shot=attackAim>0 ? bowUpFrames : attackAim<0 ? bowDownFrames : bowFrames;
         int strideFrame=(int)(walkTime/(running ? .08f : .12f))%4;
-        body.sprite=dashSlashing ? dashFrames[Mathf.Clamp((int)((1f-Mathf.Clamp01(player.DashRemaining / Player.DodgeLength))*8f),0,7)] : dodging ? JinaArt.Load("01_Player/player_dodge") : hurt ? hitFrames[0] : attacking ? (bowAttack ? shot[Mathf.Min(3,(int)(attackTime/(duration/4)))] : swordFrames[SwordFrame(attackTime)]) : jumping ? jumpFrames[jumpFrame] : running ? runFrames[strideFrame] : walking ? walkFrames[strideFrame] : LoadSprite();
+        body.sprite=dashSlashing ? dashFrames[Mathf.Clamp((int)((1f-Mathf.Clamp01(player.DashRemaining / Player.DodgeLength))*8f),0,7)] : dodging ? JinaArt.Load("01_Player/player_dodge") : hurt ? hitFrames[0] : attacking ? (bowAttack ? shot[Mathf.Min(3,(int)(attackTime/(duration/4)))] : stabAttack ? emptySwordFrames[SwordFrame(attackTime*SwordLength(attackStep)/duration)] : swordFrames[SwordFrame(attackTime*SwordLength(attackStep)/duration)]) : jumping ? jumpFrames[jumpFrame] : running ? runFrames[strideFrame] : walking ? walkFrames[strideFrame] : LoadSprite();
         JinaArt.Place(body,feet,facing<0);
         body.transform.rotation=Quaternion.identity; weapon.transform.rotation=Quaternion.identity; weapon.color=Color.white;
         // Standing still, his chest rises and falls by one art pixel.
@@ -119,11 +132,15 @@ public class SeonbiVisual : MonoBehaviour
             wasDodging=dodging;
         }
         body.color=source.color==Color.gray ? Color.gray : source.color==Color.red ? new Color(1,.4f,.4f) : Color.white;
-        weapon.enabled=!attacking && !jumping && !dodging && !hurt && combat.PlayerHealth>0;
+        // 단검 공격 중에는 손에 든 단검을 그대로 보여줌
+        weapon.enabled=(attacking ? stabAttack : !jumping) && !dodging && !hurt && combat.PlayerHealth>0;
         if(weapon.enabled)
         {
             weapon.sprite=JinaArt.Load(EquippedWeapon);
-            PlaceHeldWeapon(facing,walking,running,strideFrame);
+            // 전용 그림 무기를 휘두르는 중이면 칼 없는 환도 공격 그림의 손을 따라감
+            bool stabbing=attacking && stabAttack;
+            int swing=stabbing ? SwordFrame(attackTime*SwordLength(attackStep)/duration) : -1;
+            PlaceHeldWeapon(facing,walking && !attacking,running && !attacking,strideFrame,swing);
         }
         if(!combat.Paused) attackTime+=Time.deltaTime;
     }
@@ -133,21 +150,27 @@ public class SeonbiVisual : MonoBehaviour
     static readonly Vector2[] FarRunPalm={new Vector2(313,375),new Vector2(333,356),new Vector2(117,385),new Vector2(111,342)};
     static readonly Vector2[] NearWalkPalm={new Vector2(78,395),new Vector2(76,373),new Vector2(279,350),new Vector2(268,347)};
     static readonly Vector2[] NearRunPalm={new Vector2(117,423),new Vector2(125,381),new Vector2(330,378),new Vector2(317,355)};
-    void PlaceHeldWeapon(int facing,bool walking,bool running,int frame)
+    // 칼 없는 환도 공격 그림(sword_attack_empty_00~03): 앞손 위치(왼쪽 위 기준)와 들고 있는 칼 각도
+    //   무기 그림은 40° 들려 그려져 있어서 (원래 칼 각도 - 40)을 넣음
+    static readonly Vector2[] SwingPalm={new Vector2(263,418),new Vector2(432,182),new Vector2(380,338),new Vector2(356,430)};
+    static readonly float[] SwingAngle={-51f,105f,-52f,-65f};
+    void PlaceHeldWeapon(int facing,bool walking,bool running,int frame,int swing=-1)
     {
         bool bow=combat.UsingBow;
         bool handNear=bow ? facing<0 : facing>0;
         var palm=handNear ? new Vector2(67,342) : new Vector2(198,345);
-        if(running) palm=(handNear ? NearRunPalm : FarRunPalm)[frame];
+        if(swing>=0) palm=SwingPalm[swing];
+        else if(running) palm=(handNear ? NearRunPalm : FarRunPalm)[frame];
         else if(walking) palm=(handNear ? NearWalkPalm : FarWalkPalm)[frame];
-        weapon.sortingOrder=body.sortingOrder+(handNear ? 1 : -1);
+        // 휘두를 땐 무기를 몸 뒤에 그려서 그림 속 두 손이 손잡이를 감싸 쥔 것처럼 보이게 함
+        weapon.sortingOrder=body.sortingOrder+(swing<0 && handNear ? 1 : -1);
         var sprite=body.sprite;
         palm.y=sprite.texture.height-palm.y;
         var hand=(palm-sprite.rect.min-sprite.pivot)/sprite.pixelsPerUnit;
         hand.x*=facing;
         var grip=weapon.sprite;
-        bool sheathed=!bow && swordOutTime<=SheathMotion*.5f;
-        var gripPixel=sheathed ? new Vector2(305,grip.texture.height-398) : bow ? new Vector2(134,grip.texture.height-374) : new Vector2(143,grip.texture.height-493);
+        bool sheathed=!bow && !combat.CurrentStats.alwaysDrawn && swordOutTime<=SheathMotion*.5f;
+        var gripPixel=combat.CurrentStats.art!=null ? combat.CurrentStats.grip : sheathed ? new Vector2(305,grip.texture.height-398) : bow ? new Vector2(134,grip.texture.height-374) : new Vector2(143,grip.texture.height-493);
         var wrap=(gripPixel-grip.rect.min-grip.pivot)/grip.pixelsPerUnit;
         wrap.x*=facing;
         float angle=0;
@@ -161,19 +184,21 @@ public class SeonbiVisual : MonoBehaviour
             // Lower the blade as the right arm swings back, lift it on the forward swing.
             angle=Mathf.Clamp(hand.x*facing*35f,-16f,16f);
         }
+        // 전용 그림 무기 공격: 환도 공격 그림의 칼 각도를 그대로 따라감
+        if(swing>=0) angle=SwingAngle[swing];
         if(!bow)
         {
             if(sheathed) angle+=150f; // Hilt forward, scabbard trailing behind the hand.
-            if(swordOutTime>0 && swordOutTime<SheathMotion)
+            if(swordOutTime>0 && swordOutTime<SheathMotion && !combat.CurrentStats.alwaysDrawn)
                 angle-=(sheathed ? 16f : 46f)*Mathf.Sin(Mathf.PI*swordOutTime/SheathMotion);
         }
         var rotation=Quaternion.Euler(0,0,angle*facing);
         Vector3 palmWorld=body.transform.TransformPoint(hand);
-        float carryScale=bow ? 1f : .92f;
+        float carryScale=combat.CurrentStats.carryScale;
         JinaArt.Place(weapon,palmWorld-rotation*(Vector3)(wrap*carryScale),facing<0);
         weapon.transform.localScale*=carryScale;
         JinaArt.Place(gripFingers,palmWorld,facing<0);
-        gripFingers.enabled=handNear;
+        gripFingers.enabled=handNear && swing<0;   // 휘두를 땐 그림 속 손을 그대로 씀
         gripFingers.color=body.color;
         weapon.transform.rotation=rotation;
     }

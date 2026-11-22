@@ -306,7 +306,8 @@ public static class JinaUI
         float keyWidth = key == null ? 0 : Mathf.Max(24, Width(key, 14, true) + 12) + 10;
         float w = Mathf.Min(Width(words, 15) + keyWidth + 36, W - 40), h = Height(words, 15, w - 28 - keyWidth) + 16;
         h = Mathf.Max(h, 36);
-        var r = new Rect((W - w) / 2, H - PromptBottom - h, w, h);
+        // 왼쪽 아래, 맵 이름 칸 바로 위
+        var r = new Rect(16, H - 38 - h, w, h);   // 왼쪽 아래, 맵 이름 칸 바로 위
         Box(r, Wood, Gold, 1);
         float x = r.x + 14;
         if (key != null)

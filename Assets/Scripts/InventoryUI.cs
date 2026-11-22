@@ -17,6 +17,7 @@ public class InventoryUI : MonoBehaviour
     private float previousTimeScale;
     public const int Columns = 5, PageSize = 20, PageCount = 3;
     private int selected, itemPage, collectionPage;
+    private int selectedWeapon;
     private string message = "";
     public bool IsOpen => isOpen;
     public int Selected => selected;
@@ -80,6 +81,20 @@ public class InventoryUI : MonoBehaviour
         return true;
     }
 
+    // 장착된 스킬을 Q/W/E에서 비운다. 쿨타임은 보관해 다시 장착해도 유지한다.
+    public bool UnequipSkill(int index)
+    {
+        var slots = combat != null && combat.Skills != null ? combat.Skills.slots : null;
+        if (slots == null || index < 0 || index >= slots.Length || slots[index].empty) return false;
+        var slot = slots[index];
+        if (!string.IsNullOrEmpty(slot.skillId)) skillReadyAt[slot.skillId] = slot.readyAt;
+        slot.skillId = null;
+        slot.name = "";
+        slot.readyAt = 0;
+        slot.empty = true;
+        return true;
+    }
+
     // 후속 무기 제작 때 UnlockWeapon으로 등록한다. 실제 공격 연동은 전투 쪽 구현이 필요.
     public class WeaponEntry
     {
@@ -87,7 +102,8 @@ public class InventoryUI : MonoBehaviour
         public bool combatReady;
     }
     private readonly List<WeaponEntry> weapons = new List<WeaponEntry>();
-    private readonly string[] equippedWeapons = { "hwando", "bow" };
+    static readonly string[] defaultWeapons = { "dagger", null };
+    private string[] equippedWeapons => combat != null ? combat.EquippedWeapons : defaultWeapons;
     public IReadOnlyList<WeaponEntry> OwnedWeapons => weapons;
     public string EquippedWeapon(int index) => index >= 0 && index < 2 ? equippedWeapons[index] : null;
 
@@ -95,6 +111,20 @@ public class InventoryUI : MonoBehaviour
     {
         if (string.IsNullOrEmpty(id) || weapons.Count >= 20 || weapons.Exists(w => w.id == id)) return false;
         weapons.Add(new WeaponEntry { id = id, name = name, description = description, icon = icon, combatReady = combatReady });
+        return true;
+    }
+
+    public bool HasWeapon(string id) => weapons.Exists(w => w.id == id);
+
+    // 땅에서 주운 무기를 보따리에 넣고, 빈 무기 칸이 있으면 바로 장착
+    public bool GiveWeapon(string id)
+    {
+        bool added = id == "hwando" ? UnlockWeapon("hwando", "환도", "기본 근접 무기", "icon_sword", true)
+                   : id == "bow" ? UnlockWeapon("bow", "활", "화살을 소비하는 원거리 무기", "icon_bow", true)
+                   : id == "myeonggeom" ? UnlockWeapon("myeonggeom", "명검", "환도보다 강하고 긴 전설의 검 (3연격)", "icon_sword", true)
+                   : false;
+        if (!added) return false;
+        for (int i = 0; i < 2; i++) if (equippedWeapons[i] == null) { EquipWeapon(id, i); break; }
         return true;
     }
 
@@ -108,13 +138,22 @@ public class InventoryUI : MonoBehaviour
         return true;
     }
 
+    // 이미 장착된 칸을 다시 누르면 해제하되, 최소 한 개의 무기는 유지한다.
+    public bool UnequipWeapon(int index)
+    {
+        if (index < 0 || index >= 2 || equippedWeapons[index] == null) return false;
+        if (equippedWeapons[1 - index] == null) return false;
+        equippedWeapons[index] = null;
+        return true;
+    }
+
     void Awake()
     {
         inventory = GetComponent<InventoryManager>();
         UnlockSkill("retreat", "물러서기", "바라보는 방향 반대로 이동하며 잠시 무적", Skills.RetreatCooldown, true);
         UnlockSkill("rush_slash", "돌진베기", "전방으로 돌진하며 적에게 피해", Skills.RushCooldown, true);
-        UnlockWeapon("hwando", "환도", "기본 근접 무기", "icon_sword", true);
-        UnlockWeapon("bow", "활", "화살을 소비하는 원거리 무기", "icon_bow", true);
+        // 처음엔 단검만. 환도·활은 들판 몹이 떨어뜨림 (WeaponPickup.cs)
+        UnlockWeapon("dagger", "단검", "짧고 빠른 근접 무기 (콤보 없음)", "icon_sword", true);
     }
 
     void Update()
@@ -211,7 +250,10 @@ public class InventoryUI : MonoBehaviour
         itemPage = selected = 0;
         tab = PageTab.Items;
         collectionPage = 0;
+        selectedWeapon = 0;
         skillReadyAt.Clear();
+        // 재시작하면 주운 무기를 잃고 단검만 남음
+        weapons.RemoveAll(w => w.id != "dagger");
     }
 
     void OnDisable() { CloseInventory(); }
@@ -245,7 +287,7 @@ public class InventoryUI : MonoBehaviour
             case PageTab.Items: DrawOrdinary(window, content, cell, gap); break;
             case PageTab.KeyItems: DrawKeyItems(content); break;
             case PageTab.Skills: DrawSkills(content); break;
-            case PageTab.Weapons: DrawWeapons(content); break;
+            case PageTab.Weapons: DrawWeapons(window, content); break;
         }
         if (Application.isEditor && tab == PageTab.Items && testItem != null && Button(new Rect(window.x, window.yMax + 6, 170, 28), "테스트 아이템 +1"))
             inventory.TryAdd(testItem);
@@ -294,9 +336,31 @@ public class InventoryUI : MonoBehaviour
     {
         bool hasHairpin = inventory.GetQuantity(JinaItems.Keepsake) > 0;
         bool hasCharm = combat != null && combat.Quest != null && combat.Quest.progress.HasCharm;
-        DrawRecord(new Rect(content.x, content.y, content.width, 56), "은비녀", hasHairpin ? "보유 중 · 콩쥐 정화에 사용" : "아직 획득하지 않음", hasHairpin, "icon_charm", JinaItems.Keepsake.Icon);
-        DrawRecord(new Rect(content.x, content.y + 64, content.width, 56), "정화 부적", hasCharm ? "보유 중 · 도깨비 가까이서 F" : "아직 획득하지 않음", hasCharm, "icon_charm");
-        Text(new Rect(content.x, content.y + 140, content.width, 82), "중요 아이템은 일반 보따리 60칸을 차지하지 않으며 직접 버릴 수 없습니다. 퀘스트에서 사용하면 보유 상태가 자동으로 바뀝니다.", 13, TextDark);
+        float y = content.y;
+        if (hasHairpin)
+        {
+            string description = JinaItems.Keepsake.Description;
+            y += DrawKeyItemRecord(new Rect(content.x, y, content.width, 0), "은비녀", description, JinaItems.Keepsake.Icon);
+        }
+        if (hasCharm)
+        {
+            string description = "옛 비석에서 얻은 정화 부적. 숲의 도깨비에게 씌인 저주를 풀 수 있다.\n도깨비 가까이에서 F를 눌러 정화한다.";
+            y += DrawKeyItemRecord(new Rect(content.x, y, content.width, 0), "정화 부적", description, JinaArt.Prop("charm"));
+        }
+    }
+
+    float DrawKeyItemRecord(Rect place, string name, string description, Sprite sprite)
+    {
+        const float pad = 8;
+        float textWidth = place.width - 62;
+        float bodyHeight = Height(description, 12, textWidth);
+        float rowHeight = Mathf.Max(68, bodyHeight + 34);
+        var r = new Rect(place.x, place.y, place.width, rowHeight);
+        Box(r, PaperLight, SlotEdge, 1);
+        if (sprite != null) DrawIcon(sprite, new Rect(r.x + 6, r.y + 7, 43, 43));
+        Text(new Rect(r.x + 55, r.y + 5, textWidth, 22), name, 15, TextDark, TextAnchor.MiddleLeft, true);
+        Text(new Rect(r.x + 55, r.y + 29, textWidth, bodyHeight), description, 12, TextDark);
+        return rowHeight + pad;
     }
 
     // 스킬은 보관함에 보유 ID로 저장되고, Q/W/E 슬롯 데이터만 Skills에 반영된다.
@@ -320,7 +384,8 @@ public class InventoryUI : MonoBehaviour
                 bool chosen = EquippedSkillId(slot) == skill.id;
                 if (Button(new Rect(r.x + 125 + slot * 48, r.y + 2, 46, 24), chosen ? "●" + "QWE"[slot] : "QWE"[slot].ToString()))
                 {
-                    if (EquipSkill(skill.id, index)) message = skill.name + " → " + "QWE"[slot];
+                    if (chosen) { UnequipSkill(index); message = skill.name + " 장착 해제"; }
+                    else if (EquipSkill(skill.id, index)) message = skill.name + " → " + "QWE"[slot];
                     else message = "스킬 사용 동작이 아직 구현되지 않았습니다.";
                 }
             }
@@ -328,10 +393,11 @@ public class InventoryUI : MonoBehaviour
         DrawCollectionPages(content, maxPage);
         Text(new Rect(content.x, content.yMax + 40, content.width, 22), "장착: Q " + EquippedSkillName(0) + " / W " + EquippedSkillName(1) + " / E " + EquippedSkillName(2), 12, TextDark);
         Text(new Rect(content.x, content.yMax + 65, content.width, 20), message, 12, Red);
+        Text(new Rect(content.x, content.yMax + 85, content.width, 20), "장착된 Q/W/E 버튼을 다시 누르면 해제", 11, TextDim);
     }
 
     // 새 무기 목록을 저장한다. 실제 무기 동작은 별도의 전투/애니메이션 연동이 필요.
-    void DrawWeapons(Rect content)
+    void DrawWeapons(Rect window, Rect content)
     {
         Text(new Rect(content.x, content.y, content.width, 22), "획득 무기 " + weapons.Count + " / 20", 14, TextDark, TextAnchor.MiddleLeft, true);
         const int perPage = 6;
@@ -343,13 +409,15 @@ public class InventoryUI : MonoBehaviour
             var r = new Rect(content.x, content.y + 28 + (i % perPage) * 38, content.width, 36);
             Box(r, PaperDark, SlotEdge, 1);
             Icon(weapon.icon, r.x + 4, r.y + 4, 1f);
+            if (GUI.Button(new Rect(r.x + 4, r.y + 2, 158, r.height - 4), "", GUIStyle.none)) { selectedWeapon = i; message = ""; }
             Text(new Rect(r.x + 37, r.y, 125, r.height), weapon.name, 14, TextDark, TextAnchor.MiddleLeft);
             for (int slot = 0; slot < 2; slot++)
             {
                 int index = slot;
                 if (Button(new Rect(r.x + 168 + slot * 52, r.y + 5, 48, 26), equippedWeapons[slot] == weapon.id ? "●" + (slot + 1) : (slot + 1).ToString()))
                 {
-                    if (EquipWeapon(weapon.id, index)) message = weapon.name + " → 무기 " + (slot + 1);
+                    if (equippedWeapons[index] == weapon.id) message = UnequipWeapon(index) ? weapon.name + " 장착 해제" : "최소 한 개의 무기는 장착해야 합니다.";
+                    else if (EquipWeapon(weapon.id, index)) message = weapon.name + " → 무기 " + (slot + 1);
                     else message = "새 무기의 전투 동작을 연결해야 합니다.";
                 }
             }
@@ -357,7 +425,34 @@ public class InventoryUI : MonoBehaviour
         DrawCollectionPages(content, maxPage);
         Text(new Rect(content.x, content.yMax + 40, content.width, 22), "장착: 1 " + WeaponName(0) + " / 2 " + WeaponName(1), 13, TextDark);
         Text(new Rect(content.x, content.yMax + 65, content.width, 20), message, 12, Red);
+        Text(new Rect(content.x, content.yMax + 85, content.width, 20), "장착된 1/2 버튼을 다시 누르면 해제", 11, TextDim);
+        if (weapons.Count > 0) DrawWeaponDetails(window, weapons[Mathf.Clamp(selectedWeapon, 0, weapons.Count - 1)]);
     }
+
+    void DrawWeaponDetails(Rect window, WeaponEntry weapon)
+    {
+        const float boxWidth = 300, pad = 16, inner = boxWidth - pad * 2;
+        float x = window.x - boxWidth - 8, top = window.y;
+        var stats = Weapon.Get(weapon.id);
+        string description = weapon.description ?? "";
+        float descHeight = Height(description, 15, inner);
+        float total = pad + 80 + 12 + descHeight + 12 + 28 + pad;
+        Box(new Rect(x, top, boxWidth, total), Paper, Wood, 3);
+        float left = x + pad, y = top + pad;
+        var iconBox = new Rect(left, y, 80, 80);
+        Box(iconBox, PaperDark, SlotEdge, 1);
+        // 실제 무기 스프라이트를 왼쪽 창에 크게 그린다.
+        string art = stats.id == "bow" ? "04_Weapons/bow" : stats.art ?? "04_Weapons/hwando";
+        DrawIcon(JinaArt.Load(art), new Rect(iconBox.x + 6, iconBox.y + 6, 68, 68));
+        Text(new Rect(left + 92, y + 5, inner - 92, 30), weapon.name, 19, TextDark, TextAnchor.MiddleLeft, true);
+        Text(new Rect(left + 92, y + 42, inner - 92, 26), "보유 중", 13, TextDim, TextAnchor.MiddleLeft);
+        y += 92;
+        Text(new Rect(left, y, inner, descHeight), description, 15, TextDark);
+        y += descHeight + 12;
+        string damage = stats.comboDamage != null ? string.Join(" / ", System.Array.ConvertAll(stats.comboDamage, v => v.ToString())) : stats.damage.ToString();
+        Text(new Rect(left, y, inner, 28), "공격력 " + damage + (stats.comboDamage != null ? " (연격)" : ""), 15, Green, TextAnchor.MiddleLeft, true);
+    }
+
     string WeaponName(int i) => weapons.Find(w => w.id == equippedWeapons[i])?.name ?? "없음";
 
     void DrawCollectionPages(Rect content, int maxPage)
