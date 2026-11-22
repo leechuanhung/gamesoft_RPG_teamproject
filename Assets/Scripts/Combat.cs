@@ -184,7 +184,7 @@ public partial class Combat : MonoBehaviour
         View.Shake(0, .01f); View.Focus(0, 0);
         playerArt.color = playerColor;
         player.RespawnAt(save.at);
-        UsingBow = false; Arrows = save.arrows; noArrowsUntil = 0;
+        Arrows = save.arrows; noArrowsUntil = 0;
         ClearArrows();
         if (Quest != null) Quest.progress.RewindRoad(save.honor);
         if (Mobs != null) Mobs.ClearSoldiers();

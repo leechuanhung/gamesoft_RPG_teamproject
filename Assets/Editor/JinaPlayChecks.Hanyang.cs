@@ -262,7 +262,7 @@ public static partial class JinaPlayChecks
         while(wisp.Alive) mobs.Hit(wisp,Combat.SwordDamage);
         Check(string.Format(combat.CoinsNote,combat.CoinsFound).StartsWith("도깨비불이 꺼지며 엽전 2문"),"A wisp goes out");
         combat.Camp.Hit(combat.Camp.mobs[0],Camp.GhostHealth);
-        Check(string.Format(combat.CoinsNote,combat.CoinsFound).StartsWith("망령이 흩어지며 엽전 "+Camp.CoinsPerGhost+"문"),"A ghost scatters");
+        Check(combat.CoinsNote==Combat.DefaultCoinsNote && combat.CoinsFound>=1 && combat.CoinsFound<=10,"A ghost scatters 1~10 coins");
         q.SacrificeElder(); Goto(310); Call(mobs);
         RoadMobs.Mob soldier=null; foreach(var m in mobs.mobs) if(m.soldier) { soldier=m; break; }
         while(soldier.Alive) mobs.Hit(soldier,Combat.SwordDamage);
@@ -286,7 +286,7 @@ public static partial class JinaPlayChecks
         Check(!cheats.God && combat.PlayerHealth==Combat.MaxPlayerHealth-50,"Turned off, blows land again");
         // 3: full health, stamina and arrows.
         combat.player.UseStamina(40); combat.AddArrows(-10); cheats.Use(3);
-        Check(combat.PlayerHealth==Combat.MaxPlayerHealth && combat.player.Stamina==Player.MaxStamina && combat.Arrows==ShopRules.MaxArrows,"Refilled");
+        Check(combat.PlayerHealth==Combat.MaxPlayerHealth && combat.player.Stamina==combat.player.MaxStamina && combat.Arrows==ShopRules.MaxArrows,"Refilled");
         // 4: coins. 5, 6: honour, which moves the soldiers' rank.
         int coins=combat.Tavern.wallet.Coins; cheats.Use(4);
         Check(combat.Tavern.wallet.Coins==coins+DevCheats.CoinGift,"Coins given");
