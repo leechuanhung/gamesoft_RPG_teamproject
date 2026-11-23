@@ -199,15 +199,137 @@ public class RoadsideLore : MonoBehaviour
         return false;
     }
 
+    // 선돌(-46)에서 만나는 도깨비불: 기존 길가 조사 시스템 안에서 퀘스트와 동행을 관리한다.
+    public const int WispStoneIndex = 1;
+    public const float WispFollowDistance = 1.35f, WispSpeed = 5.5f;
+    public bool WispAsking { get; private set; }
+    public bool WispFollowing { get; private set; }
+    private SpriteRenderer wisp;
+    private float wispBob;
+    private float wispBobOffset;
+    private float wispGlimmer;
+    private bool wispAbsorbed;
+    private bool wispApproachingBoss;
+    private Vector3 wispApproachStart;
+    private const float WispAbsorbAfter = 1.5f; // 추가 연출(2.2초) 중 도깨비에게 닿는 시점
+    private string wispLine = "";
+
+    // 별도 프리팹 없이 아이템 도트(20x23)를 월드용 작은 도깨비불로 만든다.
+    // Assets/Resources/JinaV4/14_Items/item_dokkabibol.png 필요. Texture2D 기본 Import 설정으로도 로딩 가능.
+    void EnsureWisp()
+    {
+        if (wisp != null) return;
+        var texture = Resources.Load<Texture2D>("JinaV4/14_Items/item_dokkabibol");
+        if (texture == null) { Debug.LogWarning("도깨비불 그림 누락: Assets/Resources/JinaV4/14_Items/item_dokkabibol.png"); return; }
+        var obj = new GameObject("동행 도깨비불");
+        wisp = obj.AddComponent<SpriteRenderer>();
+        wisp.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(.5f, .5f), texture.height / .65f);
+        wisp.sortingOrder = 8;
+        wisp.transform.position = new Vector3(Spots[WispStoneIndex].x, 1.15f, 0);
+        wispBob = wispBobOffset = 0f;
+    }
+
+    void AskWisp()
+    {
+        EnsureWisp();
+        WispAsking = true;
+        wispLine = "…저기, 선비님. 나를 이 쓸쓸한 곳에서 데려가 주실래요?\n함께 길을 가고 싶어요. 숲의 주인도… 원래는 그런 분이 아니었어요.";
+        combat.player.CanMove = false;
+        saidAt = -1;
+    }
+
+    // 거절해도 선돌에서 다시 말을 걸 수 있다.
+    void AnswerWisp(bool accept)
+    {
+        WispAsking = false;
+        WispFollowing = accept;
+        combat.player.CanMove = combat.PlayerHealth > 0;
+        said = accept ? "도깨비불이 조심스레 선비의 뒤를 따르기 시작했다." : "도깨비불이 잠시 고개를 떨구었다. 다시 말을 걸 수 있을 것 같다.";
+        saidAt = Time.time;
+        if (!accept && wisp != null) { Destroy(wisp.gameObject); wisp = null; }
+    }
+
+    // 플레이어보다 조금 늦게 따라온다. 조우 연출 후반에는 도깨비 쪽으로 다가간다.
+    void FollowWisp()
+    {
+        // 도깨비에게 흡수된 뒤에는 다시 생성하거나 따라오지 않는다.
+        if (!WispFollowing || wispAbsorbed || combat == null || combat.player == null) return;
+        EnsureWisp();
+        if (wisp == null) return;
+        var encounter = combat.Encounter;
+        if (encounter != null && encounter.WispResonating)
+        {
+            // 연출이 시작되는 프레임의 도깨비불 위치를 기억해, 보스가 멀어도
+            // 1.5초 동안 실제로 날아가는 모습을 보여 준다(순간이동 없음).
+            if (!wispApproachingBoss)
+            {
+                wispApproachingBoss = true;
+                wispApproachStart = wisp.transform.position - Vector3.up * wispBobOffset;
+            }
+            float t = Mathf.Clamp01((encounter.Elapsed - BossEncounter.Length) / WispAbsorbAfter);
+            float eased = Mathf.SmoothStep(0f, 1f, t);
+            Vector3 destination = combat.BossPosition + new Vector3(-.45f, 1.2f, 0);
+            Vector3 basePosition = Vector3.Lerp(wispApproachStart, destination, eased);
+            wispBob += Time.deltaTime * 2.5f;
+            wispBobOffset = Mathf.Sin(wispBob) * .08f * (1f - t);
+            wisp.transform.position = basePosition + Vector3.up * wispBobOffset;
+            // 마지막에 작아지면서 사라져, 도깨비의 몸에 스며드는 느낌을 준다.
+            wisp.transform.localScale = Vector3.one * Mathf.Lerp(1f, .15f, Mathf.Clamp01((t - .7f) / .3f));
+            var color = wisp.color;
+            color.a = 1f - Mathf.Clamp01((t - .75f) / .25f);
+            wisp.color = color;
+            if (t >= 1f)
+            {
+                JinaFx.Glint(destination, new Color(.3f, .9f, 1f));
+                JinaFx.Rise(destination, 8, new Color(.3f, .9f, 1f), .7f, 1.2f, .6f);
+                Destroy(wisp.gameObject);
+                wisp = null;
+                wispAbsorbed = true; // 재시작 전까지 영구 소멸, 방어 약화는 그대로 유지
+            }
+            return;
+        }
+
+        var playerPos = combat.player.transform.position;
+        float side = combat.player.Facing > 0 ? -1 : 1;
+        Vector3 target = new Vector3(playerPos.x + side * WispFollowDistance, playerPos.y + 1.0f, 0);
+        // 떠다니는 높이를 빼고 실제 추적 위치를 계산한다.
+        var normalBasePosition = wisp.transform.position - Vector3.up * wispBobOffset;
+        if (Vector2.Distance(normalBasePosition, target) > 24f)
+            normalBasePosition = target;
+        else if (!combat.Paused)
+            normalBasePosition = Vector3.MoveTowards(normalBasePosition, target, WispSpeed * Time.deltaTime);
+        wispBob += Time.deltaTime * 2.5f;
+        wispBobOffset = Mathf.Sin(wispBob) * .08f;
+        wisp.transform.position = normalBasePosition + Vector3.up * wispBobOffset;
+        if (Time.time >= wispGlimmer && !combat.Paused)
+        {
+            wispGlimmer = Time.time + .7f;
+            JinaFx.Glint(wisp.transform.position, new Color(.3f, .9f, 1f));
+        }
+    }
+
     private float saidAt = -1;
     private string said = "";
-    public void ResetLore() { saidAt = -1; said = ""; }
+    public void ResetLore()
+    {
+        saidAt = -1; said = "";
+        WispAsking = WispFollowing = wispAbsorbed = wispApproachingBoss = false;
+        wispBob = wispBobOffset = 0f;
+        if (wisp != null) { Destroy(wisp.gameObject); wisp = null; }
+    }
 
     // 엔터로 조사 지점을 읽는다.
     void Update()
     {
-        if (combat == null || combat.Paused || combat.PlayerHealth <= 0) return;
-        if (!JinaUI.Interact || SomeoneElseHere()) return;
+        if (combat == null || combat.PlayerHealth <= 0) return;
+        FollowWisp();
+        if (WispAsking)
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha1)) AnswerWisp(true);
+            else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Escape)) AnswerWisp(false);
+            return;
+        }
+        if (combat.Paused || !JinaUI.Interact || SomeoneElseHere()) return;
         int i = Near();
         if (i < 0) return;
         Read(i);
@@ -215,6 +337,7 @@ public class RoadsideLore : MonoBehaviour
     // 조사 지점 `i`의 글을 연다.
     public void Read(int i)
     {
+        if (i == WispStoneIndex && !WispFollowing) { AskWisp(); return; }
         var s = Spots[i];
         said = s.afterNight != null && combat.Kong != null && combat.Kong.Stayed ? s.afterNight : s.said;
         saidAt = Time.time;
@@ -223,10 +346,26 @@ public class RoadsideLore : MonoBehaviour
     // 조사 글과 E 안내를 그린다.
     void OnGUI()
     {
-        if (combat == null || combat.PlayerHealth <= 0 || combat.Paused) return;
+        if (combat == null || combat.PlayerHealth <= 0) return;
         KoreanUI.Apply();
+        if (WispAsking)
+        {
+            float width = Mathf.Min(720, JinaUI.W - 32);
+            float height = 240;
+            var box = new Rect((JinaUI.W - width) / 2, JinaUI.H - height - 24, width, height);
+            var inside = JinaUI.Window(box, "선돌의 도깨비불", "함께 길을 떠나겠습니까?");
+            JinaUI.Text(new Rect(inside.x, inside.y, inside.width, 108), wispLine, 18, JinaUI.TextDark);
+            float choiceY = inside.y + 112, half = (inside.width - 12) / 2;
+            if (JinaUI.Button(new Rect(inside.x, choiceY, half, 40), "1 · 수락")) AnswerWisp(true);
+            if (JinaUI.Button(new Rect(inside.x + half + 12, choiceY, half, 40), "2 · 거절")) AnswerWisp(false);
+            return;
+        }
+        if (combat.Paused) return;
         if (saidAt >= 0 && Time.time - saidAt < ShowFor) JinaUI.Toast(said);
         int i = Near();
-        if (i >= 0 && !SomeoneElseHere()) JinaUI.Prompt("Enter: " + Spots[i].prompt);
+        if (i >= 0 && !SomeoneElseHere())
+            JinaUI.Prompt(i == WispStoneIndex && WispFollowing ? (wispAbsorbed ? "도깨비불의 빛은 숲의 주인에게 스며들었다." : "도깨비불이 선비와 함께하고 있다.") : "Enter: " + Spots[i].prompt);
     }
+
+    void OnDestroy() { if (wisp != null) Destroy(wisp.gameObject); }
 }
