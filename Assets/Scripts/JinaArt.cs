@@ -8,6 +8,8 @@ public static class JinaArt
     public const float BowHeight=440f/(510f/1.9f), BowArrowHeight=312f/(510f/1.9f);
     // Props are drawn one texel per art pixel; characters use ~12 px art pixels at 546 px per 1.9 units.
     public const float PropPixelsPerUnit=546f/1.9f/12f;
+    // 겨눈 공격 그림(make_aim.py의 bow_aim_*, sword_aim_*)은 위아래로 이만큼 넓힌 캔버스다. 발은 바닥에서 8+AimPad px 위.
+    public const int AimPad=150;
     // One square effect dot, two character art pixels wide (the size of the boss's crumbling chunks).
     public const float DotSize=2*12f/(546f/1.9f);
     private static readonly Dictionary<string,Sprite> cache=new Dictionary<string,Sprite>();
@@ -45,6 +47,7 @@ public static class JinaArt
             else if(path.Contains("Player_Walk") || path.Contains("Player_Run")) ppu=546f/1.9f;
             else if(path.Contains("boss_attack")) { anchor=new Vector2(260,bounds.y); ppu=480f/2.6f; }
             else ppu=586f/2.6f;
+            if(path.Contains("_aim_")) anchor.y+=AimPad;
         }
         // Frames cut from an idle keep that idle's scale and feet line (see Tools/ArtGen).
         else if(path.Contains("boss_death")) { rect=canvas; anchor=new Vector2(351,8); ppu=Load(Boss).pixelsPerUnit; }

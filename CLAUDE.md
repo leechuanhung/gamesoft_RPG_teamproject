@@ -24,7 +24,7 @@
 | `Combat.cs` | 능력치 상수(선비 체력 100·공격력 10, 도깨비 200·20, 일반 몬스터 30·10, 피해=공격력−방어력, 최소 1), 선비 체력·공격·피격(`PlayerHurtAt`), 재시작(`Restart`, 콩쥐를 만난 뒤 죽으면 뒷산 입구 체크포인트 `RestartAtHill`·`Checkpoint`), `Paused`, 아래 관리 컴포넌트를 붙인다 (모두 같은 오브젝트) |
 | `Combat.Boss.cs` | 보스 상태·추격·근접 공격·돌진·도약(`BossMove`), 토벌(`DamageEnemy`)·정화(`TryPurifyBoss`) |
 | `Skills.cs`, `DashSlashAttack.cs`, `Combat.DashSlash.cs` (팀원) | 스킬 칸 Q 물러서기(무적만, `StartDash(..., slash: false)`)·W 돌진베기. 돌진베기 피해는 돌진하는 동안 `ApplyDashSlash` 한 곳에서만 하나마다 한 번(도깨비·콩쥐 요괴·유령·뒷산의 독) |
-| `Combat.Arrows.cs` | 활 조준(`AimAngle` 30°, `ArrowLaunch`, `ArrowDirection`), 발사(`Shoot`), 비행·명중, 발판 통과(`Wall`) |
+| `Combat.Arrows.cs` | 마우스 조준(`pendingAngle`: 바라보는 쪽 기준 −90~90°, `AimDirection`, 겨눈 그림 고르기 `AimBucket`: 활 15°·칼 30°마다, 몸 기울기 `AimLean`, 그려진 시위 자리 `ArrowLaunch`), 발사(`Shoot`, 커서 각도 그대로), 비행·명중, 발판 통과(`Wall`) |
 | `MainNpcs.cs`의 `NpcTalk` | NPC 대화 공통 바탕: 가까이(`Within`), 열기(`Begin`, 선비 멈춤), 엔터로 넘기기·Esc로 닫기(`TalkKeys`, `Next`, `Close`), 말풍선 안내(`PageHint`), 대사 `lines`·`Page`·`IsOpen`. 노인·콩밭 마을·정화된 도깨비·뱃사공·주막·보부상이 이 위에 있다. 닫을 때 할 일은 `Close`를 덮어 쓴다 |
 | `MainNpcs.cs`의 `ElderQuest` / `QuestProgress.cs` | 노인 대화(초상화 창 `TalkWindow`, 콩쥐와 싸우다 돌아오면 `ElderPages(fleeing)`)·비석, 부적 퍼즐 / 선악·퀘스트 상태(Unity 무관). 토벌 +10, 정화 +30, 노인 사망 −40, 콩쥐 토벌 +10·정화 +50(`KongOutcome`), 콩밭 마을 사람 사망 −10(`VillagersLost`) |
 | `Camp.cs` | 유령: 2차원 비행 추격(`GhostHealth` 4, `FlySpeed`). 이름(`Name`: 망령·물귀신·떠도는 망령)과 처치 알림(`FelledNote` → `Combat.FindCoins`). 들판 유령(`Initialize`)은 전부 쓰러지면 봉인 해제, 나루터 물귀신(`InitializeRiver`, `combat.River`)은 맵에 들어올 때마다 되살아나고 10마리째에 은비녀 |
@@ -65,7 +65,7 @@
 - 연출은 시작 시각으로 재생한다: `BossDownAt`, `PurifiedAt`, `PlayerDownAt`, `Quest.ElderStruckAt`, `Village.AlarmAt`·`ClearAt`, `GhostVisual.DownAt`.
 - 쓰러져 기우는 그림(노인, 선비)은 부모 없이 둔다. 크기가 비균일한 사각형 아래에서 돌리면 찌그러진다. `JinaArt.Place`는 그림의 실제 부모 크기를 되돌린다.
 - 대화 중인 인물은 선비 쪽을 본다(`JinaActorVisual.native`: 보부상 −1, 나머지 +1). 노인 시체는 맞은 순간의 방향으로 고정된다.
-- 칼은 3연격이다(`comboStep`, `SeonbiVisual.SwordLength`·`SwordHit`, `SwordFeel`). 첫 칼은 기존 네 프레임 그대로, 둘째는 빠르게 올려 베기, 셋째는 무거운 내려치기. 피해는 모두 `SwordDamage`로 같다.
+- 칼은 3연격이다(`comboStep`, `SeonbiVisual.SwordLength`·`SwordHit`, `SwordFeel`). 첫 칼은 기존 네 프레임 그대로, 둘째는 빠르게 올려 베기, 셋째는 무거운 내려치기. 피해는 모두 `SwordDamage`로 같다. 칼 판정(`SwordBox`)과 칼빛(`Swung`)은 마우스 각도로 돌고, 몸은 가장 가까운 겨눈 그림(`sword_aim_*`, `bow_aim_*`, `make_aim.py`, 캔버스를 넓힌 만큼 `JinaArt.AimPad`)을 쓴다. 들고 휘두르는 무기(단검·명검)는 `SeonbiVisual.SwingPalmAt`.
 - UI는 전부 IMGUI(`OnGUI`)다. 모든 `OnGUI`는 처음에 `KoreanUI.Apply()`를 불러 배율을 맞춘다. 글꼴도 여기서 정한다(맑은 고딕). 인물 대사는 `SpeechBubble.Draw`, 화면 밖 인물은 말하지 않는다(`SpeechBubble.OnScreen`). 한글이 들어간 새 UI 파일은 `KoreanUIChecks`의 목록에 넣는다.
 
 ## 그림 (요약, 자세한 것은 Tools/ArtGen/README.md)
