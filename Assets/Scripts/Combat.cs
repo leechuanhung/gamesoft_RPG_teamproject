@@ -34,7 +34,7 @@ public partial class Combat : MonoBehaviour
     public const int BossAttack = 20;
     // The elder's last blow takes a third of the boss's health.
     public const int ElderCounterDamage = 67;
-    public int BossDefense = 0;
+    public int BossDefense = 5;
     // ── 일반 몬스터 능력치 (Camp.cs에서 사용) ──
     public const int MonsterMaxHealth = 30;
     public const int MonsterAttack = 10;
@@ -193,7 +193,7 @@ public partial class Combat : MonoBehaviour
         if (Maps != null) Maps.Jump();
         RevivedOnRoadAt = Time.time;
     }
-    public bool Paused => (KongBoss != null && KongBoss.Cutscene) || (FinalBoss != null && FinalBoss.Cutscene) || (Town != null && Town.IsOpen) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || InventoryPauseActive || (Cheats != null && Cheats.Open);
+    public bool Paused => (KongBoss != null && KongBoss.Cutscene) || (FinalBoss != null && FinalBoss.Cutscene) || (Town != null && Town.IsOpen) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || (Lore != null && Lore.WispAsking) || InventoryPauseActive || (Cheats != null && Cheats.Open);
     public void SetPlayerHealthFromSave(int health)
     {
         PlayerHealth = Mathf.Clamp(health, 0, MaxPlayerHealth);
