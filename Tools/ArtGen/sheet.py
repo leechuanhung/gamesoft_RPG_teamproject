@@ -31,6 +31,8 @@ def ppu(path):
     if folder == "16_Kong": return ppu(ART + "12_Peddler/peddler_idle.png")       # same 12 px blocks
     if folder == "15_Ferryman": return ppu(ART + "12_Peddler/peddler_idle.png")   # same 12 px blocks
     if folder == "21_KongBoss": return ppu(ART + "12_Peddler/peddler_idle.png")   # same 12 px blocks
+    if folder == "24_Hanyang": return ppu(ART + "12_Peddler/peddler_idle.png")    # same 12 px blocks
+    if folder in ("22_Soldier", "23_Mobs", "25_Final"): return 546 / 1.9          # the seonbi's own art pixels
     if "Player_Attack_Sword" in rel: return 450 / 1.9
     if "Player_Attack_Bow" in rel: return 510 / 1.9
     if "Player_Jump" in rel: return 535 / 1.9

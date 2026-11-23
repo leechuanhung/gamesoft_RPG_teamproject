@@ -144,6 +144,19 @@ public class RoadsideLore : MonoBehaviour
         // 콩쥐를 만나기 전의 뒷산.
         new Spot(202.5f, "깨진 독 조각 살펴보기", "깨진 독 조각이 비탈에 흩어져 있다. 안쪽에 비늘 같은 것이 말라붙어 있다."),
         new Spot(211.5f, "발자국 살펴보기", "작은 맨발 자국이 비탈 위로 이어지다가… 어느 순간부터 물갈퀴 자국으로 바뀐다."),
+        // 봉화 산성.
+        new Spot(271.5f, "성벽 글씨 살펴보기", "성벽에 칼끝으로 새긴 글이 있다. '봉화가 오르지 않으니 한양은 아무것도 모른다.' 몇 해 전 날짜다."),
+        // 버려진 역참.
+        new Spot(300.5f, "부서진 수레 살펴보기", "쌀가마가 모두 찢겨 낟알 하나 남지 않았다. 수레에 '좌의정 댁 세곡'이라는 표찰이 붙어 있다."),
+        new Spot(311f, "역참 현판 살펴보기", "빛바랜 현판에 '역'자만 남았다. 말 먹이던 구유에 녹슨 엽전이 몇 닢 붙어 있다. 세금을 못 내고 달아난 역졸의 것일까."),
+        // 북망산 무덤길.
+        new Spot(356f, "새 무덤 살펴보기", "흙이 아직 마르지 않은 무덤이다. 비석 대신 꽂힌 나무패에 '세금을 못 내 매 맞아 죽은 자'라고만 적혀 있다."),
+        new Spot(381f, "무덤 앞 술잔 살펴보기", "누가 올린 술잔이 엎어져 있다. 잔에 남은 술이 먹물처럼 검다."),
+        // 한양.
+        new Spot(403f, "기와집 대문 살펴보기", "대문마다 '좌의정 대감 은혜'라고 적힌 부적이 붙어 있다. 붙이지 않은 집은 하나같이 비어 있다."),
+        new Spot(437f, "홍살문 살펴보기", "붉은 살 사이로 과거장이 보인다. 내일이면 이 문을 지나 붓을 든다."),
+        new Spot(447.5f, "과거 방 읽기", "방이 붙어 있다. '내일 진시, 과거를 연다. 시관 좌의정 엄탁.' 그 아래 누가 작게 덧붙였다. '시제는 이미 팔렸다.'"),
+        new Spot(476f, "담장 밑 살펴보기", "담장 밑에 무당의 방울 하나가 떨어져 있다. 흔들어 보니 방울 속에서 사람 이빨 같은 것이 달그락거린다."),
     };
 
     // 가장 가까운 조사 지점 번호(없으면 -1).
@@ -166,12 +179,19 @@ public class RoadsideLore : MonoBehaviour
         // 싸우는 중에도 안 나온다.
         if (combat.BossAlerted && !combat.EnemyDefeated) return true;
         if (combat.KongBoss != null && combat.KongBoss.Fighting) return true;
+        if (combat.FinalBoss != null && (combat.FinalBoss.Fighting || combat.FinalBoss.Cutscene)) return true;
+        if (combat.Fort != null && combat.Fort.HasSomethingHere) return true;
+        if (combat.Town != null && combat.Town.HasSomeoneHere) return true;
+        if (combat.Mobs != null)
+            foreach (var m in combat.Mobs.mobs)
+                if (m.Alive && !m.witness && Vector2.Distance(p, m.pos) < 6) return true;
         foreach (var camp in combat.Camps)
             if (camp != null)
                 foreach (var m in camp.mobs)
                     if (m.hp > 0 && m.art != null && Vector2.Distance(p, m.art.transform.position) < 6) return true;
         if (Vector2.Distance(p, WorldBuilder.Elder) < 1.9f || Vector2.Distance(p, WorldBuilder.Stone) < 1.9f) return true;
         if (Mathf.Abs(p.x - WorldBuilder.Tavern.x) < 2.2f || Mathf.Abs(p.x - WorldBuilder.Peddler.x) < 2.2f) return true;
+        if ((combat.Tavern != null && combat.Tavern.Near) || (combat.Peddler != null && combat.Peddler.Near)) return true;
         if (combat.Ferry != null && combat.Ferry.Near) return true;
         if (combat.Pass != null && combat.Pass.NearShrine) return true;
         if (combat.Kong != null && combat.Kong.InVillage && combat.Kong.HasSomethingHere) return true;

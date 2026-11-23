@@ -212,6 +212,7 @@ public partial class Combat
     void DamageEnemy(int amount = ArrowDamage)
     {
         if (EnemyDefeated) return;
+        if (Cheats != null) amount = Cheats.Power(amount);   // 개발자 치트: 한 방
         int before = EnemyHealth;
         EnemyHealth -= CalcDamage(amount, BossDefense);
         alerted = true;

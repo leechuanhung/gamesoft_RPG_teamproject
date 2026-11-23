@@ -25,7 +25,10 @@ public partial class Combat : MonoBehaviour
     // Coins found on fallen ghosts, shown for a moment.
     public float CoinsFoundAt { get; private set; } = -1;
     public int CoinsFound { get; private set; }
-    public void FindCoins(int amount) { if (Tavern == null) return; Tavern.wallet.Earn(amount); CoinsFound = amount; CoinsFoundAt = Time.time; }
+    // 쓰러뜨린 것이 무엇이었는지 알리는 글. {0} 자리에 엽전 수가 들어간다.
+    public string CoinsNote { get; private set; } = DefaultCoinsNote;
+    public const string DefaultCoinsNote = "쓰러진 망령이 엽전 {0}문을 떨어뜨렸습니다.";
+    public void FindCoins(int amount, string note = DefaultCoinsNote) { if (Tavern == null) return; Tavern.wallet.Earn(amount); CoinsFound = amount; CoinsFoundAt = Time.time; CoinsNote = note; }
     // ── 보스(도깨비) 능력치 ──
     public const int EnemyMaxHealth = 200;
     public const int BossAttack = 20;
@@ -79,7 +82,15 @@ public partial class Combat : MonoBehaviour
     public const int KeepsakeAt = 10;
     public int RiverFelled { get; private set; }
     public float KeepsakeFreedAt { get; private set; } = -1;
-    public Camp[] Camps => new[] { Camp, River };
+    // 한양 가는 길의 유령: 버려진 역참과 북망산 무덤길(다른 몬스터·관군과 섞여 나온다, RoadMobs).
+    public Camp StationGhosts { get; private set; }
+    public Camp GraveGhosts { get; private set; }
+    public Camp[] Camps => new[] { Camp, River, StationGhosts, GraveGhosts };
+    // 한양 가는 길: 도깨비불·두억시니·관군, 봉화 산성, 한양 사람들, 최종 보스.
+    public RoadMobs Mobs { get; private set; }
+    public BeaconFort Fort { get; private set; }
+    public HanyangTown Town { get; private set; }
+    public FinalBoss FinalBoss { get; private set; }
     public void FellWaterGhost()
     {
         if (++RiverFelled != KeepsakeAt) return;
@@ -149,7 +160,40 @@ public partial class Combat : MonoBehaviour
         if (Maps != null) Maps.Jump();
         RevivedAt = Time.time;
     }
-    public bool Paused => (KongBoss != null && KongBoss.Cutscene) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || InventoryPauseActive;
+    // 콩쥐 요괴를 해결한 뒤 한양 가는 길의 체크포인트(산성, 한양 거리, 좌의정 술자리). 쓰러지면 R로 거기서 다시
+    // 일어난다: 그때의 선악과 화살, 좌의정은 다시 누각에서 기다리고 관군 무리는 다시 나올 수 있다.
+    public struct RoadSave { public Vector2 at; public int honor, arrows; }
+    public RoadSave? RoadCheckpoint { get; private set; }
+    public bool CanRetryOnRoad => RoadCheckpoint.HasValue && (FinalBoss == null || !FinalBoss.Resolved);
+    public float RevivedOnRoadAt { get; private set; } = -1;
+    public void SaveOnRoad(Vector2 at)
+    {
+        if (Quest == null) return;
+        RoadCheckpoint = new RoadSave { at = at, honor = Quest.progress.Honor, arrows = Arrows };
+    }
+    public void RestartOnRoad()
+    {
+        if (!RoadCheckpoint.HasValue) { Restart(); return; }
+        var save = RoadCheckpoint.Value;
+        PlayerHealth = MaxPlayerHealth;
+        nextAttack = slashUntil = invulnerableUntil = hitFlashUntil = 0;
+        playerImpactAt = -1;
+        PlayerDownAt = PlayerHurtAt = WardBrokeAt = CoinsFoundAt = -1;
+        comboStep = -1; comboUntil = 0; lastPlayerHit = -1;
+        JinaFx.Clear();
+        View.Shake(0, .01f); View.Focus(0, 0);
+        playerArt.color = playerColor;
+        player.RespawnAt(save.at);
+        Arrows = save.arrows; noArrowsUntil = 0;
+        ClearArrows();
+        if (Quest != null) Quest.progress.RewindRoad(save.honor);
+        if (Mobs != null) Mobs.ClearSoldiers();
+        if (FinalBoss != null) FinalBoss.ResetBoss();
+        if (playerVisual != null) playerVisual.ResetPose();
+        if (Maps != null) Maps.Jump();
+        RevivedOnRoadAt = Time.time;
+    }
+    public bool Paused => (KongBoss != null && KongBoss.Cutscene) || (FinalBoss != null && FinalBoss.Cutscene) || (Town != null && Town.IsOpen) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || InventoryPauseActive || (Cheats != null && Cheats.Open);
     public void SetPlayerHealthFromSave(int health)
     {
         PlayerHealth = Mathf.Clamp(health, 0, MaxPlayerHealth);
@@ -218,6 +262,18 @@ public partial class Combat : MonoBehaviour
         KongBoss.combat = this;
         Aftermath = gameObject.AddComponent<KongAftermath>();
         Aftermath.combat = this;
+        StationGhosts = new GameObject("역참 유령").AddComponent<Camp>();
+        StationGhosts.InitializeRoad(this, playerArt.sprite, new[] { 305f, 318f, 329f }, WorldBuilder.FortEnd, WorldBuilder.StationEnd);
+        GraveGhosts = new GameObject("무덤길 유령").AddComponent<Camp>();
+        GraveGhosts.InitializeRoad(this, playerArt.sprite, new[] { 350f, 366f, 379f }, WorldBuilder.StationEnd, WorldBuilder.GraveEnd);
+        Mobs = new GameObject("한양 가는 길 몬스터와 관군").AddComponent<RoadMobs>();
+        Mobs.combat = this;
+        Fort = gameObject.AddComponent<BeaconFort>();
+        Fort.combat = this;
+        Town = gameObject.AddComponent<HanyangTown>();
+        Town.combat = this;
+        FinalBoss = new GameObject("좌의정").AddComponent<FinalBoss>();
+        FinalBoss.combat = this;
         Cheats = gameObject.AddComponent<DevCheats>();
         Cheats.combat = this;
         Restart();
@@ -296,7 +352,14 @@ public partial class Combat : MonoBehaviour
         if (Lore != null) Lore.ResetLore();
         if (KongBoss != null) KongBoss.ResetBoss();
         if (Aftermath != null) Aftermath.ResetAftermath();
+        if (StationGhosts != null) StationGhosts.ResetCamp();
+        if (GraveGhosts != null) GraveGhosts.ResetCamp();
+        if (Mobs != null) Mobs.ResetMobs();
+        if (Fort != null) Fort.ResetFort();
+        if (Town != null) Town.ResetTown();
+        if (FinalBoss != null) FinalBoss.ResetBoss();
         Checkpoint = null; RevivedAt = -1;
+        RoadCheckpoint = null; RevivedOnRoadAt = -1;
         Restarted?.Invoke();
     }
 
@@ -305,7 +368,7 @@ public partial class Combat : MonoBehaviour
         if (player == null || enemy == null) return;
         // The intro plays once per launch; R does not replay or interrupt it.
         if (Intro != null && Intro.IsPlaying) return;
-        if (Input.GetKeyDown(KeyCode.R)) { if (PlayerHealth <= 0 && CanRetryAtHill) RestartAtHill(); else Restart(); }
+        if (Input.GetKeyDown(KeyCode.R)) { if (PlayerHealth <= 0 && CanRetryOnRoad) RestartOnRoad(); else if (PlayerHealth <= 0 && CanRetryAtHill) RestartAtHill(); else Restart(); }
         if (PlayerHealth <= 0) return;
         if (Paused)
         {
@@ -370,6 +433,8 @@ public partial class Combat : MonoBehaviour
                 if (KongBoss != null && KongBoss.Fighting && attackBounds.Intersects(KongBoss.HurtBox) && KongBoss.Damage(damage, true)) landed = true;
                 if (KongBoss != null && KongBoss.BlowCrocks(attackBounds)) landed = true;
                 foreach (var camp in Camps) if (camp != null && camp.Slash(attackBounds, damage)) landed = true;
+                if (FinalBoss != null && FinalBoss.Fighting && attackBounds.Intersects(FinalBoss.HurtBox) && FinalBoss.Damage(damage)) landed = true;
+                if (Mobs != null && Mobs.Slash(attackBounds, damage)) landed = true;
                 SwordFeel(pendingStep, landed);
                 // 전용 그림 근접 무기: 단검은 흰 칼빛, 명검은 칼 크기에 맞춘 검은 칼빛
                 if (w.art != null)
@@ -465,12 +530,15 @@ public partial class Combat : MonoBehaviour
         if (!EnemyDefeated && area.Intersects(enemy.bounds)) DamageEnemy(damage);
         if (KongBoss != null && KongBoss.Fighting && area.Intersects(KongBoss.HurtBox)) KongBoss.Damage(damage, true);
         foreach (var camp in Camps) if (camp != null) camp.Slash(area, damage);
+        if (FinalBoss != null && FinalBoss.Fighting && area.Intersects(FinalBoss.HurtBox)) FinalBoss.Damage(damage);
+        if (Mobs != null) Mobs.Slash(area, damage);
     }
 
     public void HurtPlayer(int attack = MonsterAttack)
     {
         // 스킬 무적 중에는 맞지 않음
         if (PlayerHealth <= 0 || Time.time < invulnerableUntil || player.Dodging || SkillInvulnerable) return;
+        if (Cheats != null && Cheats.God) return;   // 개발자 치트: 무적
         var chest = player.transform.position + Vector3.up * .25f;
         if (Warded)
         {
@@ -523,7 +591,27 @@ public partial class Combat : MonoBehaviour
         GUI.color = old;
     }
 
-    // 아래 UI 전체 너비 (체력·스테미너 길이). Skills.cs도 이 값을 씀
+    // 개발자 치트(DevCheats): 도깨비를 바로 토벌한다.
+    public void SlayBossForCheat() { if (!EnemyDefeated) DamageEnemy(EnemyHealth + BossDefense + 1); }
+
+    // 몬스터 머리 위 체력 막대 위의 이름(그림자 있는 작은 글씨). GUI.matrix는 부르는 쪽에서 맞춤.
+    public static void DrawName(Rect bar, string name, Color colour)
+    {
+        var old = GUI.color;
+        var style = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.LowerCenter, fontSize = 15, fontStyle = FontStyle.Bold,
+            padding = new RectOffset(0, 0, 0, 0), margin = new RectOffset(0, 0, 0, 0), clipping = TextClipping.Overflow, wordWrap = false
+        };
+        var r = new Rect(bar.x - 40, bar.y - 26, bar.width + 80, 22);
+        GUI.color = Color.black;
+        GUI.Label(new Rect(r.x + 1, r.y + 1, r.width, r.height), name, style);
+        GUI.color = colour;
+        GUI.Label(r, name, style);
+        GUI.color = old;
+    }
+
+        // 아래 UI 전체 너비 (체력·스테미너 길이). Skills.cs도 이 값을 씀
     public const float HudWidth = 720;
 
     // 화면 아래 가운데: 체력(맨 위), 스테미너, 그 아래 왼쪽에 스킬창(Skills.cs), 오른쪽에 레벨 칸
@@ -623,7 +711,8 @@ public partial class Combat : MonoBehaviour
         if (WardBrokeAt >= 0 && Time.time - WardBrokeAt < 1.6f) JinaUI.Toast("액막이 부적이 공격을 막고 재가 되었습니다.");
         if (KeepsakeFreedAt >= 0 && Time.time - KeepsakeFreedAt < 4f) JinaUI.Toast("흩어지는 물귀신 사이로 한 여인의 넋이 비쳤다가… 은비녀 하나가 남았습니다.");
         if (RevivedAt >= 0 && Time.time - RevivedAt < 3.5f) JinaUI.Toast("뒷산 입구에서 다시 일어났습니다. 콩쥐가 다시 뒷산에서 기다립니다.");
-        if (CoinsFoundAt >= 0 && Time.time - CoinsFoundAt < 1.6f) JinaUI.Toast("쓰러진 망령이 엽전 " + CoinsFound + "문을 떨어뜨렸습니다.");
+        if (RevivedOnRoadAt >= 0 && Time.time - RevivedOnRoadAt < 3.5f) JinaUI.Toast("한양 가는 길에서 다시 일어났습니다.");
+        if (CoinsFoundAt >= 0 && Time.time - CoinsFoundAt < 1.6f) JinaUI.Toast(string.Format(CoinsNote, CoinsFound));
     }
 
     void OnDestroy()
@@ -633,6 +722,10 @@ public partial class Combat : MonoBehaviour
         if (Camp != null) Destroy(Camp.gameObject);
         if (River != null) Destroy(River.gameObject);
         if (KongBoss != null) Destroy(KongBoss.gameObject);
+        if (StationGhosts != null) Destroy(StationGhosts.gameObject);
+        if (GraveGhosts != null) Destroy(GraveGhosts.gameObject);
+        if (Mobs != null) Destroy(Mobs.gameObject);
+        if (FinalBoss != null) Destroy(FinalBoss.gameObject);
         ClearArrows();
         if (player != null) player.CanMove = true;
     }

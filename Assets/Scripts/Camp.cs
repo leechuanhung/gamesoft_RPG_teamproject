@@ -30,7 +30,12 @@ public class Camp : MonoBehaviour
     // 날아다니는 구역, 사각형과 그림의 색, 되살아나는지, 무엇을 남기는지.
     public float minX = -38, maxX = -13;
     public Color body = new Color(.65f,.35f,.22f), tint = Color.white;
-    public bool river;
+    public bool river, road;
+    // 머리 위와 쓰러뜨렸을 때 알림에 쓰는 이름: 들판의 망령, 나루터의 물귀신, 한양 가는 길의 떠도는 망령.
+    public string Name => road ? "떠도는 망령" : river ? "물귀신" : "망령";
+    public string FelledNote => Name + "이 흩어지며 엽전 {0}문을 떨어뜨렸습니다.";
+    // 한양 가는 길의 유령(InitializeRoad)이 지키는 맵.
+    public float zoneLeft, zoneRight;
     public int coins = CoinsPerGhost;
     private bool wasInside;
     public const float FlySpeed = 2.2f, SightRange = 8f, StrikeRange = 1.3f, StrikeWindup = .55f, StrikeCooldown = .9f;
@@ -88,6 +93,15 @@ public class Camp : MonoBehaviour
         Spawn(sprite, "물귀신", new[] { 84f, 90f, 96f });
         ResetCamp();
     }
+    // 한양 가는 길(역참, 무덤길)의 유령: 다른 몬스터와 섞여 그 맵을 지킨다. 들판 유령처럼 한 번 쓰러지면 끝.
+    public void InitializeRoad(Combat owner, Sprite sprite, float[] homes, float left, float right)
+    {
+        combat = owner; road = true; coins = 2;
+        zoneLeft = left; zoneRight = right; minX = left + 1; maxX = right - 1;
+        body = new Color(.4f, .3f, .45f); tint = new Color(.86f, .8f, 1f);
+        Spawn(sprite, "길의 유령", homes);
+        ResetCamp();
+    }
     // `homes` 자리마다 유령을 하나씩 만든다.
     void Spawn(Sprite sprite, string label, float[] homes)
     {
@@ -104,7 +118,7 @@ public class Camp : MonoBehaviour
         }
     }
     // 구역: 마을 서쪽 들판, 또는 물귀신이면 나루터 맵.
-    public bool Inside(Vector3 p) => river ? p.x >= WorldBuilder.FerryStart && p.x < WorldBuilder.FerryEnd : p.x < WorldBuilder.VillageLeft;
+    public bool Inside(Vector3 p) => road ? p.x >= zoneLeft && p.x < zoneRight : river ? p.x >= WorldBuilder.FerryStart && p.x < WorldBuilder.FerryEnd : p.x < WorldBuilder.VillageLeft;
     // 쓰러진 물귀신은 선비가 돌아올 때마다(처음 떠 있던 자리에서) 되살아난다.
     public void Rise()
     {
@@ -144,6 +158,7 @@ public class Camp : MonoBehaviour
     public void Hit(Mob m, int damage = Combat.ArrowDamage)
     {
         if (m == null || m.hp <= 0) return;
+        if (combat != null && combat.Cheats != null) damage = combat.Cheats.Power(damage);   // 개발자 치트: 한 방
         int before = m.hp;
         m.hp -= Combat.CalcDamage(damage, Combat.MonsterDefense);
         var at = m.art.transform.position;
@@ -195,6 +210,7 @@ public class Camp : MonoBehaviour
     void OnGUI()
     {
         if (combat == null || combat.PlayerHealth <= 0 || combat.Paused || Camera.main == null) return;
+        KoreanUI.Apply();
         var oldMatrix = GUI.matrix;
         GUI.matrix = Matrix4x4.identity;
         foreach (var m in mobs)
@@ -208,6 +224,7 @@ public class Camp : MonoBehaviour
             float width = 100, height = 20;
             var r = new Rect(screen.x - width / 2, Screen.height - screen.y - height, width, height);
             Combat.DrawBar(r, (float)m.hp / GhostHealth, new Color(.9f, .2f, .2f), m.hp + " / " + GhostHealth, 15);
+            Combat.DrawName(r, Name, river ? new Color(.74f, .9f, 1) : new Color(.9f, .84f, 1));
         }
         GUI.matrix = oldMatrix;
     }

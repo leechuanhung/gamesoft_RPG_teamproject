@@ -21,6 +21,19 @@ public class QuestProgress
         return true;
     }
     public void LoseVillager() { VillagersLost++; Honor -= 10; }
+    // 한양 좌의정 댁의 어둑시니 좌의정: 쓰러뜨리면 +10.
+    public EncounterOutcome FinalOutcome { get; private set; }
+    public bool ResolveFinal()
+    {
+        if (FinalOutcome != EncounterOutcome.Unresolved) return false;
+        FinalOutcome = EncounterOutcome.Slain;
+        Honor += 10;
+        return true;
+    }
+    // 한양 가는 길의 체크포인트로 되돌린다.
+    public void RewindRoad(int honor) { Honor = honor; FinalOutcome = EncounterOutcome.Unresolved; }
+    // 개발자 치트(DevCheats): 선악을 `delta`만큼 바꾼다.
+    public void CheatHonor(int delta) { Honor += delta; }
     // 뒷산에서 콩쥐를 만났을 때로 되돌린다(체크포인트).
     public void RewindKong(int honor, int lost) { Honor = honor; VillagersLost = lost; KongOutcome = EncounterOutcome.Unresolved; }
     // 노인이 죽었음을 기록한다(−40). 처음이면 true.
@@ -62,5 +75,6 @@ public class QuestProgress
         ElderDead = false;
         KongOutcome = EncounterOutcome.Unresolved;
         VillagersLost = 0;
+        FinalOutcome = EncounterOutcome.Unresolved;
     }
 }
