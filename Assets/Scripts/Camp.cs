@@ -52,11 +52,19 @@ public class Camp : MonoBehaviour
         public float respawnAt = -1;   // 이 시각에 다시 나타남 (-1이면 안 나타남)
     }
     public const float RespawnDelay = 2f;   // 들판 몹이 죽고 다시 나타나기까지(초)
-    public const int SealKills = 30;       // 이만큼 쓰러뜨리면 비석 길 봉인이 풀림
+    public const int SealKills = 15;       // 이만큼 쓰러뜨리면 비석 길 봉인이 풀림 (유령은 계속 되살아나므로 수로 센다)
     public int Kills { get; private set; }  // 지금까지 쓰러뜨린 수
+    public bool Cleared => Kills >= SealKills;  // 봉인이 풀렸는가(비석 터로 가고 비석을 살필 수 있음)
     public readonly List<Mob> mobs = new List<Mob>();
     private GameObject gate;
     public int Remaining { get { int n = 0; foreach (var m in mobs) if (m.hp > 0) n++; return n; } }
+
+    // 치트: 처치 수를 채워 봉인을 바로 푼다.
+    public void Unseal()
+    {
+        Kills = Mathf.Max(Kills, SealKills);
+        if (gate != null) gate.SetActive(false);
+    }
 
     // 들판의 수호 유령들을 만든다.
     public void Initialize(Combat owner, Sprite sprite)
@@ -194,8 +202,8 @@ public class Camp : MonoBehaviour
             if (combat != null) { combat.FindCoins(gain); if (river) combat.FellWaterGhost(); }
             JinaFx.Word(at + Vector3.up * 1.2f, "+" + gain + "문", new Color(1f, .84f, .3f), 22);
         }
-        // 100마리 쓰러뜨리면 봉인이 풀림 (한 번 풀리면 다시 잠기지 않음)
-        if (gate != null && Kills >= SealKills) gate.SetActive(false);
+        // SealKills마리 쓰러뜨리면 봉인이 풀림 (한 번 풀리면 다시 잠기지 않음)
+        if (gate != null && Cleared) gate.SetActive(false);
     }
     // Whether the blow landed on anything.
     // damage를 넘기지 않으면 환도 데미지(10), 스킬은 Slash(area, 20)처럼 원하는 데미지를 넘김

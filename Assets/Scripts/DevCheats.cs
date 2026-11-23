@@ -161,7 +161,7 @@ public class DevCheats : MonoBehaviour
             if (wicked) { q.SacrificeElder(); combat.SlayBossForCheat(); }
             else
             {
-                if (combat.Camp != null) foreach (var m in combat.Camp.mobs) combat.Camp.Hit(m, Camp.GhostHealth);
+                if (combat.Camp != null) { foreach (var m in combat.Camp.mobs) combat.Camp.Hit(m, Camp.GhostHealth); combat.Camp.Unseal(); }
                 q.HearClue();
                 int[] signs = { 2, 1, 3 };
                 for (int i = 0; i < 3 && !q.HasCharm; i++) q.ChooseSymbol(signs[q.PuzzleStep]);
@@ -190,7 +190,7 @@ public class DevCheats : MonoBehaviour
         bool purified = false;
         if (q.Outcome == EncounterOutcome.Unresolved)
         {
-            if (combat.Camp != null) foreach (var m in combat.Camp.mobs) combat.Camp.Hit(m, Camp.GhostHealth);
+            if (combat.Camp != null) { foreach (var m in combat.Camp.mobs) combat.Camp.Hit(m, Camp.GhostHealth); combat.Camp.Unseal(); }
             q.HearClue();
             // 달, 강, 산. 비석에서 어디까지 했든 거기서부터.
             int[] signs = { 2, 1, 3 };

@@ -47,8 +47,8 @@ public class Hud : MonoBehaviour
         if (!combat.EnemyDefeated)
         {
             if (q.HasCharm) return "도깨비 가까이에서 F로 저주를 풀거나, 칼로 쓰러뜨리세요. 해결하면 숲 끝 가시덤불이 걷힙니다.";
-            if (combat.Camp != null && combat.Camp.Remaining > 0 && x < WorldBuilder.ForestStart)
-                return "서쪽 유령을 물리치면 비석 터에서 정화 부적을 얻습니다. 도깨비를 칼로만 상대해도 됩니다.";
+            if (combat.Camp != null && !combat.Camp.Cleared && x < WorldBuilder.ForestStart)
+                return "서쪽 유령을 " + Camp.SealKills + "번 물리치면 비석 터에서 정화 부적을 얻습니다. 도깨비를 칼로만 상대해도 됩니다.";
             return "숲의 도깨비를 토벌하거나, 비석 터의 부적으로 정화하세요. 해결하면 숲 끝 가시덤불이 걷힙니다.";
         }
         var boss = combat.KongBoss;
@@ -217,7 +217,7 @@ public class Hud : MonoBehaviour
         string[] rows =
         {
             q.ElderDead ? "노인 희생" : null,
-            combat.Camp != null && combat.Camp.Remaining > 0 && combat.player.transform.position.x < WorldBuilder.ForestStart ? "들판 유령 " + combat.Camp.Remaining + "마리 남음" : null,
+            combat.Camp != null && !combat.Camp.Cleared && combat.player.transform.position.x < WorldBuilder.ForestStart ? "들판 유령 " + combat.Camp.Kills + " / " + Camp.SealKills : null,
             combat.River != null && combat.RiverFelled < Combat.KeepsakeAt && (combat.RiverFelled > 0 || combat.River.Inside(combat.player.transform.position))
                 ? "물귀신 " + combat.RiverFelled + " / " + Combat.KeepsakeAt : null,
             combat.Kong != null && combat.Kong.InVillage && !combat.Kong.Revealed ? "콩밭 단서 " + combat.Kong.Clues + " / 3" : null,

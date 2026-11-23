@@ -32,7 +32,7 @@ public static class MoralityChecks
         for (int hp = 0; hp < Camp.GhostHealth; hp++) camp.Hit(camp.mobs[2]);
         Require(camp.Remaining == 0 && gate.gameObject.activeSelf, "One round of ghosts does not open the gate");
         while (camp.Kills < Camp.SealKills) { var m = camp.mobs[0]; m.hp = Camp.GhostHealth; for (int hp = 0; hp < Camp.GhostHealth; hp++) camp.Hit(m); }
-        Require(!gate.gameObject.activeSelf, "Enough kills open the gate");
+        Require(!gate.gameObject.activeSelf && camp.Cleared && camp.Kills == Camp.SealKills, "Enough kills open the gate");
         camp.ResetCamp();
         Require(camp.Remaining == 3 && gate.gameObject.activeSelf, "Restart restores gate and monsters");
         camp.Hit(camp.mobs[0], Combat.SwordDamage);
