@@ -35,10 +35,10 @@ public class InventoryManager : MonoBehaviour
         // 빈 슬롯에 보관할 수 있는 수량
         // 은비녀처럼 보관함에서 별도로 표시하는 중요 아이템은
         // 일반 아이템 60칸을 차지하지 않는다.
-        bool keyItem = item is JinaItem special && special.effect == JinaItem.Effect.Keepsake;
+        bool keyItem = item is JinaItem special && (special.effect == JinaItem.Effect.Keepsake || special.effect == JinaItem.Effect.QuestWisp);
         int ordinaryCount = 0;
         foreach (var existing in slots)
-            if (!(existing.Item is JinaItem entry && entry.effect == JinaItem.Effect.Keepsake)) ordinaryCount++;
+            if (!(existing.Item is JinaItem entry && (entry.effect == JinaItem.Effect.Keepsake || entry.effect == JinaItem.Effect.QuestWisp))) ordinaryCount++;
         capacity += (long)Math.Max(0, keyItem ? 1 : MaxSlots - ordinaryCount) * maxStack;
 
         // 전부 들어가지 않으면 아무것도 추가하지 않음

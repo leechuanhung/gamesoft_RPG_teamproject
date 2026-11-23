@@ -218,7 +218,7 @@ public partial class Combat
         int defense = Encounter != null && Encounter.WispWeakened
             ? 2 : BossDefense;
 
-        EnemyHealth -= CalcDamage(amount, defense);
+        EnemyHealth -= CalcDamage(amount + (amount == ElderCounterDamage ? 0 : JinaItems.AttackBonus(this)), defense);
         alerted = true;
         hitFlashUntil = Time.time + .12f;
         BossHitAt = Time.time;

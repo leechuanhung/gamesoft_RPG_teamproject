@@ -169,7 +169,7 @@ public class RoadMobs : MonoBehaviour
         if (m == null || !m.Alive) return;
         if (combat != null && combat.Cheats != null) damage = combat.Cheats.Power(damage);   // 개발자 치트: 한 방
         int before = m.hp;
-        m.hp = Mathf.Max(0, m.hp - Combat.CalcDamage(damage, m.defense));
+        m.hp = Mathf.Max(0, m.hp - Combat.CalcDamage(damage + JinaItems.AttackBonus(combat), JinaItems.RopeDefense(m, m.defense, combat)));
         m.hurtAt = Time.time;
         var at = m.Body.center;
         int away = combat.player.transform.position.x < m.pos.x ? 1 : -1;
@@ -184,6 +184,8 @@ public class RoadMobs : MonoBehaviour
             return;
         }
         m.downAt = Time.time; m.windup = -1; m.strikeUntil = -1;
+        JinaItems.ForgetMob(m);
+        if (!m.soldier) JinaItems.RollDrops(m.pos);
         JinaFx.Stop(.07f);
         if (m.kind == Kind.Wisp) JinaFx.Dots(at, 14, new Color(.6f, .85f, 1), 3, .5f);
         else JinaFx.Dust(m.pos, 0, m.kind == Kind.Brute ? 1.4f : 1);

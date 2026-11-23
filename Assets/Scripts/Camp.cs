@@ -46,6 +46,7 @@ public class Camp : MonoBehaviour
         public SpriteRenderer art;
         public GhostVisual visual;
         public int hp = GhostHealth;
+        public int defense = Combat.MonsterDefense;
         public float home, ready, windup = -1, phase;
         public Vector2 strike;
         public float vanishAt = -1;
@@ -147,6 +148,7 @@ public class Camp : MonoBehaviour
     {
         m.art.gameObject.SetActive(true);
         m.vanishAt = -1; m.respawnAt = -1;
+        JinaItems.ForgetMob(m);
         m.hp = GhostHealth; m.windup = -1; m.ready = Time.time + 1;
         m.art.transform.position = new Vector3(m.home, HoverY, 0);
         m.art.enabled = true;
@@ -168,7 +170,7 @@ public class Camp : MonoBehaviour
         if (m == null || m.hp <= 0) return;
         if (combat != null && combat.Cheats != null) damage = combat.Cheats.Power(damage);   // 개발자 치트: 한 방
         int before = m.hp;
-        m.hp -= Combat.CalcDamage(damage, Combat.MonsterDefense);
+        m.hp -= Combat.CalcDamage(damage + JinaItems.AttackBonus(combat), JinaItems.RopeDefense(m, m.defense, combat));
         var at = m.art.transform.position;
         int away = combat != null && combat.player.transform.position.x < at.x ? 1 : -1;
         JinaFx.Hit(at + Vector3.up * .1f, away, river ? new Color(.74f, .92f, 1) : new Color(1, .92f, .72f));
@@ -185,6 +187,8 @@ public class Camp : MonoBehaviour
             m.visual.Down(); m.windup = -1; m.visual.Winding = false;
             m.vanishAt = Time.time + 1.5f;
             Kills++;
+            JinaItems.ForgetMob(m);
+            JinaItems.RollDrops(at);
             // 들판 몹: 4~10 무작위 (Random.Range의 끝 숫자는 포함 안 돼서 +1)
             if (combat != null) combat.GainExp(river ? Combat.WaterGhostExp : Random.Range(Combat.GhostExpMin, Combat.GhostExpMax + 1));
             if (!river) m.respawnAt = Time.time + RespawnDelay;

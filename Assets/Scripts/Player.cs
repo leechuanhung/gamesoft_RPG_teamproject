@@ -79,7 +79,7 @@ public class Player : MonoBehaviour
         if (Stamina < MaxStamina)
         {
             staminaTimer += Time.deltaTime;
-            float step = 1f / StaminaPerSecond;
+            float step = 1f / (StaminaPerSecond * JinaItems.StaminaMultiplier(this));
             while (staminaTimer >= step && Stamina < MaxStamina) { staminaTimer -= step; Stamina++; }
         }
         else staminaTimer = 0;
