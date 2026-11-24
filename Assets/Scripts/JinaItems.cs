@@ -65,20 +65,20 @@ public static class JinaItems
 {
     public static readonly JinaItem[] All =
     {
-        JinaItem.Make("misutgaru", "미숫가루", "볶은 곡식 가루 한 주머니. 물에 타 마시면 기운이 조금 돈다.\n체력 +20", JinaItem.Effect.Heal, 20, 4, 10),
-        JinaItem.Make("jumeokbap", "주먹밥", "주모가 싸 준 김 두른 주먹밥.\n체력 +40", JinaItem.Effect.Heal, 40, 7, 10),
-        JinaItem.Make("cheongsimhwan", "청심환", "금박을 입힌 귀한 환약. 막힌 기운을 단숨에 뚫는다.\n체력 +60", JinaItem.Effect.Heal, 60, 13, 5),
-        JinaItem.Make("arrows", "화살 꾸러미", "끈으로 묶은 화살 다섯 대. 화살통이 비었을 때 푼다.\n화살 +5", JinaItem.Effect.Arrows, 5, 5, 10),
-        JinaItem.Make("ward", "액막이 부적", "붉은 글씨로 액을 막는 작은 부적.\n다음에 받는 공격 한 번을 막는다", JinaItem.Effect.Ward, 1, 12, 3),
-        JinaItem.Make("jipsin", "날랜 짚신", "가볍게 삼은 새 짚신. 오래 신으면 해진다.\n15초 동안 이동이 빨라진다", JinaItem.Effect.Haste, 15, 10, 3),
-        JinaItem.Make("sansam", "산삼", "60초 동안 공격력 +3", JinaItem.Effect.AttackBoost, 3, 0, 10),
-        JinaItem.Make("rope", "포승줄", "현재 필드 일반 몬스터의 방어력 -2 (30초)", JinaItem.Effect.BindDefense, 2, 0, 10),
-        JinaItem.Make("yakgwa", "약과", "60초 동안 스태미너 회복 속도 1.5배", JinaItem.Effect.StaminaBoost, 60, 15, 10),
-        JinaItem.Make("bell", "방울", "60초 동안 방어력 +2", JinaItem.Effect.DefenseBoost, 2, 0, 10),
+        JinaItem.Make("misutgaru", "미숫가루", "볶은 곡식을 곱게 빻아 담은 주머니. 먼 길 떠나는 자식의 봇짐에 어미가 넣어 주던 것이다. 길 위에서 쓰러진 선비들의 봇짐에도 빈 주머니만은 남아 있었다고 한다.\n체력 +20", JinaItem.Effect.Heal, 20, 4, 10),
+        JinaItem.Make("jumeokbap", "주먹밥", "주막 주모가 김을 둘러 꼭꼭 뭉친 주먹밥. 고개 너머로 떠나는 길손마다 하나씩 쥐여 보냈다. 주모는 돌아오는 얼굴을 세지 않는다. 세다 보면 밥을 지을 수 없기 때문이다.\n체력 +40", JinaItem.Effect.Heal, 40, 7, 10),
+        JinaItem.Make("cheongsimhwan", "청심환", "금박을 입힌 귀한 환약. 본디 궁중 내의원에서만 빚던 것이다. 어린 임금이 즉위한 해부터 저잣거리에 흘러나오기 시작했는데, 그 값을 누가 치렀는지는 아무도 묻지 않았다.\n체력 +60", JinaItem.Effect.Heal, 60, 13, 5),
+        JinaItem.Make("arrows", "화살 꾸러미", "삼끈으로 묶은 화살 다섯 대. 깃은 봉화 산성 수비군이 쓰던 꿩 깃이다. 봉홧불이 꺼진 뒤로 산성의 화살은 쏠 곳을 잃고 장터로 흘러나왔다.\n화살 +5", JinaItem.Effect.Arrows, 5, 5, 10),
+        JinaItem.Make("ward", "액막이 부적", "붉은 주사로 글자를 그린 작은 부적. 서낭당 무녀가 길손에게 나누어 주던 것이다. 액은 막아도 업은 막지 못하니, 한 번 막고 나면 스스로 타 버린다.\n다음에 받는 공격 한 번을 막는다", JinaItem.Effect.Ward, 1, 12, 3),
+        JinaItem.Make("jipsin", "날랜 짚신", "볏짚을 촘촘히 삼은 새 짚신. 걸음이 가벼운 것은 신이 좋아서가 아니라, 아직 길의 무게를 모르기 때문이다. 오래 신으면 해진다.\n15초 동안 이동이 빨라진다", JinaItem.Effect.Haste, 15, 10, 3),
+        JinaItem.Make("sansam", "산삼", "깊은 산 서낭목 아래에서 캔 오래된 뿌리. 심마니들은 산삼이 사람을 고른다고 믿었다. 산의 주인이 미혹된 뒤로, 산삼은 더는 사람을 고르지 않는다.\n60초 동안 공격력 +3", JinaItem.Effect.AttackBoost, 3, 0, 10),
+        JinaItem.Make("rope", "포승줄", "관아에서 죄인을 묶던 붉은 포승. 묶이는 것은 몸만이 아니어서, 이 줄 앞에서는 요괴의 살갗도 무르게 된다. 좌의정 댁 곳간에는 쓰지 않은 포승이 산처럼 쌓여 있다고 한다.\n현재 필드 일반 몬스터의 방어력 -2 (30초)", JinaItem.Effect.BindDefense, 2, 0, 10),
+        JinaItem.Make("yakgwa", "약과", "꿀과 참기름으로 지진 약과. 제사상에 오르던 것이라, 먹는 이의 숨에 조상의 기운이 깃든다고 한다. 북망산 무덤마다 약과 부스러기가 흩어져 있는 까닭이다.\n60초 동안 스태미너 회복 속도 1.5배", JinaItem.Effect.StaminaBoost, 60, 15, 10),
+        JinaItem.Make("bell", "방울", "무당이 굿판에서 흔들던 놋방울. 방울 소리가 닿는 곳까지는 잡귀가 함부로 들지 못한다. 소리가 그친 뒤의 일은 무당도 장담하지 않았다.\n60초 동안 방어력 +2", JinaItem.Effect.DefenseBoost, 2, 0, 10),
     };
     // 팔지 않는다: 강의 물귀신에게서 풀려난 것(Combat.FellWaterGhost).
-    public static readonly JinaItem Keepsake = JinaItem.Make("binyeo", "은비녀", "누군가 아끼던 은비녀. 강물에 오래 잠겨 있었다. 물귀신들 사이에서 한 여인의 넋이 남기고 갔다.\n요괴의 기운이 절반 아래로 꺾였을 때 가까이에서 쓰면(F) 사로잡힌 이를 되찾는다", JinaItem.Effect.Keepsake, 0, 0, 1);
-    public static readonly JinaItem Wisp = JinaItem.Make("dokkabibol", "동행 도깨비불", "선돌에서 만난 작은 도깨비불. 숲의 주인에게 데려다주기로 했다.", JinaItem.Effect.QuestWisp, 0, 0, 1);
+    public static readonly JinaItem Keepsake = JinaItem.Make("binyeo", "은비녀", "콩밭 마을 부잣집 안주인이 강으로 나가던 날 꽂고 있던 은비녀. 물귀신들 사이에서 한 여인의 넋이 내어 주었다. 그날 밤 이후 그 집 맏딸은 이 비녀 곁에 다가서지 못한다. 강물에 잠긴 어미의 마음이 아직 은빛에 남은 까닭이다.\n요괴의 기운이 절반 아래로 꺾였을 때 가까이에서 쓰면(F) 사로잡힌 이를 되찾는다", JinaItem.Effect.Keepsake, 0, 0, 1);
+    public static readonly JinaItem Wisp = JinaItem.Make("dokkabibol", "동행 도깨비불", "선돌 곁에서 떨고 있던 작은 도깨비불. 숲의 주인이 미혹되던 밤, 홀로 길을 잃었다. 도깨비불은 주인을 잊지 않는다. 다만 주인이 저를 잊었을까 두려워할 뿐이다.\n숲의 주인에게 데려다주기로 했다.", JinaItem.Effect.QuestWisp, 0, 0, 1);
     public static JinaItem Get(string id) => System.Array.Find(All, i => i.id == id);
     // 기존 여섯 물건과 약과만 판매한다. 드랍/퀘스트 전용 아이템은 상점 목록에 포함하지 않는다.
     public static readonly JinaItem[] ForSale = { All[0], All[1], All[2], All[3], All[4], All[5], All[8] };

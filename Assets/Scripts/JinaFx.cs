@@ -118,6 +118,7 @@ public class JinaFx : MonoBehaviour
     // 타격이 꽂힌 곳의 별, 날아온 쪽으로 튀는 점 몇 개.
     public static void Hit(Vector3 at, int direction, Color colour, float size = 1)
     {
+        GameAudio.Play(GameAudio.Sfx.Hit);   // 타격 별이 뜨는 곳이면 맞는 소리도 난다
         var b = Self.Take();
         b.frames = Frames(ref spark, "spark", 4); b.life = .2f;
         b.art.sprite = b.frames[0]; b.art.transform.position = at;

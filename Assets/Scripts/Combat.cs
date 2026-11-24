@@ -117,6 +117,7 @@ public partial class Combat : MonoBehaviour
     public EndingNarration Ending { get; private set; }
     public GameOver GameOver { get; private set; }
     public Maps Maps { get; private set; }
+    public GameAudio Audio { get; private set; }
     public Ferry Ferry { get; private set; }
     public Hud Hud { get; private set; }
     public MountainPass Pass { get; private set; }
@@ -293,6 +294,9 @@ public partial class Combat : MonoBehaviour
         // 스킬: Q·W·E 스킬과 왼쪽 아래 스킬창
         Skills = gameObject.AddComponent<Skills>();
         Skills.combat = this;
+        // 팀원이 만든 배경 음악과 효과음
+        Audio = gameObject.AddComponent<GameAudio>();
+        Audio.combat = this;
     }
 
     SpriteRenderer MakeSprite(string label, Vector2 size, Color color)
@@ -389,8 +393,6 @@ public partial class Combat : MonoBehaviour
             if (Move != BossMove.None) EndMove(0);
             return;
         }
-        // 테스트용 치트: F3을 누르면 모든 무기 획득 (F1·F2는 PlayerSave가 씀)
-        if (Input.GetKeyDown(KeyCode.F3)) GiveAllWeapons();
         // 테스트용 치트: F4를 누르면 경험치 +100
         if (Input.GetKeyDown(KeyCode.F4)) GainExp(100);
         // 무기 스왑: Q → S (Q는 스킬로 사용)
@@ -424,13 +426,15 @@ public partial class Combat : MonoBehaviour
             nextAttack = Time.time + swing;
             comboUntil = w.combo ? nextAttack + ComboWindow : 0;
             player.SlowUntil = Time.time + (w.ranged ? .3f : swing);
-            // 마우스 조준: 커서 쪽으로 몸을 돌리고, 활은 커서 높이에 따라 위·수평·아래 조준
+            // 마우스 조준: 커서 쪽으로 몸을 돌리고, 칼과 활 모두 커서 방향(360도)으로 나간다.
+            //   몸은 가장 가까운 겨눈 그림(활 15도, 칼 30도마다)으로 그 쪽을 향한다.
             player.Face(MouseSide());
             attackFacing = player.Facing;
             pendingBow = w.ranged;
-            pendingAim = w.ranged ? MouseAim() : 0;
+            pendingAngle = MouseAngle();
             playerImpactAt = Time.time + w.HitAt(pendingStep);
-            if (playerVisual != null) playerVisual.Attack(w.ranged, attackFacing, pendingAim, pendingStep);
+            if (playerVisual != null) playerVisual.Attack(w.ranged, attackFacing, pendingAngle, pendingStep);
+            if (!w.ranged) GameAudio.Swing(w.id);   // 활 소리는 시위를 놓을 때(Shoot)
         }
         if (playerImpactAt >= 0 && Time.time >= playerImpactAt)
         {
@@ -442,8 +446,7 @@ public partial class Combat : MonoBehaviour
                 var w = pendingWeapon ?? Weapon.Get("hwando");
                 bool heavy = w.combo && pendingStep == 2;
                 float reach = heavy ? 1.75f : w.reach;
-                Vector2 center = (Vector2)player.transform.position + Vector2.right * attackFacing * (.28f + reach / 2);
-                var attackBounds = new Bounds(center, new Vector3(reach, heavy ? 1.15f : .9f, 1));
+                var attackBounds = SwordBox(player.transform.position, attackFacing, pendingAngle, reach, heavy ? 1.15f : .9f);
                 int damage = w.Damage(pendingStep);
                 bool landed = false;
                 if (!EnemyDefeated && attackBounds.Intersects(enemy.bounds)) { DamageEnemy(damage); landed = true; }
@@ -462,31 +465,31 @@ public partial class Combat : MonoBehaviour
                         // 1타 내려베기, 2타 올려베기, 3타(가장 큼) 수평으로 크게
                         float size = w.carryScale * (pendingStep == 2 ? 1.1f : .8f);
                         float tilt = pendingStep == 1 ? 58 : pendingStep == 2 ? 0 : -30;
-                        JinaFx.Arc(feet + new Vector3(attackFacing * (.15f + size * .35f), .85f, 0), attackFacing, tilt, size, new Color(.08f, .05f, .1f));
+                        JinaFx.Arc(Swung(feet + new Vector3(attackFacing * (.15f + size * .35f), .85f, 0)), attackFacing, tilt + pendingAngle, size, new Color(.08f, .05f, .1f));
                         // 명검 3타: 더 화려하게
                         if (pendingStep == 2)
                         {
                             var fxCenter = feet + new Vector3(attackFacing * (.15f + size * .35f), .85f, 0);
                             // 겹친 보랏빛 칼빛(더 크게) + 반대로 남는 잔상
-                            JinaFx.Arc(fxCenter + new Vector3(attackFacing * .2f, .1f, 0), attackFacing, 15, size * 1.2f, new Color(.45f, .15f, .6f), .28f);
-                            JinaFx.Arc(fxCenter, attackFacing, -20, size * .9f, new Color(.25f, .05f, .3f), .22f);
+                            JinaFx.Arc(Swung(fxCenter + new Vector3(attackFacing * .2f, .1f, 0)), attackFacing, 15 + pendingAngle, size * 1.2f, new Color(.45f, .15f, .6f), .28f);
+                            JinaFx.Arc(Swung(fxCenter), attackFacing, -20 + pendingAngle, size * .9f, new Color(.25f, .05f, .3f), .22f);
                             // 검보라 기운이 튀고 피어오름, 칼끝 번쩍임, 발밑 흙먼지
-                            JinaFx.Dots(fxCenter, 18, new Color(.3f, .1f, .4f), 4f, .6f);
-                            JinaFx.Rise(fxCenter, 14, new Color(.55f, .25f, .75f), .5f, 2f, .8f);
-                            JinaFx.Glint(fxCenter + Vector3.right * attackFacing * size * .4f, new Color(.8f, .5f, 1f));
+                            JinaFx.Dots(Swung(fxCenter), 18, new Color(.3f, .1f, .4f), 4f, .6f);
+                            JinaFx.Rise(Swung(fxCenter), 14, new Color(.55f, .25f, .75f), .5f, 2f, .8f);
+                            JinaFx.Glint(Swung(fxCenter + Vector3.right * attackFacing * size * .4f), new Color(.8f, .5f, 1f));
                             JinaFx.Dust(feet + Vector3.right * attackFacing * .6f, attackFacing * 1.6f, 1.4f);
                             // 맞혔으면 화면을 더 세게 흔들고 잠깐 더 멈춤
                             if (landed) { View.Shake(.16f, .25f); JinaFx.Stop(.12f); }
                         }
                     }
-                    else JinaFx.Arc(feet + new Vector3(attackFacing * .52f, .78f, 0), attackFacing, -30, .48f, new Color(.95f, .97f, 1));
+                    else JinaFx.Arc(Swung(feet + new Vector3(attackFacing * .52f, .78f, 0)), attackFacing, -30 + pendingAngle, .48f, new Color(.95f, .97f, 1));
                 }
             }
         }
         AdvanceArrows(Time.deltaTime);
         slash.enabled = Time.time < slashUntil;
         if (playerVisual != null) slash.enabled = false;
-        slash.transform.position = player.transform.position + Vector3.right * attackFacing * .95f;
+        slash.transform.position = player.transform.position + (Vector3)AimDirection(pendingAngle, attackFacing) * .95f;
         playerArt.color = Time.time < invulnerableUntil
             ? (Mathf.FloorToInt(Time.time * 14) % 2 == 0 ? Color.red : playerColor) : playerColor;
         if (EnemyDefeated) return;
@@ -500,14 +503,16 @@ public partial class Combat : MonoBehaviour
         var feet = player.transform.position; feet.y = playerArt.bounds.min.y;
         // 전용 그림 무기(명검)는 칼빛을 따로 그리므로 환도 칼빛은 건너뜀
         bool ownArc = pendingWeapon != null && pendingWeapon.art != null && !pendingWeapon.hwandoSlash;
-        if (step == 1 && !ownArc) JinaFx.Arc(feet + new Vector3(attackFacing * .78f, .92f, 0), attackFacing, 58, .9f, new Color(.92f, .96f, 1));
+        if (step == 1 && !ownArc) JinaFx.Arc(Swung(feet + new Vector3(attackFacing * .78f, .92f, 0)), attackFacing, 58 + pendingAngle, .9f, new Color(.92f, .96f, 1));
         if (step == 2)
         {
-            if (!ownArc) JinaFx.Arc(feet + new Vector3(attackFacing * 1.25f, .9f, 0), attackFacing, 0, 1.3f, new Color(1, .93f, .68f), .22f);
+            if (!ownArc) JinaFx.Arc(Swung(feet + new Vector3(attackFacing * 1.25f, .9f, 0)), attackFacing, pendingAngle, 1.3f, new Color(1, .93f, .68f), .22f);
             JinaFx.Dust(feet + Vector3.right * -attackFacing * .4f, -attackFacing * 1.4f, 1.2f);
             JinaFx.Dust(feet, -attackFacing * .6f, .9f);
         }
-        if (player.IsGrounded) player.Lunge(attackFacing, step == 2 ? 5f : 1.6f, step == 2 ? .14f : .1f);
+        // 앞으로 내딛는 힘은 수평 성분만큼(위·아래로 벨수록 덜 나아감)
+        float forward = Mathf.Cos(pendingAngle * Mathf.Deg2Rad);
+        if (player.IsGrounded) player.Lunge(attackFacing, (step == 2 ? 5f : 1.6f) * forward, step == 2 ? .14f : .1f);
         if (!landed) return;
         JinaFx.Stop(step == 2 ? .09f : .045f);
         View.Shake(step == 2 ? .11f : .045f, step == 2 ? .2f : .1f);
@@ -525,21 +530,37 @@ public partial class Combat : MonoBehaviour
     }
     // 커서가 선비 오른쪽이면 1, 왼쪽이면 -1
     int MouseSide() => MouseWorld().x >= playerArt.bounds.center.x ? 1 : -1;
-    // 커서가 선비 기준 15° 위면 위 조준(1), 15° 아래면 아래 조준(-1), 그 사이면 수평(0)
-    int MouseAim()
+    // 커서 쪽을 바라볼 때의 조준 각도(도): 위가 +, −90~90. 커서가 선비 한가운데면 수평.
+    float MouseAngle()
     {
         Vector2 d = MouseWorld() - (Vector2)playerArt.bounds.center;
-        float angle = Mathf.Atan2(d.y, Mathf.Abs(d.x)) * Mathf.Rad2Deg;
-        return angle > 15f ? 1 : angle < -15f ? -1 : 0;
+        if (d.sqrMagnitude < .0001f) return 0;
+        return Mathf.Atan2(d.y, Mathf.Abs(d.x)) * Mathf.Rad2Deg;
     }
-        // 테스트용: 무기 표(Weapon.cs)의 모든 무기를 보따리에 넣음
-    void GiveAllWeapons()
+    // 칼이 닿는 곳: 몸 가운데(pivot)에서 조준 방향으로 뻗은 reach×thickness 사각형을 감싸는 상자.
+    //   수평(0도)이면 예전과 같은 앞쪽 상자이고, 비스듬하면 돌린 사각형의 테두리 상자다.
+    public static Bounds SwordBox(Vector2 pivot, int facing, float angle, float reach, float thickness)
+    {
+        var dir = AimDirection(angle, facing);
+        float c = Mathf.Abs(dir.x), s = Mathf.Abs(dir.y);
+        return new Bounds(pivot + dir * (.28f + reach / 2), new Vector3(reach * c + thickness * s, reach * s + thickness * c, 1));
+    }
+    // 칼빛·불티 자리를 몸 가운데를 축으로 조준 각도만큼 돌린다(수평이면 그대로).
+    Vector3 Swung(Vector3 at)
+    {
+        var pivot = player.transform.position; pivot.z = at.z;
+        return pivot + Quaternion.Euler(0, 0, pendingAngle * attackFacing) * (at - pivot);
+    }
+    // 테스트용: 무기 표(Weapon.cs)의 모든 무기를 보따리에 넣음(개발자 치트 F7이 모든 아이템과 함께 부른다)
+    public int GiveAllWeapons()
     {
         var ui = FindObjectOfType<InventoryUI>();
-        if (ui == null) return;
-        foreach (var id in Weapon.All.Keys) ui.GiveWeapon(id);
+        if (ui == null) return 0;
+        int given = 0;
+        foreach (var id in Weapon.All.Keys) if (ui.GiveWeapon(id)) given++;
         WeaponPickup.ClearAll();   // 땅에 떨어져 있던 무기는 치움
         JinaFx.Word(player.transform.position + Vector3.up * 1.5f, "모든 무기 획득!", new Color(1f, .9f, .5f), 22);
+        return given;
     }
     // 스킬 공격: area 안의 보스와 일반 몬스터에게 damage만큼 피해
     public void SkillHit(Bounds area, int damage)

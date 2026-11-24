@@ -119,11 +119,11 @@ public class InventoryUI : MonoBehaviour
     // 땅에서 주운 무기를 보따리에 넣고, 빈 무기 칸이 있으면 바로 장착
     public bool GiveWeapon(string id)
     {
-        bool added = id == "hwando" ? UnlockWeapon("hwando", "환도", "기본 근접 무기", "icon_sword", true)
-                   : id == "bow" ? UnlockWeapon("bow", "활", "화살을 소비하는 원거리 무기", "icon_bow", true)
-                   : id == "myeonggeom" ? UnlockWeapon("myeonggeom", "명검", "환도보다 강하고 긴 전설의 검 (3연격)", "icon_sword", true)
-                   : id == "saingeom" ? UnlockWeapon("saingeom", "사인검", "사악한 것을 베는 검. 환도보다 조금 강하다 (악행 20 이상이면 장착 불가)", "icon_sword", true)
-                   : id == "byeokjogung" ? UnlockWeapon("byeokjogung", "벽조궁", "번개 맞은 대추나무로 만든 활 (활보다 데미지 50% 높음)", "icon_bow", true)
+        bool added = id == "hwando" ? UnlockWeapon("hwando", "환도", "군졸들이 허리에 차던 흔한 환도. 날이 짧고 휘어 빠르게 벤다. 과거 길에 칼은 어울리지 않는다고들 했다. 그러나 이 길에서 붓만 쥔 자는 아무도 한양에 닿지 못했다.\n세 번 이어 벤다", "icon_sword", true)
+                   : id == "bow" ? UnlockWeapon("bow", "활", "물소 뿔과 대나무를 겹쳐 만든 각궁. 활쏘기는 선비가 닦는 여섯 재주 가운데 하나였으니, 서책 사이에 활을 둔 것은 허물이 아니다.\n화살을 소비한다", "icon_bow", true)
+                   : id == "myeonggeom" ? UnlockWeapon("myeonggeom", "명검", "이름을 잃은 장수의 칼. 망한 나라가 무너지던 날, 성문 앞에서 끝까지 버텼다고 한다. 칼은 주인보다 오래 살아남아 지금도 들판의 망령들 사이를 떠돈다.\n환도보다 무겁고 길다. 세 번 이어 벤다", "icon_sword", true)
+                   : id == "saingeom" ? UnlockWeapon("saingeom", "사인검", "범의 해, 범의 달, 범의 날, 범의 시에만 벼린다는 칼. 칼날에 새긴 별자리가 사귀를 벤다. 마음이 더럽혀진 자의 손에서는 그저 쇠붙이일 뿐이다.\n세 번 이어 벤다. 악행 20 이상이면 쥘 수 없다", "icon_sword", true)
+                   : id == "byeokjogung" ? UnlockWeapon("byeokjogung", "벽조궁", "벼락 맞은 대추나무로 만든 활. 벽조목은 예로부터 귀신이 꺼리는 나무라 했다. 시위를 당기면 그날의 벼락이 아직 나무 속에서 운다.\n활보다 피해가 5할 높다. 화살을 소비한다", "icon_bow", true)
                    : false;
         if (!added) return false;
         for (int i = 0; i < 2; i++) if (equippedWeapons[i] == null) { EquipWeapon(id, i); break; }
@@ -157,8 +157,8 @@ public class InventoryUI : MonoBehaviour
         UnlockSkill("rush_slash", "돌진베기", "전방으로 돌진하며 적에게 피해", Skills.RushCooldown, true);
         UnlockSkill("power_shot", "강궁", "다음 화살 한 발의 공격력이 2배 (활을 들었을 때만)", Skills.PowerShotCooldown, true);
         // 처음엔 단검과 활. 나머지 무기는 들판 몹이 떨어뜨림 (WeaponPickup.cs)
-        UnlockWeapon("dagger", "단검", "짧고 빠른 근접 무기 (콤보 없음)", "icon_sword", true);
-        UnlockWeapon("bow", "활", "화살을 소비하는 원거리 무기", "icon_bow", true);
+        UnlockWeapon("dagger", "단검", "품에 숨기기 좋은 짧은 칼. 은장도라 하기엔 날이 너무 서 있다. 길 위에서는 예법보다 빠른 손이 목숨을 지킨다.\n빠르게 찌른다. 이어 베지 않는다", "icon_sword", true);
+        UnlockWeapon("bow", "활", "물소 뿔과 대나무를 겹쳐 만든 각궁. 활쏘기는 선비가 닦는 여섯 재주 가운데 하나였으니, 서책 사이에 활을 둔 것은 허물이 아니다.\n화살을 소비한다", "icon_bow", true);
     }
 
     void Update()
@@ -352,7 +352,7 @@ public class InventoryUI : MonoBehaviour
             y += DrawKeyItemRecord(new Rect(content.x, y, content.width, 0), JinaItems.Wisp.ItemName, JinaItems.Wisp.Description, JinaItems.Wisp.Icon);
         if (hasCharm)
         {
-            string description = "옛 비석에서 얻은 정화 부적. 숲의 도깨비에게 씌인 저주를 풀 수 있다.\n도깨비 가까이에서 F를 눌러 정화한다.";
+            string description = "망한 나라의 옛 비석이 품고 있던 부적. 비석을 세운 이들은 나라와 함께 사라졌으나, 그들이 남긴 글씨는 아직 저주를 알아본다. 숲의 주인에게 씌운 것은 본디 그들의 원한이었다.\n도깨비 가까이에서 F를 눌러 정화한다.";
             y += DrawKeyItemRecord(new Rect(content.x, y, content.width, 0), "정화 부적", description, JinaArt.Prop("charm"));
         }
     }
@@ -442,9 +442,12 @@ public class InventoryUI : MonoBehaviour
         const float boxWidth = 300, pad = 16, inner = boxWidth - pad * 2;
         float x = window.x - boxWidth - 8, top = window.y;
         var stats = Weapon.Get(weapon.id);
-        string description = weapon.description ?? "";
-        float descHeight = Height(description, 15, inner);
-        float total = pad + 80 + 12 + descHeight + 12 + 28 + pad;
+        // 설명의 마지막 줄은 쓰임새라서 초록으로 따로 쓴다(아이템 설명과 같다).
+        string description = weapon.description ?? "", use = null;
+        int cut = description.LastIndexOf('\n');
+        if (cut >= 0) { use = description.Substring(cut + 1); description = description.Substring(0, cut); }
+        float descHeight = Height(description, 15, inner), useHeight = Height(use, 15, inner, true);
+        float total = pad + 80 + 12 + descHeight + (useHeight > 0 ? useHeight + 8 : 0) + 12 + 28 + pad;
         Box(new Rect(x, top, boxWidth, total), Paper, Wood, 3);
         float left = x + pad, y = top + pad;
         var iconBox = new Rect(left, y, 80, 80);
@@ -457,6 +460,7 @@ public class InventoryUI : MonoBehaviour
         y += 92;
         Text(new Rect(left, y, inner, descHeight), description, 15, TextDark);
         y += descHeight + 12;
+        if (use != null) { Text(new Rect(left, y - 4, inner, useHeight), use, 15, Green, TextAnchor.UpperLeft, true); y += useHeight + 8; }
         string damage = stats.comboDamage != null ? string.Join(" / ", System.Array.ConvertAll(stats.comboDamage, v => v.ToString())) : stats.damage.ToString();
         Text(new Rect(left, y, inner, 28), "공격력 " + damage + (stats.comboDamage != null ? " (연격)" : ""), 15, Green, TextAnchor.MiddleLeft, true);
     }

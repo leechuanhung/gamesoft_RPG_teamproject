@@ -22,7 +22,7 @@ public partial class FinalBoss : MonoBehaviour
     public bool Resolved => Now == Phase.Slain;
     public bool Cutscene => Now == Phase.Banquet || Now == Phase.Changing;
     public const string Name = "어둑시니 좌의정", Epithet = "얼굴을 팔아 권세를 산 자", Official = "좌의정 엄탁", Seonbi = "선비";
-    public const string LastLine = "그렇다면 그 목, 내가 먼저 치마!", Roar = "흐흐흐… 이 나라는 내 것이다!";
+    public const string LastLine = "그렇다면 그 목, 내가 먼저 치마!", Roar = "얼굴은 진작 팔아 버렸다. 올려다보아라, 선비. 네가 볼수록 나는 커진다.";
     public const float MeetRange = 3.4f, ChangeLength = 4.2f, BlankAt = .6f, SwellAt = 1.3f, FlashAt = 2.2f, CardAt = 2.4f, RoarUntil = 3.4f;
     public const float DeathLength = 2.4f;
     public static readonly float Home = WorldBuilder.OfficialX;
@@ -310,7 +310,8 @@ public partial class FinalBoss : MonoBehaviour
         GUI.depth = -50;
         DrawBars(Mathf.Clamp01((ChangeLength - t) / .4f));
         float bar = JinaUI.H * .11f * Mathf.Clamp01((ChangeLength - t) / .4f);
-        if (t >= FlashAt && t < RoarUntil + .4f) SpeechBubble.Draw(Feet + Vector3.up * 4.4f, Official, Roar);
+        // 변신 대사는 길어서 변신이 끝날 때까지 남겨 둔다(다 찍히고도 읽을 틈이 있게).
+        if (t >= FlashAt && t < ChangeLength - .1f) SpeechBubble.Draw(Feet + Vector3.up * 4.4f, Official, Roar);
         float card = Mathf.Clamp01((t - CardAt) / .5f) * Mathf.Clamp01((ChangeLength - .3f - t) / .4f);
         if (card <= 0) return;
         const float size = 33;

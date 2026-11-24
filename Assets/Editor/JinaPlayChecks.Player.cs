@@ -81,7 +81,7 @@ public static partial class JinaPlayChecks
         foreach(int direction in new[]{1,-1})
         {
             visual.Attack(true,direction); Set(visual,"attackTime",.31f); visual.SendMessage("LateUpdate");
-            Set(combat,"pendingBow",true); Set(combat,"attackFacing",direction); Set(combat,"playerImpactAt",Time.time);
+            Set(combat,"pendingBow",true); Set(combat,"pendingAngle",0f); Set(combat,"attackFacing",direction); Set(combat,"playerImpactAt",Time.time);
             Call(combat);
             var shot=GameObject.Find("Arrow").GetComponent<SpriteRenderer>();
             float expectedY=combat.player.GetComponent<SpriteRenderer>().bounds.min.y+312f/(510f/1.9f);

@@ -15,38 +15,46 @@ public partial class Combat
     }
     // E 강궁: 켜져 있으면 다음 화살 한 발이 2배 (Skills.cs가 켜고, 쏘면 꺼짐)
     public bool PowerShotReady { get; set; }
-    // 쏠 때 위나 아래를 누르고 있으면 활을 30도 위·아래로 겨눈다(bow_up / bow_down 프레임).
-    public const float AimAngle = 30f;
-    private int pendingAim;
-    // 오른쪽을 보고 쏠 때 화살이 활을 떠나는 위치(발 기준). 수평 사격은 그려진 시위 높이에서 1.1 앞,
-    // 조준 사격은 그 점을 놓는 프레임의 어깨(x 400, 위로 285px)를 축으로 돌린다.
-    public static Vector2 ArrowLaunch(int aim)
+    // 마우스 조준 각도(도). 바라보는 쪽 기준이고 위가 +, 범위는 −90~90. 칼과 활 모두 이 방향으로 나간다.
+    private float pendingAngle;
+    // 바라보는 쪽 기준 각도를 실제 방향으로 바꾼다(길이 1).
+    public static Vector2 AimDirection(float angle, int facing) =>
+        new Vector2(facing * Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
+    // 겨눈 몸 그림(Tools/ArtGen/make_aim.py)은 활 15도, 칼 30도마다 있다(bow_aim_u45_00, sword_aim_d90_02 …).
+    //   그 사이 각도는 가까운 그림을 쓰고, 화살과 칼빛은 마우스 각도 그대로 나간다.
+    public const int BowAimStep = 15, SwordAimStep = 30;
+    public static int AimBucket(float angle, int step) => Mathf.Clamp(Mathf.RoundToInt(angle / step), -90 / step, 90 / step) * step;
+    // 90도로 겨눌 때 어깨 위가 기우는 양(그림 px, make_aim.py의 LEAN). 위로 겨누면 뒤로(−), 아래로 겨누면 앞으로(+).
+    public const float AimLean = 60f;
+    public static float AimLeanPixels(int bucket) => -Mathf.Round(AimLean * bucket / 90f / 10f) * 10f;
+    // 오른쪽을 보고 쏠 때 화살이 활을 떠나는 위치(발 기준). 수평 사격은 그려진 시위 높이에서 1.1 앞.
+    // 겨눈 그림은 쏘는 그림(2번)의 어깨(x 400, 위로 285px)를 축으로 팔을 돌리고, 어깨 위가 기운 만큼 옮긴다.
+    public static Vector2 ArrowLaunch(int bucket)
     {
         var level = new Vector2(1.1f, JinaArt.BowArrowHeight);
-        if (aim == 0) return level;
-        var pivot = new Vector2(100f, 285f) / (510f / 1.9f);
-        return pivot + (Vector2)(Quaternion.Euler(0, 0, AimAngle * aim) * (level - pivot));
+        if (bucket == 0) return level;
+        const float unit = 510f / 1.9f;
+        var pivot = new Vector2(100f, 285f) / unit;
+        return pivot + (Vector2)(Quaternion.Euler(0, 0, bucket) * (level - pivot)) + Vector2.right * AimLeanPixels(bucket) / unit;
     }
-    // 조준 단계와 방향으로 화살이 날아갈 방향을 구한다.
-    public static Vector2 ArrowDirection(int aim, int facing) =>
-        new Vector2(facing * Mathf.Cos(AimAngle * aim * Mathf.Deg2Rad), Mathf.Sin(AimAngle * aim * Mathf.Deg2Rad));
     private readonly List<FlyingArrow> arrows = new List<FlyingArrow>();
 
-    // 활의 시위(조준하면 올리거나 내린 위치)에서 놓아 조준 방향으로 날아간다.
+    // 그려진 활의 시위(가장 가까운 겨눈 그림)에서 놓아 마우스 각도 그대로 날아간다.
     void Shoot()
     {
         // 놓을 때 소모한다. 대화창 때문에 취소된 사격은 화살이 남는다.
         Arrows--;
         slashUntil = 0;
+        GameAudio.Shot((pendingWeapon ?? CurrentStats).id);
         var arrow = MakeSprite("Arrow", new Vector2(.55f, .1f), new Color(1f,.85f,.35f));
         arrow.sprite = JinaArt.Load("04_Weapons/arrow");
         arrow.transform.localScale = Vector3.one;
         arrow.color = Color.white;
         arrow.flipX = attackFacing < 0;
         arrow.sortingOrder = 4;
-        arrow.transform.rotation = Quaternion.Euler(0, 0, AimAngle * pendingAim * attackFacing);
+        arrow.transform.rotation = Quaternion.Euler(0, 0, pendingAngle * attackFacing);
         // 점프 중에도 SeonbiVisual과 같은 발 기준을 쓴다.
-        var launch = ArrowLaunch(pendingAim);
+        var launch = ArrowLaunch(AimBucket(pendingAngle, BowAimStep));
         arrow.transform.position = new Vector3(player.transform.position.x + attackFacing * launch.x,
             playerArt.bounds.min.y + launch.y, 0);
         var bow = pendingWeapon ?? CurrentStats;
@@ -61,13 +69,13 @@ public partial class Combat
             arrow.color = new Color(1f, .85f, .4f);
             JinaFx.Dots(arrow.transform.position, 10, new Color(1f, .8f, .3f), 3f, .3f, attackFacing);
         }
-        arrows.Add(new FlyingArrow { art = arrow, direction = ArrowDirection(pendingAim, attackFacing), damage = damage, lightning = lightning, power = power });
+        arrows.Add(new FlyingArrow { art = arrow, direction = AimDirection(pendingAngle, attackFacing), damage = damage, lightning = lightning, power = power });
         JinaFx.Glint(arrow.transform.position, new Color(1, .96f, .8f));
          // 벽조궁: 쏠 때 활 앞으로 짧은 번개 두 줄기 + 하늘색 튀김
         if (lightning)
         {
             var from = arrow.transform.position;
-            var dir = (Vector3)ArrowDirection(pendingAim, attackFacing);
+            var dir = (Vector3)AimDirection(pendingAngle, attackFacing);
             Lightning.Bolt(from, from + dir * 1.1f + Vector3.up * .15f, .04f, .14f, .12f);
             Lightning.Bolt(from, from + dir * .8f - Vector3.up * .15f, .03f, .12f, .1f);
             JinaFx.Dots(from, 6, new Color(.55f, .8f, 1f), 2.4f, .25f, attackFacing);

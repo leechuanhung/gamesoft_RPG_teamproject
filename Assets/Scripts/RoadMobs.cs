@@ -184,6 +184,7 @@ public class RoadMobs : MonoBehaviour
             return;
         }
         m.downAt = Time.time; m.windup = -1; m.strikeUntil = -1;
+        GameAudio.Play(m.kind == Kind.Wisp ? GameAudio.Sfx.GhostDie : GameAudio.Sfx.MobDie);
         JinaItems.ForgetMob(m);
         if (!m.soldier) JinaItems.RollDrops(m.pos);
         JinaFx.Stop(.07f);

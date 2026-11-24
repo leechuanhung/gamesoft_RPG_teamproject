@@ -44,7 +44,8 @@ public class View : MonoBehaviour
     void LateUpdate()
     {
         // 부드러운 줌인 및 줌아웃
-        if (cam != null)
+        // 세계 밖 연출 방(콩밭 하룻밤)은 연출이 카메라 크기를 직접 정하므로 건드리지 않는다(둘이 다투면 화면이 떨린다).
+        if (cam != null && !FixedX.HasValue)
         {
             float desiredSize = Time.time < zoomUntil
                 ? defaultSize * zoomScale

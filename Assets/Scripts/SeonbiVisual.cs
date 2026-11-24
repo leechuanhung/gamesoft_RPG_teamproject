@@ -5,8 +5,8 @@ public class SeonbiVisual : MonoBehaviour
     private Combat combat;
     private SpriteRenderer source,body,weapon,gripFingers;
     private Sprite fingerSprite;
-    private Sprite[] swordFrames,emptySwordFrames,bowFrames,bowUpFrames,bowDownFrames,jumpFrames,walkFrames,runFrames,hitFrames,dashFrames;
-    private Sprite[] byeokjoFrames,byeokjoUpFrames,byeokjoDownFrames;   // 벽조궁 쏘는 그림
+    private Sprite[] swordFrames,emptySwordFrames,bowFrames,jumpFrames,walkFrames,runFrames,hitFrames,dashFrames;
+    private Sprite[] byeokjoFrames;   // 벽조궁 쏘는 그림(겨눈 그림은 byeokjo_aim_…)
     private bool wasAirborne;
     private float airTime,landingTime,walkTime;
     private float attackTime=10;
@@ -17,7 +17,18 @@ public class SeonbiVisual : MonoBehaviour
         : (combat.CurrentStats.sheathedArt ?? combat.CurrentStats.art ?? "04_Weapons/hwando_sheathed");
     private bool bowAttack;
     private bool stabAttack;   // 단검 공격 중 (전용 그림을 손에 들고 휘두름)
-    private int attackFacing=1,attackAim,attackStep;
+    private int attackFacing=1,attackStep;
+    // 겨눈 각도에 가장 가까운 그림(Combat.AimBucket): 활은 15도, 칼은 30도마다. 0이면 수평 그림.
+    private int bowBucket,swordBucket;
+    private readonly System.Collections.Generic.Dictionary<string,Sprite[]> aimedFrames=new System.Collections.Generic.Dictionary<string,Sprite[]>();
+    // 겨눈 그림 네 장(make_aim.py): prefix + u45/d90 + _00~03. 처음 쓸 때 불러 둔다.
+    Sprite[] Aimed(string prefix,int bucket)
+    {
+        string key=prefix+AimName(bucket)+"_";
+        if(!aimedFrames.TryGetValue(key,out var frames)) aimedFrames[key]=frames=JinaArt.Frames(key);
+        return frames;
+    }
+    public static string AimName(int bucket) => (bucket>0 ? "u" : "d")+Mathf.Abs(bucket);
     private float nextDust,nextGhost;
     private bool wasDodging;
     public const float SwordDuration=.4f,BowDuration=.6f,HitDelay=.2f,BowReleaseDelay=.3f;
@@ -62,11 +73,7 @@ public class SeonbiVisual : MonoBehaviour
         v.swordFrames=JinaArt.Frames("02_Player_Attack_Sword/sword_attack_");
         v.emptySwordFrames=JinaArt.Frames("02_Player_Attack_Sword/sword_attack_empty_");
         v.bowFrames=JinaArt.Frames("03_Player_Attack_Bow/bow_attack_");
-        v.bowUpFrames=JinaArt.Frames("03_Player_Attack_Bow/bow_up_");
-        v.bowDownFrames=JinaArt.Frames("03_Player_Attack_Bow/bow_down_");
         v.byeokjoFrames=JinaArt.Frames("03_Player_Attack_Bow/byeokjo_attack_");
-        v.byeokjoUpFrames=JinaArt.Frames("03_Player_Attack_Bow/byeokjo_up_");
-        v.byeokjoDownFrames=JinaArt.Frames("03_Player_Attack_Bow/byeokjo_down_");
         v.jumpFrames=JinaArt.Frames("09_Player_Jump/jump_");
         v.walkFrames=JinaArt.Frames("10_Player_Walk/player_walk_");
         v.runFrames=JinaArt.Frames("11_Player_Run/player_run_");
@@ -78,8 +85,14 @@ public class SeonbiVisual : MonoBehaviour
     {
         var art=new GameObject(name).AddComponent<SpriteRenderer>(); art.sortingOrder=order; return art;
     }
-    // aim: +1 up, -1 down, 0 level (bow only).
-    public void Attack(bool bow,int facing,int aim=0,int step=0) { bowAttack=bow; stabAttack=!bow && combat.CurrentStats.art!=null; attackFacing=facing; attackAim=bow ? aim : 0; attackStep=bow ? 0 : step; attackTime=0; swordOutTime=bow ? 0 : SwordLength(step)+SheathDelay+SheathMotion; }
+    // angle: 바라보는 쪽 기준 조준 각도(도, 위가 +). 가장 가까운 겨눈 그림을 고른다.
+    public void Attack(bool bow,int facing,float angle=0,int step=0)
+    {
+        bowAttack=bow; stabAttack=!bow && combat.CurrentStats.art!=null; attackFacing=facing;
+        bowBucket=bow ? Combat.AimBucket(angle,Combat.BowAimStep) : 0;
+        swordBucket=bow ? 0 : Combat.AimBucket(angle,Combat.SwordAimStep);
+        attackStep=bow ? 0 : step; attackTime=0; swordOutTime=bow ? 0 : SwordLength(step)+SheathDelay+SheathMotion;
+    }
     public void ResetPose() { swordOutTime=0; ResetMovementPose(); }
     void ResetMovementPose() { attackTime=10; walkTime=0; airTime=0; landingTime=0; wasAirborne=false; }
     void LateUpdate()
@@ -115,13 +128,13 @@ public class SeonbiVisual : MonoBehaviour
         bool hurt=combat.PlayerHurtAt>=0 && Time.time-combat.PlayerHurtAt<HurtLength && !attacking;
         bool dodging=player.Dodging && combat.PlayerHealth>0;
         bool dashSlashing=dodging && player.DashSlashing;
-        // 벽조궁이면 벽조궁 그림으로 쏨
+        // 벽조궁이면 벽조궁 그림으로 쏨(겨눈 그림도 벽조궁 것)
         bool byeokjo=combat.CurrentStats.id=="byeokjogung";
-        var shot=attackAim>0 ? (byeokjo ? byeokjoUpFrames : bowUpFrames)
-                : attackAim<0 ? (byeokjo ? byeokjoDownFrames : bowDownFrames)
-                : (byeokjo ? byeokjoFrames : bowFrames);
+        var shot=bowBucket==0 ? (byeokjo ? byeokjoFrames : bowFrames) : Aimed(byeokjo ? "03_Player_Attack_Bow/byeokjo_aim_" : "03_Player_Attack_Bow/bow_aim_",bowBucket);
+        var cut=swordBucket==0 ? swordFrames : Aimed("02_Player_Attack_Sword/sword_aim_",swordBucket);
+        var emptyCut=swordBucket==0 ? emptySwordFrames : Aimed("02_Player_Attack_Sword/sword_aim_empty_",swordBucket);
         int strideFrame=(int)(walkTime/(running ? .08f : .12f))%4;
-        body.sprite=dashSlashing ? dashFrames[Mathf.Clamp((int)((1f-Mathf.Clamp01(player.DashRemaining / Player.DodgeLength))*8f),0,7)] : dodging ? JinaArt.Load("01_Player/player_dodge") : hurt ? hitFrames[0] : attacking ? (bowAttack ? shot[Mathf.Min(3,(int)(attackTime/(duration/4)))] : stabAttack ? emptySwordFrames[SwordFrame(attackTime*SwordLength(attackStep)/duration)] : swordFrames[SwordFrame(attackTime*SwordLength(attackStep)/duration)]) : jumping ? jumpFrames[jumpFrame] : running ? runFrames[strideFrame] : walking ? walkFrames[strideFrame] : LoadSprite();
+        body.sprite=dashSlashing ? dashFrames[Mathf.Clamp((int)((1f-Mathf.Clamp01(player.DashRemaining / Player.DodgeLength))*8f),0,7)] : dodging ? JinaArt.Load("01_Player/player_dodge") : hurt ? hitFrames[0] : attacking ? (bowAttack ? shot[Mathf.Min(3,(int)(attackTime/(duration/4)))] : stabAttack ? emptyCut[SwordFrame(attackTime*SwordLength(attackStep)/duration)] : cut[SwordFrame(attackTime*SwordLength(attackStep)/duration)]) : jumping ? jumpFrames[jumpFrame] : running ? runFrames[strideFrame] : walking ? walkFrames[strideFrame] : LoadSprite();
         JinaArt.Place(body,feet,facing<0);
         body.transform.rotation=Quaternion.identity; weapon.transform.rotation=Quaternion.identity; weapon.color=Color.white;
         // Standing still, his chest rises and falls by one art pixel.
@@ -162,12 +175,37 @@ public class SeonbiVisual : MonoBehaviour
     //   무기 그림은 40° 들려 그려져 있어서 (원래 칼 각도 - 40)을 넣음
     static readonly Vector2[] SwingPalm={new Vector2(263,418),new Vector2(432,182),new Vector2(380,338),new Vector2(356,430)};
     static readonly float[] SwingAngle={-51f,105f,-52f,-65f};
+    // 겨눈 칼 그림(make_aim.py)에서 앞손 자리(캔버스 왼쪽 위 기준, 넓힌 AimPad 포함)와 칼이 더 돌아간 각도.
+    //   어깨 위는 기울고(줄마다 SwordTop~SwordHip에서 줄어듦), 2번은 팔이 어깨를 축으로 돌고, 0·3번은 칼만, 1번은 기울기만.
+    static readonly Vector2 SwordShoulder=new Vector2(290,330);
+    const float SwordTop=300,SwordHip=470;
+    static float RowLean(float y,float lean) => y<SwordTop ? lean : y<SwordHip ? Mathf.Round(lean*(SwordHip-y)/(SwordHip-SwordTop)/10f)*10f : 0;
+    public static Vector2 SwingPalmAt(int frame,int bucket,out float turn)
+    {
+        var palm=SwingPalm[frame]; turn=0;
+        if(bucket==0) return palm;
+        float lean=Combat.AimLeanPixels(bucket);
+        if(frame==2)
+        {
+            float shift=RowLean(SwordShoulder.y,lean);
+            var pivot=SwordShoulder+new Vector2(shift,0);
+            var d=palm+new Vector2(shift,0)-pivot;
+            // 그림 좌표는 y가 아래로 늘어나므로, 시계 반대 방향으로 돌리면 이렇게 된다.
+            float r=bucket*Mathf.Deg2Rad, c=Mathf.Cos(r), s=Mathf.Sin(r);
+            palm=pivot+new Vector2(d.x*c+d.y*s,-d.x*s+d.y*c);
+            turn=bucket;
+        }
+        else { palm.x+=RowLean(palm.y,lean); if(frame!=1) turn=bucket; }
+        palm.y+=JinaArt.AimPad;
+        return palm;
+    }
     void PlaceHeldWeapon(int facing,bool walking,bool running,int frame,int swing=-1)
     {
         bool bow=combat.UsingBow;
         bool handNear=bow ? facing<0 : facing>0;
         var palm=handNear ? new Vector2(67,342) : new Vector2(198,345);
-        if(swing>=0) palm=SwingPalm[swing];
+        float turn=0;
+        if(swing>=0) palm=SwingPalmAt(swing,swordBucket,out turn);
         else if(running) palm=(handNear ? NearRunPalm : FarRunPalm)[frame];
         else if(walking) palm=(handNear ? NearWalkPalm : FarWalkPalm)[frame];
         // 휘두를 땐 무기를 몸 뒤에 그려서 그림 속 두 손이 손잡이를 감싸 쥔 것처럼 보이게 함
@@ -193,7 +231,7 @@ public class SeonbiVisual : MonoBehaviour
             angle=Mathf.Clamp(hand.x*facing*35f,-16f,16f);
         }
         // 전용 그림 무기 공격: 환도 공격 그림의 칼 각도를 그대로 따라감
-        if(swing>=0) angle=SwingAngle[swing];
+        if(swing>=0) angle=SwingAngle[swing]+turn;
         if(!bow)
         {
             if(sheathed) angle+=150f; // Hilt forward, scabbard trailing behind the hand.
