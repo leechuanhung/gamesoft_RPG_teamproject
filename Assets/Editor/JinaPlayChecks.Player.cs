@@ -47,7 +47,7 @@ public static partial class JinaPlayChecks
             visual.Attack(true,1); Set(visual,"attackTime",i*.15f+.01f); visual.SendMessage("LateUpdate");
             Capture("bow-"+i,new Vector3(0,1,-10),2);
         }
-        Set(combat,"<UsingBow>k__BackingField",true);
+        Bow(combat,true);
         visual.ResetPose(); visual.SendMessage("LateUpdate");
         var carriedWeapon=Field<SpriteRenderer>(visual,"weapon");
         Check(Mathf.Abs(carriedWeapon.sprite.bounds.size.y-JinaArt.BowHeight)<.01f,"Equipped bow matches attack bow length");
@@ -57,7 +57,7 @@ public static partial class JinaPlayChecks
         var fingers=Field<SpriteRenderer>(visual,"gripFingers");
         foreach(bool usingBow in new[]{false,true})
         {
-            Set(combat,"<UsingBow>k__BackingField",usingBow);
+            Bow(combat,usingBow);
             foreach(int direction in new[]{1,-1})
             {
                 Set(combat.player,"<Facing>k__BackingField",direction);
@@ -91,7 +91,7 @@ public static partial class JinaPlayChecks
             shot.enabled=false; shot.gameObject.name="Checked Arrow";
             typeof(Combat).GetMethod("ClearArrows",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(combat,null);
         }
-        Set(combat,"<UsingBow>k__BackingField",false);
+        Bow(combat,false);
 
         visual.ResetPose(); visual.SendMessage("LateUpdate");
         Check(carriedWeapon.sprite.name.EndsWith("hwando_sheathed"),"Equipped sword starts sheathed");

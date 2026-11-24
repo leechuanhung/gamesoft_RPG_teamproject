@@ -107,10 +107,24 @@ public partial class Combat
                         float distance = ArrowHitDistance(candidate.art.bounds, origin, direction, step);
                         if (distance < enemyDistance) { enemyDistance = distance; mob = candidate; mobCamp = camp; kong = false; crock = -1; }
                     }
+            // 한양 가는 길의 몬스터·관군과 좌의정.
+            RoadMobs.Mob roadMob = null; bool final = false;
+            if (Mobs != null)
+            {
+                var candidate = Mobs.ArrowTarget(origin, direction, step, out float d);
+                if (d < enemyDistance) { enemyDistance = d; roadMob = candidate; mob = null; kong = false; crock = -1; }
+            }
+            if (FinalBoss != null && FinalBoss.Fighting)
+            {
+                float d = ArrowHitDistance(FinalBoss.HurtBox, origin, direction, step);
+                if (d < enemyDistance) { enemyDistance = d; final = true; roadMob = null; mob = null; kong = false; crock = -1; }
+            }
             bool hitsEnemy = enemyDistance <= step && (wall.collider == null || enemyDistance < wall.distance);
             if (hitsEnemy)
             {
-                if (mob != null) mobCamp.Hit(mob, arrow.damage);
+                if (final) FinalBoss.Damage(arrow.damage);
+                else if (roadMob != null) Mobs.Hit(roadMob, arrow.damage);
+                else if (mob != null) mobCamp.Hit(mob, arrow.damage);
                 else if (crock >= 0) KongBoss.BlowCrock(crock);
                 else if (kong) KongBoss.Damage(arrow.damage, false);
                 else DamageEnemy(arrow.damage);

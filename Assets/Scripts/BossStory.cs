@@ -13,17 +13,24 @@ public class BossEncounter : MonoBehaviour
     public const float Length = 4.6f, Pan = .5f, RoarAt = .7f, RoarLength = 1.4f, CardAt = 1f, LineAt = 2.3f;
 
     private bool played, finished, shaken;
+    private bool wispJoined, wispFxPlayed;
     private float startAt;
+    // 동행한 도깨비불이 등장 신 직후 저주를 잠시 흔들어 놓는다.
+    public const float WispExtraLength = 2.2f;
+    public bool WispResonating => Playing && wispJoined && Elapsed >= Length;
+    public bool WispWeakened => finished && wispJoined;
+    private float SceneLength => Length + (wispJoined ? WispExtraLength : 0);
 
-    public bool Playing => played && Time.time - startAt < Length;
+    public bool Playing => played && Time.time - startAt < SceneLength;
     public float Elapsed => Time.time - startAt;
     public bool Roaring => Playing && Elapsed >= RoarAt && Elapsed < RoarAt + RoarLength;
 
-    public void ResetEncounter() { played = finished = shaken = false; View.Focus(0, 0); }
+    public void ResetEncounter() { played = finished = shaken = wispJoined = wispFxPlayed = false; View.Focus(0, 0); }
     // 조우 연출을 시작한다(한 판에 한 번).
     public void Play()
     {
-        played = true; finished = shaken = false; startAt = Time.time;
+        played = true; finished = shaken = wispFxPlayed = false; startAt = Time.time;
+        wispJoined = combat.Lore != null && combat.Lore.WispFollowing;
         combat.player.CanMove = false;
     }
 
@@ -44,9 +51,16 @@ public class BossEncounter : MonoBehaviour
             return;
         }
         combat.player.CanMove = false;
+        if (WispResonating && !wispFxPlayed)
+        {
+            wispFxPlayed = true;
+            View.Shake(.08f, .35f);
+            JinaFx.Shock(combat.BossPosition + Vector3.up * .8f, 1.1f);
+            JinaFx.Rise(combat.BossPosition + Vector3.up * .8f, 14, new Color(.25f, .9f, 1f), .8f, 1.5f, .8f);
+        }
         if (!shaken && Elapsed >= RoarAt) { View.Shake(.15f, .7f); shaken = true; }
         // 도깨비로 갔다가 돌아오는 부드러운 이동. 가중치는 카메라가 선비에게서 돌아간 정도.
-        float weight = Mathf.SmoothStep(0, 1, Mathf.Clamp01(Elapsed / Pan) * Mathf.Clamp01((Length - Elapsed) / Pan));
+        float weight = Mathf.SmoothStep(0, 1, Mathf.Clamp01(Elapsed / Pan) * Mathf.Clamp01((SceneLength - Elapsed) / Pan));
         View.Focus(combat.BossPosition.x, weight);
     }
 
@@ -56,7 +70,7 @@ public class BossEncounter : MonoBehaviour
         if (!Playing) return;
         GUI.depth = -50;
         KoreanUI.Apply();
-        float t = Elapsed, bars = Mathf.Clamp01(t / .4f) * Mathf.Clamp01((Length - t) / .4f);
+        float t = Elapsed, bars = Mathf.Clamp01(t / .4f) * Mathf.Clamp01((SceneLength - t) / .4f);
         float bar = JinaUI.H * .11f * bars;
         JinaUI.Fill(new Rect(0, 0, JinaUI.W, bar), Color.black);
         JinaUI.Fill(new Rect(0, JinaUI.H - bar, JinaUI.W, bar), Color.black);
@@ -72,6 +86,11 @@ public class BossEncounter : MonoBehaviour
         }
         if (t >= LineAt && t < Length - .3f)
             SpeechBubble.Draw(new Vector3(combat.BossPosition.x, 2.3f, 0), "도깨비", Line);
+        if (WispResonating)
+        {
+            SpeechBubble.Draw(new Vector3(combat.BossPosition.x, 2.9f, 0), "도깨비", "…으윽, 이 빛은… 내가… 누구였지…?");
+            JinaUI.Toast("도깨비불이 망령의 저주를 잠시 흔들었습니다. 도깨비의 방어가 약해집니다!");
+        }
     }
 }
 

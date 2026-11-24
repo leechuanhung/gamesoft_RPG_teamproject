@@ -20,6 +20,10 @@ JOBS = [
     ("make_kong_boss.py", [ART]),                                # the Kongjwi demon, what she throws, hill crocks and roofs
     ("make_pass.py", [f"{ART}/13_Props"]),                       # jangseung, shrine tree, cairn, boulder
     ("make_ferry.py", [ART]),                                    # ferryman, boat, hut, reeds, water
+    ("make_soldier.py", [ART]),                                  # government soldiers: blade and bow, three ranks; their arrow
+    ("make_road_mobs.py", [ART]),                                # dokkaebi-bul (wisp) and dueoksini (brute)
+    ("make_hanyang.py", [ART]),                                  # Hanyang people; fortress, station, grave, street, hall, manor props
+    ("make_final_boss.py", [ART]),                               # the councillor and the eodugsini, what he throws
     ("make_hwando_sheath.py", [f"{ART}/04_Weapons"]),
     ("make_items.py", [f"{ART}/14_Items"]),                       # inventory item icons
     ("make_peddler.py", [f"{ART}/12_Peddler/peddler_idle.png"]),  # peddler idle + run
