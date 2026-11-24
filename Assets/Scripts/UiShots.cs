@@ -341,48 +341,6 @@ public class UiShots : MonoBehaviour
             yield return Shot("combo" + step + "_" + time);
             Time.timeScale = 1;
         }
-        // 마우스 조준: 겨눈 몸 그림과 칼빛(위, 비스듬히, 아래, 왼쪽), 겨눈 활과 날아가는 화살
-        //   다시 시작한 직후에는 잠깐 멈춰 있어 자세가 풀리므로, 한 번만 다시 시작하고 기다린 뒤 찍는다.
-        Fresh(0);
-        yield return new WaitForSecondsRealtime(.5f);
-        //   환도는 칼이 그려진 그림, 명검·단검은 칼 없는 그림에 무기를 쥐여 준다(손 자리와 칼 각도가 겨눈 그림을 따라감).
-        foreach (var (weapon, facing, angle) in new[] { ("hwando", 1, 90f), ("hwando", 1, 60f), ("hwando", 1, -30f), ("hwando", 1, -90f), ("myeonggeom", -1, 45f), ("myeonggeom", 1, 90f), ("dagger", 1, -60f) })
-        {
-            Time.timeScale = 1;
-            yield return new WaitForSecondsRealtime(.3f);   // 앞 칼빛이 사라지게
-            Move(0);
-            combat.EquippedWeapons[combat.ActiveWeaponSlot] = weapon;
-            float strike = .25f * combat.CurrentStats.Swing(0) / SeonbiVisual.SwordLength(0);   // 세 번째 그림(벤 순간)
-            visual.Attack(false, facing, angle, 0);
-            Set(visual, "attackTime", strike);
-            Set(combat, "attackFacing", facing); Set(combat, "pendingAngle", angle); Set(combat, "pendingWeapon", combat.CurrentStats);
-            Call(combat, "SwordFeel", 2, true);
-            yield return new WaitForSecondsRealtime(.02f);
-            Set(visual, "attackTime", strike);
-            Time.timeScale = 0;
-            yield return Shot("aim_sword_" + weapon + "_" + facing + "_" + angle);
-            Time.timeScale = 1;
-        }
-        combat.EquippedWeapons[combat.ActiveWeaponSlot] = "hwando";
-        foreach (var (facing, angle) in new[] { (1, 90f), (1, 45f), (1, -60f), (-1, 20f) })
-        {
-            Time.timeScale = 1;
-            yield return new WaitForSecondsRealtime(.3f);
-            Move(0);
-            combat.EquippedWeapons[combat.ActiveWeaponSlot] = "bow";
-            visual.Attack(true, facing, angle);
-            Set(combat, "pendingBow", true); Set(combat, "attackFacing", facing); Set(combat, "pendingAngle", angle);
-            Set(combat, "playerImpactAt", Time.time);
-            yield return new WaitForSecondsRealtime(.06f);
-            Set(visual, "attackTime", .31f);
-            Time.timeScale = 0;
-            yield return Shot("aim_bow_" + facing + "_" + angle);
-            Time.timeScale = 1;
-            Call(combat, "ClearArrows");
-            combat.EquippedWeapons[combat.ActiveWeaponSlot] = "hwando";
-        }
-        Fresh(0);
-        Set(combat, "pendingAngle", 0f);
         // 맵마다 땅과 하늘
         foreach (var map in new[] { -50f, -25f, 45f, 75f, 120f, 170f })
         {

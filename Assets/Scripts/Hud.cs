@@ -14,9 +14,8 @@ public class Hud : MonoBehaviour
     static readonly string[] Guide =
     {
         "이동 A·D / ←→     달리기 Shift",
-        "도약 스페이스     무기 바꾸기 S",
-        "물러서기 Q     돌진베기 W",
-        "공격 J·클릭(마우스 쪽으로, 3연격)",
+        "도약 스페이스     물러서기 Q     돌진베기 W",
+        "공격 J·클릭(연달아 3연격)     무기 S",
         "대화·조사 Enter     정화 F     보따리 I",
         "다시 시작 R",
         "주황빛은 공격 예고입니다",

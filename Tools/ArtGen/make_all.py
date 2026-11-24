@@ -31,7 +31,7 @@ JOBS = [
     ("make_run.py", [f"{ART}/10_Player_Walk", f"{ART}/11_Player_Run"]),
     ("make_player_down.py", [ART]),
     ("make_player_ko.py", [ART]),                                # game-over collapse
-    ("make_aim.py", [ART]),                                      # aimed bow and sword frames (mouse aiming)
+    ("make_bow_aim.py", [ART]),
     ("make_boss_death.py", [ART]),
     ("make_boss_remorse.py", [ART]),
     ("make_ghost_death.py", [ART]),
