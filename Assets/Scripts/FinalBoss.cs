@@ -97,6 +97,8 @@ public partial class FinalBoss : MonoBehaviour
         transform.position = new Vector3(Home, WorldBuilder.Top(Home), 0);
         ResetFight();
         View.Focus(0, 0);
+        // 기본 카메라 배율 복구
+        View.Zoom(1f, 0f);
     }
 
     float PlayerX => combat.player.transform.position.x;
@@ -142,6 +144,8 @@ public partial class FinalBoss : MonoBehaviour
         if (Now != Phase.Banquet) return;
         if (++page < lines.Length) return;
         Now = Phase.Changing; ChangedAt = Time.time;
+        // 최종 보스 변신 시 카메라 줌인
+        View.Zoom(.80f, ChangeLength - .5f);
     }
     void Look(float weight) => View.Focus((PlayerX + Feet.x) / 2, Mathf.SmoothStep(0, 1, weight));
 
@@ -159,6 +163,8 @@ public partial class FinalBoss : MonoBehaviour
         if (t < ChangeLength) return;
         Now = Phase.Fighting;
         View.Focus(0, 0);
+        // 기본 카메라 배율 복구
+        View.Zoom(1f, 0f);
         combat.player.CanMove = true;
         StartFight();
         // 관군: 선악이 음수면 선비를 치러, 아니면 들어왔다가 물러난다.
