@@ -175,7 +175,7 @@ public partial class FinalBoss : MonoBehaviour
         if (!Fighting) return false;
         if (combat.Cheats != null) amount = combat.Cheats.Power(amount);   // 개발자 치트: 한 방
         int before = Health;
-        Health = Mathf.Max(0, Health - Combat.CalcDamage(amount, 0));
+        Health = Mathf.Max(0, Health - Combat.CalcDamage(amount + JinaItems.AttackBonus(combat), 0));
         HitAt = Time.time;
         var at = Feet + new Vector3(0, 2.2f * Size, 0);
         int away = PlayerX < Feet.x ? 1 : -1;

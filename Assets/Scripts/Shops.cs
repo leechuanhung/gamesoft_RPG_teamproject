@@ -265,8 +265,8 @@ public class PeddlerShop : NpcTalk
             if (JinaUI.Interact || Input.GetKeyDown(KeyCode.Escape)) { Close(); return; }
             if (Input.GetKeyDown(KeyCode.Alpha1)) Purchase(false);
             if (Input.GetKeyDown(KeyCode.Alpha2)) Purchase(true);
-            for (int i = 0; i < JinaItems.All.Length; i++)
-                if (Input.GetKeyDown(KeyCode.Alpha3 + i)) Purchase(JinaItems.All[i]);
+            for (int i = 0; i < JinaItems.ForSale.Length; i++)
+                if (Input.GetKeyDown(KeyCode.Alpha3 + i)) Purchase(JinaItems.ForSale[i]);
         }
         else if (Near && JinaUI.Interact && !combat.Paused)
         {
@@ -325,7 +325,7 @@ public class PeddlerShop : NpcTalk
         // 화살, 그다음 한 줄에 둘씩 물건: 아이콘, 이름, 가격, 효과.
         const float gap = 8;
         float w = Mathf.Min(780, JinaUI.W - 30), half = (w - JinaUI.WindowPad * 2 - gap) / 2;
-        int rows = 1 + (JinaItems.All.Length + 1) / 2, discount = ShopRules.Discount(Progress);
+        int rows = 1 + (JinaItems.ForSale.Length + 1) / 2, discount = ShopRules.Discount(Progress);
         float say = JinaUI.SayHeight(stall.keeper + ":  " + message, w - JinaUI.WindowPad * 2);
         float h = JinaUI.TitleHeight + 12 + say + gap + rows * (JinaUI.GoodHeight + gap) + 28 + JinaUI.WindowPad;
         var box = new Rect((JinaUI.W - w) / 2, JinaUI.H - h - 14, w, h);
@@ -336,9 +336,9 @@ public class PeddlerShop : NpcTalk
         if (JinaUI.Good(new Rect(inside.x, top, half, JinaUI.GoodHeight), JinaItems.Get("arrows").Icon, "1 · 화살 한 대", Cost(ShopRules.ArrowPrice), "화살통에 바로 넣습니다", true)) Purchase(false);
         if (JinaUI.Good(new Rect(inside.x + half + gap, top, half, JinaUI.GoodHeight), JinaItems.Get("arrows").Icon, "2 · 화살 " + ShopRules.BundleSize + "대 묶음",
             bundle ? Cost(ShopRules.BundlePrice) : "", bundle ? "화살통에 바로 넣습니다" : "흉사로 팔지 않음", bundle)) Purchase(true);
-        for (int i = 0; i < JinaItems.All.Length; i++)
+        for (int i = 0; i < JinaItems.ForSale.Length; i++)
         {
-            var item = JinaItems.All[i];
+            var item = JinaItems.ForSale[i];
             var r = new Rect(inside.x + (i % 2) * (half + gap), top + (1 + i / 2) * (JinaUI.GoodHeight + gap), half, JinaUI.GoodHeight);
             bool open = ShopRules.ItemOpen(item, Progress, Mourning);
             string effect = item.Description.Substring(item.Description.LastIndexOf('\n') + 1);

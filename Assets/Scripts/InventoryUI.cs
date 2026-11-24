@@ -182,7 +182,7 @@ public class InventoryUI : MonoBehaviour
         var result = new List<InventorySlot>();
         if (inventory == null) return result;
         foreach (var slot in inventory.Slots)
-            if (!(slot.Item is JinaItem item && item.effect == JinaItem.Effect.Keepsake)) result.Add(slot);
+            if (!(slot.Item is JinaItem item && (item.effect == JinaItem.Effect.Keepsake || item.effect == JinaItem.Effect.QuestWisp))) result.Add(slot);
         return result;
     }
 
@@ -335,6 +335,7 @@ public class InventoryUI : MonoBehaviour
     void DrawKeyItems(Rect content)
     {
         bool hasHairpin = inventory.GetQuantity(JinaItems.Keepsake) > 0;
+        bool hasWisp = inventory.GetQuantity(JinaItems.Wisp) > 0;
         bool hasCharm = combat != null && combat.Quest != null && combat.Quest.progress.HasCharm;
         float y = content.y;
         if (hasHairpin)
@@ -342,6 +343,8 @@ public class InventoryUI : MonoBehaviour
             string description = JinaItems.Keepsake.Description;
             y += DrawKeyItemRecord(new Rect(content.x, y, content.width, 0), "은비녀", description, JinaItems.Keepsake.Icon);
         }
+        if (hasWisp)
+            y += DrawKeyItemRecord(new Rect(content.x, y, content.width, 0), JinaItems.Wisp.ItemName, JinaItems.Wisp.Description, JinaItems.Wisp.Icon);
         if (hasCharm)
         {
             string description = "옛 비석에서 얻은 정화 부적. 숲의 도깨비에게 씌인 저주를 풀 수 있다.\n도깨비 가까이에서 F를 눌러 정화한다.";

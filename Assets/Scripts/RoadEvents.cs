@@ -205,6 +205,7 @@ public class RoadsideLore : MonoBehaviour
     public bool WispAsking { get; private set; }
     public bool WispFollowing { get; private set; }
     private SpriteRenderer wisp;
+    private SpriteRenderer questMarker;
     private float wispBob;
     private float wispBobOffset;
     private float wispGlimmer;
@@ -238,9 +239,15 @@ public class RoadsideLore : MonoBehaviour
         saidAt = -1;
     }
 
+    // 수락하면 동행 도깨비불을 귀중품 보따리에 넣는다.
     // 거절해도 선돌에서 다시 말을 걸 수 있다.
     void AnswerWisp(bool accept)
     {
+        if (accept && JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Wisp) == 0
+            && !JinaItems.Inventory.TryAdd(JinaItems.Wisp))
+        {
+            said = "보따리에 도깨비불을 담을 수 없습니다."; saidAt = Time.time; return;
+        }
         WispAsking = false;
         WispFollowing = accept;
         combat.player.CanMove = combat.PlayerHealth > 0;
@@ -285,6 +292,7 @@ public class RoadsideLore : MonoBehaviour
                 Destroy(wisp.gameObject);
                 wisp = null;
                 wispAbsorbed = true; // 재시작 전까지 영구 소멸, 방어 약화는 그대로 유지
+                if (JinaItems.Inventory != null) JinaItems.Inventory.TryRemove(JinaItems.Wisp);
             }
             return;
         }
@@ -308,6 +316,25 @@ public class RoadsideLore : MonoBehaviour
         }
     }
 
+    // 선돌 위에 퀘스트 표시를 작게 띄운다. 수락하거나 흡수되면 숨긴다.
+    void ShowQuestMarker()
+    {
+        if (questMarker == null)
+        {
+            var texture = Resources.Load<Texture2D>("JinaV4/14_Items/item_quest_marker");
+            if (texture == null) return;
+            var go = new GameObject("선돌 도깨비불 퀘스트 표시");
+            questMarker = go.AddComponent<SpriteRenderer>();
+            questMarker.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height),
+                new Vector2(.5f, .5f), texture.height / 1.5f);
+            questMarker.sortingOrder = 9;
+        }
+        questMarker.enabled = !WispFollowing && !wispAbsorbed && !WispAsking;
+        if (questMarker.enabled)
+            questMarker.transform.position = new Vector3(Spots[WispStoneIndex].x,
+                WorldBuilder.Top(Spots[WispStoneIndex].x) + 1.85f + Mathf.Sin(Time.time * 2f) * .09f, 0);
+    }
+
     private float saidAt = -1;
     private string said = "";
     public void ResetLore()
@@ -316,6 +343,7 @@ public class RoadsideLore : MonoBehaviour
         WispAsking = WispFollowing = wispAbsorbed = wispApproachingBoss = false;
         wispBob = wispBobOffset = 0f;
         if (wisp != null) { Destroy(wisp.gameObject); wisp = null; }
+        if (questMarker != null) { Destroy(questMarker.gameObject); questMarker = null; }
     }
 
     // 엔터로 조사 지점을 읽는다.
@@ -323,6 +351,7 @@ public class RoadsideLore : MonoBehaviour
     {
         if (combat == null || combat.PlayerHealth <= 0) return;
         FollowWisp();
+        ShowQuestMarker();
         if (WispAsking)
         {
             if (Input.GetKeyDown(KeyCode.Alpha1)) AnswerWisp(true);
@@ -367,5 +396,5 @@ public class RoadsideLore : MonoBehaviour
             JinaUI.Prompt(i == WispStoneIndex && WispFollowing ? (wispAbsorbed ? "도깨비불의 빛은 숲의 주인에게 스며들었다." : "도깨비불이 선비와 함께하고 있다.") : "Enter: " + Spots[i].prompt);
     }
 
-    void OnDestroy() { if (wisp != null) Destroy(wisp.gameObject); }
+    void OnDestroy() { if (wisp != null) Destroy(wisp.gameObject); if (questMarker != null) Destroy(questMarker.gameObject); }
 }

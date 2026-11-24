@@ -5,6 +5,7 @@ using UnityEngine;
 //       1 무적(켜기/끄기), 2 한 방에 쓰러뜨리기(켜기/끄기), 3 체력·스테미너·화살 가득, 4 엽전 +100,
 //       5 선악 +10, 6 선악 −10, 7 이전 맵으로, 8 다음 맵으로, 9 이 맵의 적 모두 쓰러뜨리기, 0 봉화 산성 퍼즐 풀기.
 //       켜고 끄는 치트(무적, 한 방)는 R로 다시 시작해도 남고, 켜져 있으면 화면 아래에 표시된다.
+//   F7: 보따리에 등록된 모든 일반 아이템과 은비녀를 하나씩 지급한다.
 //   F9: 도깨비 정화 루트를 끝낸 상태로 만든다. 들판 유령 전멸(동전 획득,
 //       비석 봉인 해제), 노인 이야기 듣기, 비석 표식(달·강·산) 읽기, 도깨비에게 부적 사용
 //       (+30, 가시덤불이 시듦), 그다음 선비를 나루터 뱃사공 옆에 둔다.
@@ -16,7 +17,7 @@ using UnityEngine;
 public class DevCheats : MonoBehaviour
 {
     public Combat combat;
-    public const KeyCode Panel = KeyCode.F8, PurifyAndFerry = KeyCode.F9, GoodRoad = KeyCode.F10, WickedRoad = KeyCode.F11, ToManor = KeyCode.F12;
+    public const KeyCode AllItems = KeyCode.F7, Panel = KeyCode.F8, PurifyAndFerry = KeyCode.F9, GoodRoad = KeyCode.F10, WickedRoad = KeyCode.F11, ToManor = KeyCode.F12;
     public static readonly Vector2 FerrySpot = new Vector2(WorldBuilder.Ferryman.x - 2, .3f);
     public const int OneHitDamage = 9999, CoinGift = 100, HonorStep = 10;
     public float UsedAt { get; private set; } = -1;
@@ -33,6 +34,7 @@ public class DevCheats : MonoBehaviour
     void Update()
     {
         if (combat == null) return;
+        if (Input.GetKeyDown(AllItems)) { GiveAllItems(); return; }
         if (Input.GetKeyDown(Panel))
         {
             if (Open) Close();
@@ -50,6 +52,35 @@ public class DevCheats : MonoBehaviour
         if (Input.GetKeyDown(GoodRoad)) { Close(); SkipToRoad(false); }
         if (Input.GetKeyDown(WickedRoad)) { Close(); SkipToRoad(true); }
         if (Input.GetKeyDown(ToManor)) { Close(); SkipToManor(); }
+    }
+
+    // 등록된 일반 아이템과 은비녀를 각각 하나씩 보따리에 넣는다. 기존 수량과 효과는 그대로 둔다.
+    public void GiveAllItems()
+    {
+        var bag = JinaItems.Inventory;
+        if (bag == null) { Say("보따리가 없어 아이템을 지급하지 못했습니다."); return; }
+        int given = 0, failed = 0;
+        foreach (var item in JinaItems.All)
+        {
+            if (bag.TryAdd(item)) given++;
+            else failed++;
+        }
+        if (bag.TryAdd(JinaItems.Keepsake)) given++;
+        else failed++;
+        if (bag.TryAdd(JinaItems.Wisp)) given++;
+        else failed++;
+        // 정화 부적은 보따리 슬롯이 아니라 QuestProgress.HasCharm으로 보관된다.
+        var quest = combat.Quest != null ? combat.Quest.progress : null;
+        if (quest != null && !quest.HasCharm && quest.Outcome == EncounterOutcome.Unresolved)
+        {
+            quest.HearClue();
+            int[] signs = { 2, 1, 3 };
+            while (!quest.HasCharm && quest.PuzzleStep < signs.Length)
+                quest.ChooseSymbol(signs[quest.PuzzleStep]);
+        }
+        Say("아이템 " + given + "종을 1개씩 지급했습니다. 정화 부적: "
+            + (quest != null && quest.HasCharm ? "보유" : "획득 불가(퀘스트 진행 상태)")
+            + (failed > 0 ? " (보따리 공간 부족: " + failed + "종 미지급)" : ""));
     }
 
     // 치트 창을 연다: 선비를 멈춘다.
@@ -237,6 +268,7 @@ public class DevCheats : MonoBehaviour
             "9   이 맵의 적 모두 쓰러뜨리기",
             "0   봉화 산성 퍼즐 풀기" + (combat.Fort != null && combat.Fort.Open ? "   (열림)" : ""),
             "",
+            "F7    모든 아이템 1개씩 지급 (보따리)",
             "F9    도깨비 정화하고 나루터로",
             "F10   선한 길로 봉화 산성 (선악 +80)",
             "F11   악한 길로 버려진 역참 (선악 −60, 관군 3단계)",

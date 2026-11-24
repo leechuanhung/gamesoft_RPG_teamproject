@@ -238,7 +238,7 @@ public partial class KongBoss : MonoBehaviour
         if (!Fighting) return false;
         if (combat.Cheats != null) amount = combat.Cheats.Power(amount);   // 개발자 치트: 한 방
         int before = Health;
-        Health -= Combat.CalcDamage(amount, 0);
+        Health -= Combat.CalcDamage(amount + JinaItems.AttackBonus(combat), 0);
         HitAt = Time.time;
         if (sword) Stagger(amount);
         var at = Feet + new Vector3(0, 1.4f, 0);
