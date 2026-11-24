@@ -9,6 +9,8 @@ public partial class Combat
         public SpriteRenderer art;
         public Vector2 direction;
         public float remaining = 12f;
+        public int damage = ArrowDamage;   // 쏜 활의 데미지
+        public bool lightning;             // 벽조궁 화살: 맞을 때 번개 불꽃
     }
     // 쏠 때 위나 아래를 누르고 있으면 활을 30도 위·아래로 겨눈다(bow_up / bow_down 프레임).
     public const float AimAngle = 30f;
@@ -44,8 +46,19 @@ public partial class Combat
         var launch = ArrowLaunch(pendingAim);
         arrow.transform.position = new Vector3(player.transform.position.x + attackFacing * launch.x,
             playerArt.bounds.min.y + launch.y, 0);
-        arrows.Add(new FlyingArrow { art = arrow, direction = ArrowDirection(pendingAim, attackFacing) });
+        var bow = pendingWeapon ?? CurrentStats;
+        bool lightning = bow.id == "byeokjogung";
+        arrows.Add(new FlyingArrow { art = arrow, direction = ArrowDirection(pendingAim, attackFacing), damage = bow.damage, lightning = lightning });
         JinaFx.Glint(arrow.transform.position, new Color(1, .96f, .8f));
+         // 벽조궁: 쏠 때 활 앞으로 짧은 번개 두 줄기 + 하늘색 튀김
+        if (lightning)
+        {
+            var from = arrow.transform.position;
+            var dir = (Vector3)ArrowDirection(pendingAim, attackFacing);
+            Lightning.Bolt(from, from + dir * 1.1f + Vector3.up * .15f, .04f, .14f, .12f);
+            Lightning.Bolt(from, from + dir * .8f - Vector3.up * .15f, .03f, .12f, .1f);
+            JinaFx.Dots(from, 6, new Color(.55f, .8f, 1f), 2.4f, .25f, attackFacing);
+        }
         JinaFx.Dots(arrow.transform.position, 3, Color.white, 1.8f, .18f, attackFacing);
     }
 
@@ -84,15 +97,29 @@ public partial class Combat
             bool hitsEnemy = enemyDistance <= step && (wall.collider == null || enemyDistance < wall.distance);
             if (hitsEnemy)
             {
-                if (mob != null) mobCamp.Hit(mob, ArrowDamage);
+                if (mob != null) mobCamp.Hit(mob, arrow.damage);
                 else if (crock >= 0) KongBoss.BlowCrock(crock);
-                else if (kong) KongBoss.Damage(ArrowDamage, false);
-                else DamageEnemy(ArrowDamage);
+                else if (kong) KongBoss.Damage(arrow.damage, false);
+                else DamageEnemy(arrow.damage);
                 JinaFx.Stop(.03f);
+                // 벽조궁 화살: 맞은 자리에 번개 불꽃
+                if (arrow.lightning)
+                {
+                    var spark = origin + direction * enemyDistance;
+                    // 하늘에서 번개가 내리꽂힘 + 옆 갈래 번개
+                    Lightning.Bolt((Vector3)spark + new Vector3(Random.Range(-.4f, .4f), 4f, 0), spark, .09f, .24f, .35f);
+                    Lightning.Bolt((Vector3)spark + new Vector3(Random.Range(-1f, 1f), 2.2f, 0), spark, .04f, .18f, .2f);
+                    JinaFx.Glint(spark, new Color(.6f, .85f, 1f));
+                    JinaFx.Dots(spark, 14, new Color(1f, .92f, .45f), 3.5f, .35f);
+                    JinaFx.Dots(spark, 8, new Color(.55f, .8f, 1f), 2.5f, .3f);
+                    View.Shake(.06f, .12f);
+                }
             }
             arrow.remaining -= step;
-            // 뒤로 옅은 줄기, 땅에 꽂히면 부스러기.
-            if (Time.frameCount % 2 == 0) JinaFx.Rise(origin, 1, new Color(1, .96f, .84f, .7f), 0, 0, .14f);
+            if (Time.frameCount % 2 == 0) JinaFx.Rise(origin, 1, arrow.lightning ? new Color(.55f, .8f, 1f, .8f) : new Color(1, .96f, .84f, .7f), 0, 0, .14f);
+            // 벽조궁 화살: 날아가며 가끔 작은 번개가 튐
+            if (arrow.lightning && Random.value < .15f)
+                Lightning.Bolt(origin, origin - direction * .6f + (Vector2)Random.insideUnitCircle * .2f, .025f, .08f, .08f);
             if (wall.collider != null && !hitsEnemy) JinaFx.Dots(origin + direction * wall.distance, 5, new Color(.7f, .6f, .46f), 2.2f, .28f, 0, 10);
             if (hitsEnemy || wall.collider != null || arrow.remaining <= 0)
             {

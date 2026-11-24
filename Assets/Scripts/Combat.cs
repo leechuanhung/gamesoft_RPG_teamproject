@@ -64,7 +64,7 @@ public partial class Combat : MonoBehaviour
     private SeonbiVisual playerVisual;
     public ElderQuest Quest { get; private set; }
     // ── 무기: 1·2칸 장착(보따리 무기 탭), S로 전환. 수치는 Weapon.cs ──
-    public readonly string[] EquippedWeapons = { "dagger", null };
+    public readonly string[] EquippedWeapons = { "dagger", "bow" };
     public int ActiveWeaponSlot { get; private set; }
     public string CurrentWeapon => EquippedWeapons[ActiveWeaponSlot] ?? EquippedWeapons[1 - ActiveWeaponSlot] ?? "dagger";
     public Weapon.Stats CurrentStats => Weapon.Get(CurrentWeapon);
@@ -263,7 +263,7 @@ public partial class Combat : MonoBehaviour
         playerArt.color = playerColor;
         player.Respawn();
         ActiveWeaponSlot = 0;
-        EquippedWeapons[0] = "dagger"; EquippedWeapons[1] = null;
+        EquippedWeapons[0] = "dagger"; EquippedWeapons[1] = "bow";
         WeaponPickup.ClearAll();
         Arrows = ShopRules.MaxArrows;
         noArrowsUntil = 0;
@@ -585,7 +585,7 @@ public partial class Combat : MonoBehaviour
         if (!weaponIcons.TryGetValue(w.id, out var sprite))
         {
             // 활은 bow 그림, 그림이 따로 없는 환도는 hwando 그림, 단검과 명검은 각자 그림
-            sprite = JinaArt.Load(w.id == "bow" ? "04_Weapons/bow" : w.art ?? "04_Weapons/hwando");
+            sprite = JinaArt.Load(w.ranged ? (w.bowArt ?? "04_Weapons/bow") : w.art ?? "04_Weapons/hwando");
             weaponIcons[w.id] = sprite;
         }
         return sprite;
