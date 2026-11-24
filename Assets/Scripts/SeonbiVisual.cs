@@ -5,13 +5,18 @@ public class SeonbiVisual : MonoBehaviour
     private Combat combat;
     private SpriteRenderer source,body,weapon,gripFingers;
     private Sprite fingerSprite;
+<<<<<<< HEAD
     private Sprite[] swordFrames,emptySwordFrames,bowFrames,jumpFrames,walkFrames,runFrames,hitFrames,dashFrames;
+=======
+    private Sprite[] swordFrames,emptySwordFrames,bowFrames,bowUpFrames,bowDownFrames,jumpFrames,walkFrames,runFrames,hitFrames,dashFrames;
+    private Sprite[] byeokjoFrames,byeokjoUpFrames,byeokjoDownFrames;   // 벽조궁 쏘는 그림
+>>>>>>> origin/main
     private bool wasAirborne;
     private float airTime,landingTime,walkTime;
     private float attackTime=10;
     private const float SheathDelay=3f, SheathMotion=.32f;
     private float swordOutTime;
-    string EquippedWeapon => combat.UsingBow ? "04_Weapons/bow"
+    string EquippedWeapon => combat.UsingBow ? (combat.CurrentStats.bowArt ?? "04_Weapons/bow")
         : combat.CurrentStats.alwaysDrawn || swordOutTime>SheathMotion*.5f ? (combat.CurrentStats.art ?? "04_Weapons/hwando")
         : (combat.CurrentStats.sheathedArt ?? combat.CurrentStats.art ?? "04_Weapons/hwando_sheathed");
     private bool bowAttack;
@@ -72,6 +77,14 @@ public class SeonbiVisual : MonoBehaviour
         v.swordFrames=JinaArt.Frames("02_Player_Attack_Sword/sword_attack_");
         v.emptySwordFrames=JinaArt.Frames("02_Player_Attack_Sword/sword_attack_empty_");
         v.bowFrames=JinaArt.Frames("03_Player_Attack_Bow/bow_attack_");
+<<<<<<< HEAD
+=======
+        v.bowUpFrames=JinaArt.Frames("03_Player_Attack_Bow/bow_up_");
+        v.bowDownFrames=JinaArt.Frames("03_Player_Attack_Bow/bow_down_");
+        v.byeokjoFrames=JinaArt.Frames("03_Player_Attack_Bow/byeokjo_attack_");
+        v.byeokjoUpFrames=JinaArt.Frames("03_Player_Attack_Bow/byeokjo_up_");
+        v.byeokjoDownFrames=JinaArt.Frames("03_Player_Attack_Bow/byeokjo_down_");
+>>>>>>> origin/main
         v.jumpFrames=JinaArt.Frames("09_Player_Jump/jump_");
         v.walkFrames=JinaArt.Frames("10_Player_Walk/player_walk_");
         v.runFrames=JinaArt.Frames("11_Player_Run/player_run_");
@@ -126,9 +139,17 @@ public class SeonbiVisual : MonoBehaviour
         bool hurt=combat.PlayerHurtAt>=0 && Time.time-combat.PlayerHurtAt<HurtLength && !attacking;
         bool dodging=player.Dodging && combat.PlayerHealth>0;
         bool dashSlashing=dodging && player.DashSlashing;
+<<<<<<< HEAD
         var shot=bowBucket==0 ? bowFrames : Aimed("03_Player_Attack_Bow/bow_aim_",bowBucket);
         var cut=swordBucket==0 ? swordFrames : Aimed("02_Player_Attack_Sword/sword_aim_",swordBucket);
         var emptyCut=swordBucket==0 ? emptySwordFrames : Aimed("02_Player_Attack_Sword/sword_aim_empty_",swordBucket);
+=======
+        // 벽조궁이면 벽조궁 그림으로 쏨
+        bool byeokjo=combat.CurrentStats.id=="byeokjogung";
+        var shot=attackAim>0 ? (byeokjo ? byeokjoUpFrames : bowUpFrames)
+                : attackAim<0 ? (byeokjo ? byeokjoDownFrames : bowDownFrames)
+                : (byeokjo ? byeokjoFrames : bowFrames);
+>>>>>>> origin/main
         int strideFrame=(int)(walkTime/(running ? .08f : .12f))%4;
         body.sprite=dashSlashing ? dashFrames[Mathf.Clamp((int)((1f-Mathf.Clamp01(player.DashRemaining / Player.DodgeLength))*8f),0,7)] : dodging ? JinaArt.Load("01_Player/player_dodge") : hurt ? hitFrames[0] : attacking ? (bowAttack ? shot[Mathf.Min(3,(int)(attackTime/(duration/4)))] : stabAttack ? emptyCut[SwordFrame(attackTime*SwordLength(attackStep)/duration)] : cut[SwordFrame(attackTime*SwordLength(attackStep)/duration)]) : jumping ? jumpFrames[jumpFrame] : running ? runFrames[strideFrame] : walking ? walkFrames[strideFrame] : LoadSprite();
         JinaArt.Place(body,feet,facing<0);

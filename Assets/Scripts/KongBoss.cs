@@ -149,6 +149,8 @@ public partial class KongBoss : MonoBehaviour
         body.position = transform.position;
         ResetFight();
         View.Focus(0, 0);
+        // 기본 카메라 배율 복구
+        View.Zoom(1f, 0f);
     }
 
     float PlayerX => combat.player.transform.position.x;
@@ -207,6 +209,8 @@ public partial class KongBoss : MonoBehaviour
         if (Now != Phase.Meeting) return;
         if (++page < lines.Length) return;
         Now = Phase.Changing; ChangedAt = Time.time;
+        // 콩쥐 요괴 변신 시 카메라 줌인
+        View.Zoom(.85f, ChangeLength - .5f);
     }
     public string Line => Now == Phase.Meeting && lines != null ? lines[Mathf.Min(page, lines.Length - 1)] : null;
     public int Page => page;
@@ -227,6 +231,8 @@ public partial class KongBoss : MonoBehaviour
         if (t < ChangeLength) return;
         Now = Phase.Fighting;
         View.Focus(0, 0);
+        // 기본 카메라 배율 복구
+        View.Zoom(1f, 0f);
         combat.player.CanMove = true;
         body.simulated = true; body.position = transform.position; body.velocity = Vector2.zero;
         StartFight();
@@ -238,7 +244,7 @@ public partial class KongBoss : MonoBehaviour
         if (!Fighting) return false;
         if (combat.Cheats != null) amount = combat.Cheats.Power(amount);   // 개발자 치트: 한 방
         int before = Health;
-        Health -= Combat.CalcDamage(amount, 0);
+        Health -= Combat.CalcDamage(amount + JinaItems.AttackBonus(combat), 0);
         HitAt = Time.time;
         if (sword) Stagger(amount);
         var at = Feet + new Vector3(0, 1.4f, 0);
@@ -262,6 +268,8 @@ public partial class KongBoss : MonoBehaviour
         if (Resolved || body == null) return;
         Now = purify ? Phase.Purified : Phase.Slain; DownAt = PurifiedAt = Time.time - 10; HandedBack = true; PurifiedX = WorldBuilder.Kongjwi.x;
         body.simulated = false; EndFight(); View.Focus(0, 0);
+        // 기본 카메라 배율 복구
+        View.Zoom(1f, 0f);
         if (combat.Quest != null) combat.Quest.progress.ResolveKong(purify);
         if (combat.Kong != null) { combat.Kong.Release(); if (purify) combat.Kong.Place(KongVillage.Who.Kongjwi, WorldBuilder.Kongjwi.x); }
     }

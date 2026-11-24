@@ -41,13 +41,14 @@ public class WeaponPickup : MonoBehaviour
         p.combat = combat;
         p.droppedAt = Time.time;
         p.art = obj.AddComponent<SpriteRenderer>();
-        p.art.sprite = JinaArt.Load(id == "bow" ? "04_Weapons/bow" : Weapon.Get(id).art ?? "04_Weapons/hwando");
+        var stats = Weapon.Get(id);
+        p.art.sprite = JinaArt.Load(stats.ranged ? (stats.bowArt ?? "04_Weapons/bow") : stats.art ?? "04_Weapons/hwando");
         p.art.sortingOrder = 4;
         // 그림이 몇 픽셀이든 Size 칸에 맞게 줄임
         var size = p.art.sprite.bounds.size;
         obj.transform.localScale = Vector3.one * (Size / Mathf.Max(size.x, size.y));
         // 환도는 칼날이 40° 들려 그려져 있어서 눕히고, 활은 옆으로 눕힘
-        obj.transform.rotation = Quaternion.Euler(0, 0, id == "bow" ? -90 : -40);
+        obj.transform.rotation = Quaternion.Euler(0, 0, stats.ranged ? -90 : -40);
         // 아래쪽 땅(레이어 8) 찾기
         var hit = Physics2D.Raycast(at, Vector2.down, 30, 1 << 8);
         float ground = hit.collider != null ? hit.point.y : at.y - 1;
