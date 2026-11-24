@@ -25,12 +25,14 @@ public class BossEncounter : MonoBehaviour
     public float Elapsed => Time.time - startAt;
     public bool Roaring => Playing && Elapsed >= RoarAt && Elapsed < RoarAt + RoarLength;
 
-    public void ResetEncounter() { played = finished = shaken = wispJoined = wispFxPlayed = false; View.Focus(0, 0); }
+    public void ResetEncounter() { played = finished = shaken = wispJoined = wispFxPlayed = false; View.Focus(0, 0); View.Zoom(1f, 0f); }
     // 조우 연출을 시작한다(한 판에 한 번).
     public void Play()
     {
         played = true; finished = shaken = wispFxPlayed = false; startAt = Time.time;
         wispJoined = combat.Lore != null && combat.Lore.WispFollowing;
+        // 도깨비 첫 조우 시 카메라 줌인
+        View.Zoom(.78f, SceneLength - .5f);
         combat.player.CanMove = false;
     }
 
@@ -46,6 +48,8 @@ public class BossEncounter : MonoBehaviour
         if (!Playing)
         {
             finished = true;
+            // 조우 연출 종료 후 기본 배율 복구
+            View.Zoom(1f, 0f);
             View.Focus(0, 0);
             combat.player.CanMove = combat.PlayerHealth > 0;
             return;

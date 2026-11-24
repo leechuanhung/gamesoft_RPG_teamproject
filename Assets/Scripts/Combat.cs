@@ -13,6 +13,7 @@ public partial class Combat : MonoBehaviour
     public int PlayerHealth { get; private set; } = MaxPlayerHealth;
     public const int PlayerAttack = 10;
     public int PlayerDefense = 0;
+    public int EffectivePlayerDefense => PlayerDefense + JinaItems.DefenseBonus(this);
     // 스킬: 스킬 무적(Q 물러서기)이 끝나는 시각과 스킬 관리자
     private float skillInvulnerableUntil;
     public bool SkillInvulnerable => Time.time < skillInvulnerableUntil;
@@ -38,7 +39,7 @@ public partial class Combat : MonoBehaviour
     // ── 일반 몬스터 능력치 (Camp.cs에서 사용) ──
     public const int MonsterMaxHealth = 30;
     public const int MonsterAttack = 10;
-    public const int MonsterDefense = 0;
+    public const int MonsterDefense = 2;
     // 환도와 화살 모두 플레이어 공격력을 그대로 사용
     public const int SwordDamage = PlayerAttack, ArrowDamage = PlayerAttack;
     public int EnemyHealth { get; private set; } = EnemyMaxHealth;
@@ -143,6 +144,7 @@ public partial class Combat : MonoBehaviour
     public void RestartAtHill()
     {
         if (!Checkpoint.HasValue) { Restart(); return; }
+        JinaItems.ClearEffects();
         var save = Checkpoint.Value;
         PlayerHealth = MaxHealth;
         nextAttack = slashUntil = invulnerableUntil = hitFlashUntil = 0;
@@ -178,6 +180,7 @@ public partial class Combat : MonoBehaviour
     public void RestartOnRoad()
     {
         if (!RoadCheckpoint.HasValue) { Restart(); return; }
+        JinaItems.ClearEffects();
         var save = RoadCheckpoint.Value;
         PlayerHealth = MaxPlayerHealth;
         nextAttack = slashUntil = invulnerableUntil = hitFlashUntil = 0;
@@ -305,6 +308,7 @@ public partial class Combat : MonoBehaviour
     public void Restart()
     {
         if (enemy == null) return;
+        JinaItems.ClearEffects();
         ResetLevel();
         PlayerHealth = MaxHealth;
         EnemyHealth = EnemyMaxHealth;
@@ -370,6 +374,7 @@ public partial class Combat : MonoBehaviour
     void Update()
     {
         if (player == null || enemy == null) return;
+        JinaItems.UpdateEffects(this);
         // The intro plays once per launch; R does not replay or interrupt it.
         if (Intro != null && Intro.IsPlaying) return;
         if (Input.GetKeyDown(KeyCode.R)) { if (PlayerHealth <= 0 && CanRetryOnRoad) RestartOnRoad(); else if (PlayerHealth <= 0 && CanRetryAtHill) RestartAtHill(); else Restart(); }
@@ -560,7 +565,7 @@ public partial class Combat : MonoBehaviour
             return;
         }
         int before = PlayerHealth;
-        PlayerHealth = Mathf.Max(0, PlayerHealth - CalcDamage(attack, PlayerDefense));
+        PlayerHealth = Mathf.Max(0, PlayerHealth - CalcDamage(attack, EffectivePlayerDefense));
         invulnerableUntil = Time.time + 1;
         lastPlayerHit = Time.time;
         JinaFx.Hit(chest, -player.Facing, new Color(1, .42f, .34f), 1.1f);
