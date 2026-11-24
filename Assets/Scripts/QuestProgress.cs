@@ -47,13 +47,21 @@ public class QuestProgress
     private readonly int[] sequence = { 2, 1, 3 };
 
     public void HearClue() { HeardClue = true; }
-    // 부적 퍼즐에서 표식 하나를 고른다. 순서가 맞으면 true(틀리면 처음부터).
+    // 기존 부적 퍼즐 호환용: 표식 하나를 선택한다. 순서가 틀리면 처음부터 다시 시작한다.
     public bool ChooseSymbol(int symbol)
     {
         if (!HeardClue || HasCharm || Outcome != EncounterOutcome.Unresolved) return false;
         if (symbol != sequence[PuzzleStep]) { PuzzleStep = 0; return false; }
         PuzzleStep++;
         if (PuzzleStep == sequence.Length) HasCharm = true;
+        return true;
+    }
+    // 옛 비석의 격자 퍼즐을 풀면 정화 부적을 얻는다.
+    public bool CompleteStelePuzzle()
+    {
+        if (!HeardClue || HasCharm || Outcome != EncounterOutcome.Unresolved) return false;
+        HasCharm = true;
+        PuzzleStep = sequence.Length;
         return true;
     }
     // 도깨비를 해결한다(`purify`: 정화). 처음이면 true.
