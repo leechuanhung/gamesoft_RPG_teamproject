@@ -122,9 +122,9 @@ public partial class Combat
             bool hitsEnemy = enemyDistance <= step && (wall.collider == null || enemyDistance < wall.distance);
             if (hitsEnemy)
             {
-                if (final) FinalBoss.Damage(ArrowDamage);
-                else if (roadMob != null) Mobs.Hit(roadMob, ArrowDamage);
-                else if (mob != null) mobCamp.Hit(mob, ArrowDamage);
+                if (final) FinalBoss.Damage(arrow.damage);
+                else if (roadMob != null) Mobs.Hit(roadMob, arrow.damage);
+                else if (mob != null) mobCamp.Hit(mob, arrow.damage);
                 else if (crock >= 0) KongBoss.BlowCrock(crock);
                 else if (kong) KongBoss.Damage(arrow.damage, false);
                 else DamageEnemy(arrow.damage);
