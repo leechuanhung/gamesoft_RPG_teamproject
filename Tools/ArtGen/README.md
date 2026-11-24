@@ -59,7 +59,7 @@ python Tools/ArtGen/sheet.py <scratchpad>/out.png 01_Player/player_idle 13_Props
 | `make_portraits.py` | `17_Portraits` 대화 초상화 7장. 사용자가 직접 만든 그림(`source/kongpat_portraits.webp`의 6칸, `source/elder_portrait.webp`의 노인)의 칸 안쪽을 잘라 112×121로 줄임(대화창에서 2배) | 사용자 그림 |
 | `make_young.py` | 선비 V6 프레임 17장의 얼굴과 깃을 고쳐 수염을 없앰. 고정 칸을 덮어 쓰므로 다시 돌려도 같다. `make_run`·`make_player_down`·`make_player_ko`·`make_bow_aim`이 그 뒤에 돌아야 한다 | 선비 원본 위에 덧칠 |
 | `make_night.py` | `18_Night`: 콩밭 마을 하룻밤 연출. 사용자가 GPT로 만든 그림(`source/night/A1~F1, S`, 요청문은 `source/night/요청문.md`)의 가운데 띠를 잘라 2.4:1(1280×533)로 맞추고, 편집본은 원본에 정렬(`FIT`)해 바뀐 부분만 레이어로 뺀다. 문 창호지(그림자가 비치는 곳)와 바닥 달빛은 밝기로 가려낸다. 콩쥐 눈은 1280×720 | 사용자 그림 |
-| `make_ground.py` | `13_Props/ground_<맵>` (옆으로 이어지는 땅, 320×150, 걷는 면은 위에서 6도트), `sky_<맵>`, `river_deep`, `cloud_0~2` | numpy |
+| `make_ground.py` | `13_Props/ground_<맵>`(한양 가는 길: fort, station, grave, city, hall, manor) (옆으로 이어지는 땅, 320×150, 걷는 면은 위에서 6도트), `sky_<맵>`, `river_deep`, `cloud_0~2` | numpy |
 | `make_fx.py` | `20_Fx`: 칼빛 `arc`, 타격 `spark`, 먼지 `dust`, 충격파 `ring`, `glint`, 봉인 `seal`. 흰색으로 그리고 게임에서 색을 입힌다 | numpy |
 | `make_ui.py` | `19_UI`: 이어지는 결(`grain_paper·wood·night`), 놋쇠 모서리 `corner`, HUD 아이콘, `vignette` | numpy, pixlib |
 | `make_kong.py` | `16_Kong/kongjwi·patjwi·anak·namu·hunjang·yeot·halmi` (보부상 12px 블록, 격자 전체 폭 유지라 발 x=138), 콩쥐의 `kongjwi_sad·kneel·bow`(무릎 꿇고 울기, `bow`는 `framelib.bend`로 숙임), 시체 `<이름>_down`(서 있는 그림을 시계 방향 90° 회전, 잘라서 가운데 발), `13_Props/jangdok·well·laundry·feast_list` | 블록 격자, pixlib |
@@ -71,6 +71,10 @@ python Tools/ArtGen/sheet.py <scratchpad>/out.png 01_Player/player_idle 13_Props
 | `make_boss_remorse.py` | `06_Boss_Purified/boss_grieve_00~01` | bend. 눈(감김)과 송곳니만 기존 색으로 덮음 |
 | `make_ghost_attack.py` | `07_Ghost/ghost_attack_00~02` | 팔을 어깨 중심으로 25px 격자에서 회전하고 외곽선을 다시 두름, bend. 물귀신은 같은 프레임에 색만 입힘 |
 | `make_ghost_death.py` | `07_Ghost/ghost_death_00~02` | bend, scatter |
+| `make_soldier.py` | `22_Soldier/<blade·bow>_<1~3>_<idle·walk_00~03·ready·strike·hurt·down>`: 관군. 선비와 같은 12px 도트·키(45칸), 오른쪽을 봄. 1단계 벙거지와 검은 쾌자, 2단계 두정갑, 3단계 붉은 갑옷과 쇠 투구. 칼은 쇠 코등이에 붉은 술(선비 환도는 금빛 코등이), 활은 붉은 칠(선비 각궁은 갈색). 48×56칸 캔버스에 발은 맨 아래 가운데. `13_Props/soldier_arrow` | pixlib(선비 도트) |
+| `make_road_mobs.py` | `23_Mobs/wisp_*`(도깨비불, 가운데에 걺), `brute_*`(두억시니, 48×46칸, 발은 맨 아래 가운데) | pixlib(선비 도트) |
+| `make_hanyang.py` | `24_Hanyang/sangin·yusaeng·cheongji·ai·mudang·jumo·bangmul`(콩밭 마을과 같은 격자, 발 x=138. 방물장수 `bangmul`은 콩밭 마을 입구에 선다), `13_Props/beacon_off·beacon_on·fort_gate_shut·fort_gate_open·fort_wall·station_house·cart·grave·dead_tree·shop·lantern·hongsal·exam_board·pavilion·drink_table` | 블록 격자, pixlib |
+| `make_final_boss.py` | `25_Final/official_<idle·cup·blank>`(좌의정, 선비 도트), `final_<idle_00·idle_01·open·reach·raise·cast·death_00~02>`(어둑시니 좌의정, 100×112칸, 발은 맨 아래 가운데), `13_Props/final_ink·coin·hand·seal·mark` | pixlib, `framelib.scatter` |
 | `make_elder.py` | `08_Village_Elder/elder_cane·startle·draw_00~01·hit_00~01·down·corpse` | 지팡이 잘라 내기, bend, 갓 내리기, rot90 |
 
 ## 새 그림을 게임에 넣을 때

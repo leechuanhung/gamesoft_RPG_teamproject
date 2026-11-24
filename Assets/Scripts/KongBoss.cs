@@ -48,6 +48,11 @@ public partial class KongBoss : MonoBehaviour
 
     private string[] lines;
     private int page;
+    // 뒷산 끝(산성으로 가는 길)을 막는 두꺼비 독기: 콩쥐 요괴를 해결할 때까지 있다. 싸우다 산성으로 달아나
+    // 콩쥐를 건너뛰면 결말에 닿을 수 없으므로 막는다(첫 마을의 봉인 장막과 같은 모양, 색만 독기).
+    private GameObject miasma;
+    public bool Sealed => miasma != null && miasma.activeSelf;
+    public const string SealNote = "짙은 두꺼비 독기가 고개 너머 길을 막고 있습니다. 뒷산의 콩쥐 요괴를 해결해야 지나갈 수 있습니다.";
     private Rigidbody2D body;
     private BoxCollider2D shape;
     private SpriteRenderer picture, glow, human, pin;
@@ -99,7 +104,26 @@ public partial class KongBoss : MonoBehaviour
         sparks = new SpriteRenderer[18];
         for (int i = 0; i < sparks.Length; i++) { sparks[i] = Child("빛 " + i, 8); sparks[i].sprite = JinaArt.Dot(); }
         BuildFight();
+        BuildMiasma();
         ResetBoss();
+    }
+    void BuildMiasma()
+    {
+        miasma = new GameObject("뒷산 독기 장막");
+        miasma.transform.position = new Vector3(WorldBuilder.HillEnd - .2f, 9.5f, 0);   // 콩쥐(MaxX)의 몸에 닿지 않게 맵 끝에 붙인다
+        miasma.transform.localScale = new Vector3(.8f, 20, 1);
+        miasma.layer = 8;
+        miasma.AddComponent<BoxCollider2D>();
+        var veil = new GameObject("독기").AddComponent<SpriteRenderer>();
+        veil.transform.SetParent(miasma.transform, false);
+        veil.transform.localScale = new Vector3(1 / miasma.transform.localScale.x, 1 / miasma.transform.localScale.y, 1);
+        veil.sprite = JinaArt.Fx("seal");
+        veil.drawMode = SpriteDrawMode.Tiled;
+        veil.size = new Vector2(1.67f, 20);
+        veil.color = new Color(.55f, .8f, .45f, .85f);
+        veil.sortingOrder = 3;
+        // 카메라는 맵 끝에서 멈추므로 장막 그림은 조금 안쪽에 보이게 둔다(막는 상자는 맵 끝 그대로).
+        veil.transform.position = new Vector3(WorldBuilder.HillEnd - .9f, 9.5f, 0);
     }
     // 요괴 그림의 자식 렌더러를 만든다.
     SpriteRenderer Child(string label, int order)
@@ -125,6 +149,8 @@ public partial class KongBoss : MonoBehaviour
         body.position = transform.position;
         ResetFight();
         View.Focus(0, 0);
+        // 기본 카메라 배율 복구
+        View.Zoom(1f, 0f);
     }
 
     float PlayerX => combat.player.transform.position.x;
@@ -136,6 +162,10 @@ public partial class KongBoss : MonoBehaviour
     // 만남, 대화, 변신, 싸움 단계를 진행한다.
     void Update()
     {
+        if (miasma != null && miasma.activeSelf == Resolved) miasma.SetActive(!Resolved);
+        // 독기가 땅에서 피어오른다.
+        if (Sealed && Time.frameCount % 6 == 0 && combat != null && !combat.Paused)
+            JinaFx.Rise(new Vector3(WorldBuilder.HillEnd - .9f, WorldBuilder.Top(WorldBuilder.HillEnd - 1) + .2f, 0), 1, new Color(.5f, .78f, .4f, .7f), .6f, 2.8f, 1.4f);
         if (combat == null || combat.PlayerHealth <= 0) { if (body != null) body.simulated = false; return; }
         if (!combat.Paused) StepHoney(Time.deltaTime);
         if (Now == Phase.Waiting) { WaitForHim(); return; }
@@ -179,6 +209,8 @@ public partial class KongBoss : MonoBehaviour
         if (Now != Phase.Meeting) return;
         if (++page < lines.Length) return;
         Now = Phase.Changing; ChangedAt = Time.time;
+        // 콩쥐 요괴 변신 시 카메라 줌인
+        View.Zoom(.85f, ChangeLength - .5f);
     }
     public string Line => Now == Phase.Meeting && lines != null ? lines[Mathf.Min(page, lines.Length - 1)] : null;
     public int Page => page;
@@ -199,6 +231,8 @@ public partial class KongBoss : MonoBehaviour
         if (t < ChangeLength) return;
         Now = Phase.Fighting;
         View.Focus(0, 0);
+        // 기본 카메라 배율 복구
+        View.Zoom(1f, 0f);
         combat.player.CanMove = true;
         body.simulated = true; body.position = transform.position; body.velocity = Vector2.zero;
         StartFight();
@@ -208,8 +242,9 @@ public partial class KongBoss : MonoBehaviour
     public bool Damage(int amount, bool sword)
     {
         if (!Fighting) return false;
+        if (combat.Cheats != null) amount = combat.Cheats.Power(amount);   // 개발자 치트: 한 방
         int before = Health;
-        Health -= Combat.CalcDamage(amount, 0);
+        Health -= Combat.CalcDamage(amount + JinaItems.AttackBonus(combat), 0);
         HitAt = Time.time;
         if (sword) Stagger(amount);
         var at = Feet + new Vector3(0, 1.4f, 0);
@@ -227,6 +262,17 @@ public partial class KongBoss : MonoBehaviour
         return true;
     }
 
+    // 개발자 치트(DevCheats): 싸우지 않고 해결된 것으로 둔다(`purify`: 정화).
+    public void SkipFight(bool purify)
+    {
+        if (Resolved || body == null) return;
+        Now = purify ? Phase.Purified : Phase.Slain; DownAt = PurifiedAt = Time.time - 10; HandedBack = true; PurifiedX = WorldBuilder.Kongjwi.x;
+        body.simulated = false; EndFight(); View.Focus(0, 0);
+        // 기본 카메라 배율 복구
+        View.Zoom(1f, 0f);
+        if (combat.Quest != null) combat.Quest.progress.ResolveKong(purify);
+        if (combat.Kong != null) { combat.Kong.Release(); if (purify) combat.Kong.Place(KongVillage.Who.Kongjwi, WorldBuilder.Kongjwi.x); }
+    }
     public bool Near => Fighting && Mathf.Abs(PlayerX - Feet.x) < PurifyRange && Mathf.Abs(combat.player.transform.position.y - (Feet.y + 1)) < 2.6f;
     // 은비녀: F로(`take`: 여기서 보따리에서 뺀다) 또는 보따리에서 사용(보따리가 직접 뺀다).
     public bool TryPurify(bool take, out string why)
@@ -389,6 +435,7 @@ public partial class KongBoss : MonoBehaviour
         }
         if (Now == Phase.Changing) { DrawChangeCard(Time.time - ChangedAt); return; }
         if (combat.Paused) return;
+        if (Sealed && PlayerX > WorldBuilder.HillEnd - 2f) JinaUI.Toast(SealNote);
         if (NoticeAt >= 0 && Time.time - NoticeAt < 3.5f && !string.IsNullOrEmpty(notice)) JinaUI.Toast(notice);
         if (Fighting && Near && HasKeepsake) JinaUI.Prompt(Weakened ? "F: 은비녀로 콩쥐 되찾기" : "F: 은비녀 (요괴의 체력을 절반 이하로 깎아야 합니다)");
         DrawFightGUI();
@@ -416,5 +463,5 @@ public partial class KongBoss : MonoBehaviour
         JinaUI.Text(new Rect(x, y + size * 1.15f, JinaUI.W, size * 1.8f), Name, 43, new Color(.7f, .86f, .5f, card), TextAnchor.MiddleLeft, true);
     }
 
-    void OnDestroy() { ClearShots(); foreach (var h in honey) if (h.art != null) Destroy(h.art.gameObject); }
+    void OnDestroy() { ClearShots(); foreach (var h in honey) if (h.art != null) Destroy(h.art.gameObject); if (miasma != null) Destroy(miasma); }
 }

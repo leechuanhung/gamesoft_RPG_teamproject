@@ -54,6 +54,8 @@ public static partial class JinaPlayChecks
         Set(combat,"<EnemyHealth>k__BackingField",0); combat.Quest.progress.Resolve(false); Call(ending);
         Check(!ending.Active,"No ending while the Kongjwi demon stands on the hill");
         Set(combat.KongBoss,"<Now>k__BackingField",KongBoss.Phase.Slain); Call(ending);
+        Check(!ending.Active,"No ending while the councillor stands in Hanyang");
+        Set(combat.FinalBoss,"<Now>k__BackingField",FinalBoss.Phase.Slain); Call(ending);
         Check(ending.Active && ending.IsPlaying && ending.Ending==EndingNarration.Kind.Slain && combat.Paused && !combat.player.CanMove,"Reaching the road plays the ending");
         ending.Skip();
         Check(ending.Active && !ending.IsPlaying && combat.Paused,"Skipping leaves the ending title up");

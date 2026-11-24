@@ -30,7 +30,12 @@ public class Camp : MonoBehaviour
     // 날아다니는 구역, 사각형과 그림의 색, 되살아나는지, 무엇을 남기는지.
     public float minX = -38, maxX = -13;
     public Color body = new Color(.65f,.35f,.22f), tint = Color.white;
-    public bool river;
+    public bool river, road;
+    // 머리 위와 쓰러뜨렸을 때 알림에 쓰는 이름: 들판의 망령, 나루터의 물귀신, 한양 가는 길의 떠도는 망령.
+    public string Name => road ? "떠도는 망령" : river ? "물귀신" : "망령";
+    public string FelledNote => Name + "이 흩어지며 엽전 {0}문을 떨어뜨렸습니다.";
+    // 한양 가는 길의 유령(InitializeRoad)이 지키는 맵.
+    public float zoneLeft, zoneRight;
     public int coins = CoinsPerGhost;
     private bool wasInside;
     public const float FlySpeed = 2.2f, SightRange = 8f, StrikeRange = 1.3f, StrikeWindup = .55f, StrikeCooldown = .9f;
@@ -41,17 +46,26 @@ public class Camp : MonoBehaviour
         public SpriteRenderer art;
         public GhostVisual visual;
         public int hp = GhostHealth;
+        public int defense = Combat.MonsterDefense;
         public float home, ready, windup = -1, phase;
         public Vector2 strike;
         public float vanishAt = -1;
         public float respawnAt = -1;   // 이 시각에 다시 나타남 (-1이면 안 나타남)
     }
     public const float RespawnDelay = 2f;   // 들판 몹이 죽고 다시 나타나기까지(초)
-    public const int SealKills = 30;       // 이만큼 쓰러뜨리면 비석 길 봉인이 풀림
+    public const int SealKills = 15;       // 이만큼 쓰러뜨리면 비석 길 봉인이 풀림 (유령은 계속 되살아나므로 수로 센다)
     public int Kills { get; private set; }  // 지금까지 쓰러뜨린 수
+    public bool Cleared => Kills >= SealKills;  // 봉인이 풀렸는가(비석 터로 가고 비석을 살필 수 있음)
     public readonly List<Mob> mobs = new List<Mob>();
     private GameObject gate;
     public int Remaining { get { int n = 0; foreach (var m in mobs) if (m.hp > 0) n++; return n; } }
+
+    // 치트: 처치 수를 채워 봉인을 바로 푼다.
+    public void Unseal()
+    {
+        Kills = Mathf.Max(Kills, SealKills);
+        if (gate != null) gate.SetActive(false);
+    }
 
     // 들판의 수호 유령들을 만든다.
     public void Initialize(Combat owner, Sprite sprite)
@@ -88,6 +102,15 @@ public class Camp : MonoBehaviour
         Spawn(sprite, "물귀신", new[] { 84f, 90f, 96f });
         ResetCamp();
     }
+    // 한양 가는 길(역참, 무덤길)의 유령: 다른 몬스터와 섞여 그 맵을 지킨다. 들판 유령처럼 한 번 쓰러지면 끝.
+    public void InitializeRoad(Combat owner, Sprite sprite, float[] homes, float left, float right)
+    {
+        combat = owner; road = true; coins = 2;
+        zoneLeft = left; zoneRight = right; minX = left + 1; maxX = right - 1;
+        body = new Color(.4f, .3f, .45f); tint = new Color(.86f, .8f, 1f);
+        Spawn(sprite, "길의 유령", homes);
+        ResetCamp();
+    }
     // `homes` 자리마다 유령을 하나씩 만든다.
     void Spawn(Sprite sprite, string label, float[] homes)
     {
@@ -104,7 +127,7 @@ public class Camp : MonoBehaviour
         }
     }
     // 구역: 마을 서쪽 들판, 또는 물귀신이면 나루터 맵.
-    public bool Inside(Vector3 p) => river ? p.x >= WorldBuilder.FerryStart && p.x < WorldBuilder.FerryEnd : p.x < WorldBuilder.VillageLeft;
+    public bool Inside(Vector3 p) => road ? p.x >= zoneLeft && p.x < zoneRight : river ? p.x >= WorldBuilder.FerryStart && p.x < WorldBuilder.FerryEnd : p.x < WorldBuilder.VillageLeft;
     // 쓰러진 물귀신은 선비가 돌아올 때마다(처음 떠 있던 자리에서) 되살아난다.
     public void Rise()
     {
@@ -125,6 +148,7 @@ public class Camp : MonoBehaviour
     {
         m.art.gameObject.SetActive(true);
         m.vanishAt = -1; m.respawnAt = -1;
+        JinaItems.ForgetMob(m);
         m.hp = GhostHealth; m.windup = -1; m.ready = Time.time + 1;
         m.art.transform.position = new Vector3(m.home, HoverY, 0);
         m.art.enabled = true;
@@ -144,8 +168,9 @@ public class Camp : MonoBehaviour
     public void Hit(Mob m, int damage = Combat.ArrowDamage)
     {
         if (m == null || m.hp <= 0) return;
+        if (combat != null && combat.Cheats != null) damage = combat.Cheats.Power(damage);   // 개발자 치트: 한 방
         int before = m.hp;
-        m.hp -= Combat.CalcDamage(damage, Combat.MonsterDefense);
+        m.hp -= Combat.CalcDamage(damage + JinaItems.AttackBonus(combat), JinaItems.RopeDefense(m, m.defense, combat));
         var at = m.art.transform.position;
         int away = combat != null && combat.player.transform.position.x < at.x ? 1 : -1;
         JinaFx.Hit(at + Vector3.up * .1f, away, river ? new Color(.74f, .92f, 1) : new Color(1, .92f, .72f));
@@ -162,6 +187,8 @@ public class Camp : MonoBehaviour
             m.visual.Down(); m.windup = -1; m.visual.Winding = false;
             m.vanishAt = Time.time + 1.5f;
             Kills++;
+            JinaItems.ForgetMob(m);
+            JinaItems.RollDrops(at);
             // 들판 몹: 4~10 무작위 (Random.Range의 끝 숫자는 포함 안 돼서 +1)
             if (combat != null) combat.GainExp(river ? Combat.WaterGhostExp : Random.Range(Combat.GhostExpMin, Combat.GhostExpMax + 1));
             if (!river) m.respawnAt = Time.time + RespawnDelay;
@@ -179,8 +206,8 @@ public class Camp : MonoBehaviour
             if (combat != null) { combat.FindCoins(gain); if (river) combat.FellWaterGhost(); }
             JinaFx.Word(at + Vector3.up * 1.2f, "+" + gain + "문", new Color(1f, .84f, .3f), 22);
         }
-        // 100마리 쓰러뜨리면 봉인이 풀림 (한 번 풀리면 다시 잠기지 않음)
-        if (gate != null && Kills >= SealKills) gate.SetActive(false);
+        // SealKills마리 쓰러뜨리면 봉인이 풀림 (한 번 풀리면 다시 잠기지 않음)
+        if (gate != null && Cleared) gate.SetActive(false);
     }
     // Whether the blow landed on anything.
     // damage를 넘기지 않으면 환도 데미지(10), 스킬은 Slash(area, 20)처럼 원하는 데미지를 넘김
@@ -195,6 +222,7 @@ public class Camp : MonoBehaviour
     void OnGUI()
     {
         if (combat == null || combat.PlayerHealth <= 0 || combat.Paused || Camera.main == null) return;
+        KoreanUI.Apply();
         var oldMatrix = GUI.matrix;
         GUI.matrix = Matrix4x4.identity;
         foreach (var m in mobs)
@@ -208,6 +236,7 @@ public class Camp : MonoBehaviour
             float width = 100, height = 20;
             var r = new Rect(screen.x - width / 2, Screen.height - screen.y - height, width, height);
             Combat.DrawBar(r, (float)m.hp / GhostHealth, new Color(.9f, .2f, .2f), m.hp + " / " + GhostHealth, 15);
+            Combat.DrawName(r, Name, river ? new Color(.74f, .9f, 1) : new Color(.9f, .84f, 1));
         }
         GUI.matrix = oldMatrix;
     }

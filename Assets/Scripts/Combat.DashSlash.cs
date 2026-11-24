@@ -34,6 +34,16 @@ public partial class Combat
                 landed = true;
             }
         }
+        // 한양 가는 길: 좌의정과 몬스터·관군.
+        if (FinalBoss != null && FinalBoss.Fighting && swept.Intersects(FinalBoss.HurtBox) && alreadyHit.Add(FinalBoss) && FinalBoss.Damage(DashSlashDamage))
+            landed = true;
+        if (Mobs != null)
+            foreach (var mob in Mobs.mobs)
+            {
+                if (!mob.Alive || mob.leaving || mob.witness || !swept.Intersects(mob.Body) || !alreadyHit.Add(mob)) continue;
+                Mobs.Hit(mob, DashSlashDamage);
+                landed = true;
+            }
         return landed;
     }
 }

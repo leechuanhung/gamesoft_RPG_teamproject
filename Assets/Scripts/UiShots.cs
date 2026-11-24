@@ -118,6 +118,61 @@ public class UiShots : MonoBehaviour
         while (after.Playing && !after.CurrentLine.Contains(words)) after.Advance();
         yield return new WaitForSecondsRealtime(1.1f);
     }
+    // 한양 가는 길: 봉수 군령판과 군령, 관군의 외침, 무당의 말풍선, 좌의정 술자리(초상화 없는 창)와 속마음, 변신 카드, 싸움.
+    IEnumerator ShootRoad()
+    {
+        Fresh(BeaconFort.BoardX); Solve();
+        yield return Shot("road_board_prompt");
+        Set(combat.Fort, "ReadAt", Time.time);
+        yield return Shot("road_board_orders");
+        Fresh(WorldBuilder.FortEnd + 14); Solve(); combat.Quest.progress.SacrificeElder();
+        yield return Until(() => combat.Mobs.SoldiersAlive(9) > 0, 3);
+        yield return new WaitForSecondsRealtime(1f);
+        yield return Shot("road_soldiers_shout");
+        int mudang = System.Array.FindIndex(HanyangTown.People, p => p.who == HanyangTown.Who.Mudang);
+        Fresh(HanyangTown.People[mudang].x - .6f); Solve();
+        combat.Town.Talk(mudang);
+        yield return new WaitForSecondsRealtime(1.5f);
+        yield return Shot("road_mudang");
+        Fresh(WorldBuilder.OfficialX - 3); Solve();
+        yield return Until(() => combat.FinalBoss.Now == FinalBoss.Phase.Banquet, 3);
+        yield return new WaitForSecondsRealtime(1.2f);
+        yield return Shot("final_banquet0");
+        combat.FinalBoss.NextLine();
+        yield return new WaitForSecondsRealtime(1.5f);
+        yield return Shot("final_banquet_thought");
+        while (combat.FinalBoss.Now == FinalBoss.Phase.Banquet) combat.FinalBoss.NextLine();
+        Set(combat.FinalBoss, "ChangedAt", Time.time - 2.8f);
+        yield return Shot("final_card");
+        Set(combat.FinalBoss, "ChangedAt", Time.time - FinalBoss.ChangeLength - .01f);
+        yield return new WaitForSecondsRealtime(1.5f);
+        yield return Shot("final_fight");
+        // 뒷산 끝 독기 장막의 알림.
+        Fresh(WorldBuilder.HillEnd - 1.2f); Solve();
+        yield return new WaitForSecondsRealtime(.6f);
+        yield return Shot("hill_miasma");
+        // 콩밭 마을 방물장수, 한양 잡화전과 국밥집, 몬스터 이름과 처치 알림.
+        Fresh(WorldBuilder.Bangmul.x); Solve();
+        combat.Peddler.OpenAt(PeddlerShop.Kongbat);
+        yield return Shot("shop_kongbat");
+        Fresh(WorldBuilder.Gukbap.x); Solve();
+        combat.Tavern.OpenAt(1);
+        yield return Shot("shop_gukbap");
+        Fresh(WorldBuilder.Sangin.x); Solve();
+        combat.Peddler.OpenAt(PeddlerShop.Hanyang);
+        yield return Shot("shop_sangin");
+        Fresh(WorldBuilder.FortEnd + 6); Solve(); combat.Quest.progress.SacrificeElder();
+        yield return new WaitForSecondsRealtime(2.5f);
+        foreach (var m in combat.Mobs.mobs) if (m.soldier) { combat.Mobs.Hit(m, 999); break; }
+        yield return Shot("names_and_soldier_death");
+        // 개발자 치트 창(F8)과 켜진 치트 표시.
+        Fresh(0);
+        combat.Cheats.Show(); combat.Cheats.Use(1); combat.Cheats.Use(2);
+        yield return Shot("cheat_panel");
+        combat.Cheats.Close();
+        yield return Shot("cheat_on");
+        combat.Cheats.Use(1); combat.Cheats.Use(2);
+    }
     // 콩쥐 요괴 장면들을 찍는다.
     IEnumerator ShootKongBoss()
     {
@@ -383,6 +438,9 @@ public class UiShots : MonoBehaviour
 
         // 콩쥐 요괴: 뒷산 대화, 변신과 이름 카드, 싸움, 습격, 그 뒤.
         yield return ShootKongBoss();
+
+        // 한양 가는 길: 군령판, 관군, 무당, 좌의정 술자리와 변신, 싸움.
+        yield return ShootRoad();
 
         // 결말 제목
         Fresh(0); Solve();

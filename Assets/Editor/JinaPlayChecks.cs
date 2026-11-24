@@ -70,6 +70,9 @@ public static partial class JinaPlayChecks
                 CheckKongVillage();
                 CheckKongBoss();
                 Polish();
+                Hanyang();
+                CheatPanel();
+                RoadShops();
                 PlayerFall();
                 Endings();
                 Check(!combat.BossPurified && !combat.EnemyDefeated && combat.EnemyHealth==Combat.EnemyMaxHealth,"Restart restores hostile boss");
@@ -112,6 +115,8 @@ public static partial class JinaPlayChecks
     }
     static T Field<T>(object obj,string name) => (T)FindField(obj,name).GetValue(obj);
     static void Set(object obj,string name,object value) => FindField(obj,name).SetValue(obj,value);
+    // 활은 이제 장착 무기다: 지금 칸을 활 또는 환도로 바꾼다.
+    static void Bow(Combat c,bool on) => c.EquippedWeapons[c.ActiveWeaponSlot]=on?"bow":"hwando";
     static SpriteRenderer Picture(JinaActorVisual v) => Field<SpriteRenderer>(v,"picture");
     // Purifying takes the charm: hear the clue and read the stele (moon, river, mountain).
     static QuestProgress WithCharm(QuestProgress q) { q.HearClue(); q.ChooseSymbol(2); q.ChooseSymbol(1); q.ChooseSymbol(3); return q; }

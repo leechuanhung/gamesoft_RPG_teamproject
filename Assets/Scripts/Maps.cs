@@ -22,6 +22,12 @@ public class Maps : MonoBehaviour
         new Map("콩밭 마을", "효녀 콩쥐와 못된 팥쥐가 산다는 부잣집 마을", WorldBuilder.KongStart, WorldBuilder.KongEnd),
         new Map("고개와 서낭당", "길손의 걱정이 돌무더기로 쌓인 고개", WorldBuilder.PassStart, WorldBuilder.PassEnd),
         new Map("뒷산", "소리를 질러도 아무도 듣지 못한다는 고개 너머 뒷산", WorldBuilder.HillStart, WorldBuilder.HillEnd),
+        new Map("봉화 산성", "봉홧불이 꺼진 채 문이 닫힌 산성", WorldBuilder.FortStart, WorldBuilder.FortEnd),
+        new Map("버려진 역참", "말도 사람도 떠난 역참에 도깨비불이 산다", WorldBuilder.FortEnd, WorldBuilder.StationEnd),
+        new Map("북망산 무덤길", "한양 사람들이 묻히는 산, 해가 지면 길이 바뀐다", WorldBuilder.StationEnd, WorldBuilder.GraveEnd),
+        new Map("한양 거리", "어린 임금의 도성, 좌의정 대감의 세상", WorldBuilder.GraveEnd, WorldBuilder.CityEnd),
+        new Map("과거장 앞", "내일 아침 과거가 열리는 곳", WorldBuilder.CityEnd, WorldBuilder.HallEnd),
+        new Map("좌의정 댁", "등불은 밝은데 사람 소리가 없는 집", WorldBuilder.ManorStart, WorldBuilder.ManorEnd),
     };
     // 맵이 바뀌기 전 경계를 얼마나 넘어 걷는지, 어둠이 닫히고 열리는 시간, 이름 카드.
     public const float Margin = .2f, FadeOut = .22f, FadeIn = .3f, CardLength = 2.4f;

@@ -28,7 +28,7 @@ public static partial class JinaPlayChecks
     {
         foreach (string prefix in new[]{"03_Player_Attack_Bow/bow_up_","03_Player_Attack_Bow/bow_down_"}) Check(JinaArt.Frames(prefix).Length==4,"Aimed bow frames");
         var visual=combat.player.GetComponent<SeonbiVisual>(); var body=Field<SpriteRenderer>(visual,"body");
-        Set(combat,"<UsingBow>k__BackingField",true);
+        Bow(combat,true);
         foreach (int aim in new[]{1,-1})
         {
             visual.Attack(true,1,aim); Set(visual,"attackTime",.31f); visual.SendMessage("LateUpdate");
@@ -42,7 +42,7 @@ public static partial class JinaPlayChecks
             shot.gameObject.name="Checked Arrow";
             typeof(Combat).GetMethod("ClearArrows",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance).Invoke(combat,null);
         }
-        Set(combat,"<UsingBow>k__BackingField",false);
+        Bow(combat,false);
         Check(Combat.ArrowLaunch(1).y>Combat.ArrowLaunch(0).y && Combat.ArrowLaunch(-1).y<Combat.ArrowLaunch(0).y,"Aimed arrows leave the bow higher or lower");
         // A diagonal arrow meets a target above, and passes up through a ledge.
         var above=new Bounds(new Vector3(4,2.3f,0),new Vector3(1,1.4f,1));

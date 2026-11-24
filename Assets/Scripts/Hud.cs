@@ -41,18 +41,22 @@ public class Hud : MonoBehaviour
     {
         var q = combat.Quest.progress;
         float x = combat.player.transform.position.x;
+        // 관군은 어느 맵에서든 가장 급한 일이다.
+        if (combat.Mobs != null && combat.Maps != null && combat.Mobs.SoldiersAlive(combat.Maps.Current) > 0)
+            return "관군이 선비를 쫓고 있습니다! 물리치거나 맵 밖으로 빠져나가세요.";
         if (!combat.EnemyDefeated)
         {
             if (q.HasCharm) return "도깨비 가까이에서 F로 저주를 풀거나, 칼로 쓰러뜨리세요. 해결하면 숲 끝 가시덤불이 걷힙니다.";
-            if (combat.Camp != null && combat.Camp.Remaining > 0 && x < WorldBuilder.ForestStart)
-                return "서쪽 유령을 물리치면 비석 터에서 정화 부적을 얻습니다. 도깨비를 칼로만 상대해도 됩니다.";
+            if (combat.Camp != null && !combat.Camp.Cleared && x < WorldBuilder.ForestStart)
+                return "서쪽 유령을 " + Camp.SealKills + "번 물리치면 비석 터에서 정화 부적을 얻습니다. 도깨비를 칼로만 상대해도 됩니다.";
             return "숲의 도깨비를 토벌하거나, 비석 터의 부적으로 정화하세요. 해결하면 숲 끝 가시덤불이 걷힙니다.";
         }
         var boss = combat.KongBoss;
         if (boss != null && boss.Fighting) return KongGoal(x);
+        if (x >= WorldBuilder.FortStart) return RoadGoal(x);
         if (x < WorldBuilder.FerryStart) return "숲 동쪽 끝을 지나 나루터로 가세요.";
         if (x < WorldBuilder.RiverRight) return "뱃사공과 이야기하고, 나룻배로 강을 건너세요.";
-        if (boss != null && boss.Resolved) return "뒷산 끝의 금빛 표식까지 가면 한양으로 가는 길입니다.";
+        if (boss != null && boss.Resolved) return "독기가 걷혔습니다. 뒷산 너머 산성으로 가세요. 산성 너머가 한양입니다.";
         if (x < WorldBuilder.KongEnd && combat.Kong != null && !combat.Kong.Revealed)
         {
             if (!combat.Kong.Stayed) return combat.Kong.ReadyForNight ? "마을 사람들과 모두 이야기했습니다. 콩쥐에게 다시 말을 걸어 보세요."
@@ -61,7 +65,22 @@ public class Hud : MonoBehaviour
             return "모든 것을 알았습니다. 콩쥐와 마주하세요.";
         }
         if (combat.Kong != null && combat.Kong.Revealed) return x < WorldBuilder.PassStart ? "콩쥐가 뒷산에서 기다립니다. 먼저 팥쥐의 말을 들어 보세요." : "콩쥐가 말한 뒷산은 고개 너머입니다.";
-        return "고개를 넘어 뒷산을 지나면 한양으로 가는 금빛 표식이 있습니다.";
+        return "고개를 넘어 뒷산을 지나면 한양으로 가는 산성이 있습니다.";
+    }
+    // 뒷산 너머 한양 가는 길: 산성 퍼즐, 관군, 한양 사람들, 좌의정.
+    string RoadGoal(float x)
+    {
+        var fort = combat.Fort; var fin = combat.FinalBoss; var town = combat.Town; var mobs = combat.Mobs;
+        if (fin != null && fin.Fighting) return fin.Dark ? "어둠이 짙어졌습니다! 그림자가 지는 자리를 피하며 좌의정을 쓰러뜨리세요."
+            : "어둑시니 좌의정을 쓰러뜨리세요. 땅에 그림자가 지면 피하고, 팔을 휩쓸면 뛰어넘으세요.";
+        if (fin != null && fin.Resolved) return "좌의정 댁 오른쪽 끝 금빛 표식을 지나면 과거장입니다.";
+        if (x < WorldBuilder.FortEnd && fort != null && !fort.Open)
+            return fort.ReadOrders ? BeaconFort.Route + " (" + fort.Step + "/5)" : "산성 문이 닫혀 있습니다. 산성 입구의 봉수 군령판을 읽어 보세요.";
+        if (x < WorldBuilder.GraveEnd) return "역참과 무덤길을 지나 한양으로 가세요. 도깨비불은 빛을 모은 뒤 날아듭니다.";
+        if (x < WorldBuilder.CityEnd) return town != null && town.Invited ? "좌의정이 과거장 앞을 지나 자기 집 누각으로 오라 했습니다."
+            : "한양 사람들의 이야기를 들어 보세요. 거리 끝에서 누가 선비를 기다립니다.";
+        if (x < WorldBuilder.ManorStart) return "과거는 내일 아침입니다. 오늘 밤 좌의정 댁 누각으로 가세요.";
+        return "누각의 좌의정에게 다가가세요.";
     }
     // 콩쥐 요괴와 싸우는 동안: 요괴가 어디 있고 무엇을 할 수 있는지.
     string KongGoal(float x)
@@ -198,7 +217,7 @@ public class Hud : MonoBehaviour
         string[] rows =
         {
             q.ElderDead ? "노인 희생" : null,
-            combat.Camp != null && combat.Camp.Remaining > 0 && combat.player.transform.position.x < WorldBuilder.ForestStart ? "들판 유령 " + combat.Camp.Remaining + "마리 남음" : null,
+            combat.Camp != null && !combat.Camp.Cleared && combat.player.transform.position.x < WorldBuilder.ForestStart ? "들판 유령 " + combat.Camp.Kills + " / " + Camp.SealKills : null,
             combat.River != null && combat.RiverFelled < Combat.KeepsakeAt && (combat.RiverFelled > 0 || combat.River.Inside(combat.player.transform.position))
                 ? "물귀신 " + combat.RiverFelled + " / " + Combat.KeepsakeAt : null,
             combat.Kong != null && combat.Kong.InVillage && !combat.Kong.Revealed ? "콩밭 단서 " + combat.Kong.Clues + " / 3" : null,
@@ -229,7 +248,7 @@ public class Hud : MonoBehaviour
     {
         JinaUI.ToastTop = Margin + 2;
         // 막대 자체는 팀원 것(Combat.DrawBossHealthBar). 알림은 그 아래로 간다.
-        bool kong = combat.KongBoss != null && combat.KongBoss.Fighting;
+        bool kong = combat.KongBoss != null && combat.KongBoss.Fighting || combat.FinalBoss != null && combat.FinalBoss.Fighting;
         if ((!combat.BossAlerted || combat.EnemyDefeated) && !kong || combat.Paused) return;
         JinaUI.ToastTop = Margin + 56;
     }

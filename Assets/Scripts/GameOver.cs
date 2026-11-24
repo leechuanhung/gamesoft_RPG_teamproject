@@ -10,7 +10,7 @@ public class GameOver : MonoBehaviour
     public const float FadeIn = .15f, Slump = .35f, Kneel = .8f, Topple = 1.45f, Down = 1.75f, WeaponLands = .9f, TextAt = 2.3f;
     // 타격에 뒤로 밀리는 거리와 타격의 흰 번쩍임이 이어지는 시간.
     public const float Knockback = .3f, FlashLength = .12f, VeilSize = 200;
-    public const string Title = "선비가 쓰러졌습니다", Words = "길은 여기서 끊겼으나, 뜻은 아직 남았다.", Retry = "R: 다시 일어서기", RetryHill = "R: 뒷산 입구에서 다시 일어서기";
+    public const string Title = "선비가 쓰러졌습니다", Words = "길은 여기서 끊겼으나, 뜻은 아직 남았다.", Retry = "R: 다시 일어서기", RetryHill = "R: 뒷산 입구에서 다시 일어서기", RetryRoad = "R: 한양 가는 길에서 다시 일어서기";
     private SpriteRenderer veil, actor, flash, weapon;
     private Sprite[] frames;
     private Sprite facedown;
@@ -108,7 +108,7 @@ public class GameOver : MonoBehaviour
         float y = JinaUI.H * .22f;
         JinaUI.Text(new Rect(40, y, JinaUI.W - 80, size * 2.2f), Title, 40, new Color(.8f, .25f, .22f, a), TextAnchor.MiddleCenter, true);
         JinaUI.Text(new Rect(40, y + size * 2.2f, JinaUI.W - 80, size * 1.6f), Words, 24, new Color(.92f, .9f, .85f, b), TextAnchor.MiddleCenter);
-        JinaUI.Text(new Rect(40, JinaUI.H * .78f, JinaUI.W - 80, size * 1.6f), combat.CanRetryAtHill ? RetryHill : Retry, 24, new Color(.95f, .85f, .6f, c * (.65f + .35f * Mathf.Sin(t * 3))), TextAnchor.MiddleCenter);
+        JinaUI.Text(new Rect(40, JinaUI.H * .78f, JinaUI.W - 80, size * 1.6f), combat.CanRetryOnRoad ? RetryRoad : combat.CanRetryAtHill ? RetryHill : Retry, 24, new Color(.95f, .85f, .6f, c * (.65f + .35f * Mathf.Sin(t * 3))), TextAnchor.MiddleCenter);
     }
 
     // 연출용 오브젝트를 지운다.

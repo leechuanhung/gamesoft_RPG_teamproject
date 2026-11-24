@@ -135,7 +135,7 @@ public class ElderQuest : NpcTalk
         }
         else if (Near(WorldBuilder.Stone))
         {
-            if (combat.Camp != null && combat.Camp.Remaining > 0) return;
+            if (combat.Camp != null && !combat.Camp.Cleared) return;
             shrineDialog = true;
             message = progress.Outcome != EncounterOutcome.Unresolved ? "이곳의 일은 이미 끝났다.\n다른 선택을 해 보려면 R을 눌러 처음부터 시작하세요."
                 : progress.HasCharm ? "정화 부적을 지니고 있다.\n창을 닫고 도깨비 가까이에서 F를 누르세요."
@@ -154,7 +154,7 @@ public class ElderQuest : NpcTalk
             keepsake ? "그 비녀… 그 집 안주인의 것이로군. 원한은 원한으로 풀리지 않는 법이네. 그 아이를 베기 전에 그것부터 써 보게."
                 : "그 아이를 칼로 베면 끝은 나겠지. 허나 강물이 품은 것이 있다면… 그것이 그 아이를 돌려줄지도 모르네.",
             "주모에게 요기라도 하고, 보부상에게 화살도 넉넉히 사 가게. 서두르게. 그 마을엔 피할 데가 없다네." };
-        if (q.ElderDead) return new[] { "노인은 마지막 힘을 다해 도깨비에게 맞섰으나 끝내 쓰러졌다.\n품에 남은 쪽지에는 ‘달, 강, 산’이라 적혀 있다. 비석으로 가려면 서쪽의 몬스터를 모두 물리쳐야 한다." };
+        if (q.ElderDead) return new[] { "노인은 마지막 힘을 다해 도깨비에게 맞섰으나 끝내 쓰러졌다.\n품에 남은 쪽지에는 ‘달, 강, 산’이라 적혀 있다. 비석으로 가려면 서쪽의 망령을 " + Camp.SealKills + "번 물리쳐야 한다." };
         if (q.Outcome == EncounterOutcome.Purified) return new[] {
             "그 도깨비를 살려 주셨구려. 어젯밤엔 숲에서 울음소리 대신 솔바람 소리가 내려오더이다.",
             "내 젊어서 저 아이와 씨름도 하고 술도 나눠 마셨다오. …이 늙은이 소원을 선비께서 들어주셨소. 부디 남은 길도 평안히 가시오." };
