@@ -14,11 +14,15 @@ public class Skills : MonoBehaviour
     // ── W 돌진베기 ──
     public const float RushCooldown = 5f, RushLength = .3f, RushSpeed = 18f;
     public const int RushDamage = 20;
+    // ── E 강궁: 다음 화살 한 발 공격력 2배 (활을 들고 있을 때만) ──
+    public const float PowerShotCooldown = 8f;
+    public const int PowerShotMultiplier = 2;
 
 // ── 스테미너 소모량 ──
     public const int AttackStamina = 10;    // 기본 공격 (Combat에서 사용)
     public const int RetreatStamina = 20;   // 물러서기
     public const int RushStamina = 30;      // 돌진베기
+    public const int PowerShotStamina = 25; // 강궁
     
     public class Slot
     {
@@ -39,7 +43,7 @@ public class Skills : MonoBehaviour
         {
             new Slot { key = "Q", name = "물러서기", skillId = "retreat", cooldown = RetreatCooldown },
             new Slot { key = "W", name = "돌진베기", skillId = "rush_slash", cooldown = RushCooldown },
-            new Slot { key = "E", name = "", empty = true },
+            new Slot { key = "E", name = "강궁", skillId = "power_shot", cooldown = PowerShotCooldown },
         };
     }
 
@@ -47,6 +51,7 @@ public class Skills : MonoBehaviour
     public void ResetSkills()
     {
         if (slots != null) foreach (var s in slots) s.readyAt = 0;
+        if (combat != null) combat.PowerShotReady = false;
     }
 
     bool CanUse => combat.PlayerHealth > 0 && !combat.Paused && combat.player.CanMove && !combat.player.Dodging;
@@ -54,6 +59,9 @@ public class Skills : MonoBehaviour
     void Update()
     {
         if (combat == null || combat.player == null) return;
+        // 강궁 준비 중: 선비 몸에서 금빛이 피어오름
+        if (combat.PowerShotReady && !combat.Paused && Time.frameCount % 5 == 0)
+            JinaFx.Rise(combat.player.transform.position + Vector3.up * .3f, 2, new Color(1f, .82f, .3f), .35f, 1.2f, .5f);
         if (!CanUse) return;
         if (Input.GetKeyDown(KeyCode.Q)) TryUse(0);
         else if (Input.GetKeyDown(KeyCode.W)) TryUse(1);
@@ -66,9 +74,12 @@ public class Skills : MonoBehaviour
         if (s.empty || Time.time < s.readyAt) return;
         // 활을 들고 있으면 W(돌진베기)는 못 씀 (스테미너·쿨타임도 안 씀)
         if (index == 1 && combat.UsingBow) return;
+        // 강궁은 활을 들고 있을 때만, 이미 준비된 상태면 다시 못 씀
+        if (s.skillId == "power_shot" && (!combat.UsingBow || combat.PowerShotReady)) return;
         var p = combat.player;
         // 스킬 종류에 따라 스테미너 소모. 모자라면 쓰지 않음 (쿨타임도 안 돎)
-        int cost = s.skillId == "retreat" ? RetreatStamina : s.skillId == "rush_slash" ? RushStamina : 0;
+        int cost = s.skillId == "retreat" ? RetreatStamina : s.skillId == "rush_slash" ? RushStamina
+                 : s.skillId == "power_shot" ? PowerShotStamina : 0;
         if (!p.UseStamina(cost)) return;
         switch (s.skillId)
         {
@@ -80,6 +91,13 @@ public class Skills : MonoBehaviour
                 rushStartX = p.transform.position.x;
                 p.StartDash(p.Facing, RushLength, RushSpeed);
                 rushEndsAt = Time.time + RushLength;
+                break;
+            case "power_shot":   // 강궁: 다음 화살 한 발 공격력 2배
+                combat.PowerShotReady = true;
+                var chest = p.transform.position + Vector3.up * .3f;
+                JinaFx.Glint(chest, new Color(1f, .85f, .35f));
+                JinaFx.Dots(chest, 12, new Color(1f, .8f, .3f), 2.6f, .4f);
+                JinaFx.Word(p.transform.position + Vector3.up * 1.5f, "강궁!", new Color(1f, .85f, .35f), 22);
                 break;
         }
         s.readyAt = Time.time + s.cooldown;
@@ -130,8 +148,16 @@ public class Skills : MonoBehaviour
             GUI.Label(new Rect(r.x + 5, r.y + 3, r.width, 18), s.key, keyStyle);
             GUI.Label(new Rect(r.x, r.y, r.width, r.height - 4), s.empty ? "비어 있음" : s.name, nameStyle);
 
-            // 활을 들고 있으면 W 칸을 어둡게 덮고 빨간 X
-            if (i == 1 && combat.UsingBow)
+            // 강궁 준비 중: 금빛으로 칠하고 "준비"
+            if (s.skillId == "power_shot" && combat.PowerShotReady)
+            {
+                GUI.color = new Color(1f, .82f, .3f, .35f + .15f * Mathf.Sin(Time.time * 8));
+                GUI.DrawTexture(r, Texture2D.whiteTexture);
+                GUI.color = Color.white;
+                GUI.Label(r, "준비", cdStyle);
+            }
+            // 활을 들고 있으면 W(돌진베기) 칸, 활이 없으면 강궁 칸을 어둡게 덮고 빨간 X
+            if ((i == 1 && combat.UsingBow) || (s.skillId == "power_shot" && !combat.UsingBow))
             {
                 GUI.color = new Color(0, 0, 0, .55f);
                 GUI.DrawTexture(r, Texture2D.whiteTexture);

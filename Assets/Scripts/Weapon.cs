@@ -25,6 +25,8 @@ public class Weapon : MonoBehaviour
         public int[] comboDamage;     // 콤보 무기: 1·2·3타 데미지 (없으면 damage)
         public float comboInterval;   // 콤보 무기: 한 타마다 걸리는 시간(초) (0이면 환도 기본값)
         public string bowArt;         // 활 무기: 전용 활 그림 (없으면 기본 활 그림)
+        public bool hwandoSlash;      // 전용 그림 무기라도 칼빛·이펙트는 환도와 똑같이
+        public int evilLimit;         // 악행이 이만큼 쌓이면 장착 불가 (0이면 제한 없음)
 
         // 이번 타(step 0·1·2)에 걸리는 시간, 맞는 시점, 데미지
         public float Swing(int step) => combo ? (comboInterval > 0 ? comboInterval : SeonbiVisual.SwordLength(step)) : interval;
@@ -45,6 +47,13 @@ public class Weapon : MonoBehaviour
         ["byeokjogung"] = new Stats { id = "byeokjogung", name = "벽조궁", ranged = true,
             damage = Combat.ArrowDamage * 3 / 2, stamina = 6, interval = .65f, hitDelay = SeonbiVisual.BowReleaseDelay,
             carryScale = 1f, dropChance = .03f, bowArt = "04_Weapons/byeokjo_bow" },
+         // 사인검: 환도보다 조금 강함. 1타 7, 2타 12, 3타 16 / 나머지는 환도와 같음
+        //   퀘스트 보상 전용(드랍 없음) / 악행 20 이상이면 장착 불가
+        ["saingeom"] = new Stats { id = "saingeom", name = "사인검", combo = true,
+            damage = 16, comboDamage = new[] { 7, 12, 16 }, comboInterval = .35f,
+            stamina = 8, reach = 1.35f, carryScale = 1.47f, dropChance = 0,
+            art = "04_Weapons/saingeom", sheathedArt = "04_Weapons/saingeom_sheathed", grip = new Vector2(103, 91),
+            hwandoSlash = true, evilLimit = 20 },
         // 단검: 데미지 5 / 스테미너 4 / 사거리 1.1칸 / 0.25초마다
         ["dagger"] = new Stats { id = "dagger", name = "단검",
             damage = 5, stamina = 4, reach = 1.1f, interval = .25f, hitDelay = .1f, carryScale = 1f, alwaysDrawn = true,

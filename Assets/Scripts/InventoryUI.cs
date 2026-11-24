@@ -107,6 +107,7 @@ public class InventoryUI : MonoBehaviour
         bool added = id == "hwando" ? UnlockWeapon("hwando", "환도", "기본 근접 무기", "icon_sword", true)
                    : id == "bow" ? UnlockWeapon("bow", "활", "화살을 소비하는 원거리 무기", "icon_bow", true)
                    : id == "myeonggeom" ? UnlockWeapon("myeonggeom", "명검", "환도보다 강하고 긴 전설의 검 (3연격)", "icon_sword", true)
+                   : id == "saingeom" ? UnlockWeapon("saingeom", "사인검", "사악한 것을 베는 검. 환도보다 조금 강하다 (악행 20 이상이면 장착 불가)", "icon_sword", true)
                    : id == "byeokjogung" ? UnlockWeapon("byeokjogung", "벽조궁", "번개 맞은 대추나무로 만든 활 (활보다 데미지 50% 높음)", "icon_bow", true)
                    : false;
         if (!added) return false;
@@ -119,6 +120,7 @@ public class InventoryUI : MonoBehaviour
         if (index < 0 || index >= 2) return false;
         var weapon = weapons.Find(w => w.id == id);
         if (weapon == null || !weapon.combatReady) return false;
+        if (combat != null && !combat.CanEquip(Weapon.Get(id))) return false;   // 장착 조건 (사인검: 악행)
         for (int i = 0; i < 2; i++) if (i != index && equippedWeapons[i] == id) equippedWeapons[i] = null;
         equippedWeapons[index] = id;
         return true;
@@ -129,6 +131,7 @@ public class InventoryUI : MonoBehaviour
         inventory = GetComponent<InventoryManager>();
         UnlockSkill("retreat", "물러서기", "바라보는 방향 반대로 이동하며 잠시 무적", Skills.RetreatCooldown, true);
         UnlockSkill("rush_slash", "돌진베기", "전방으로 돌진하며 적에게 피해", Skills.RushCooldown, true);
+        UnlockSkill("power_shot", "강궁", "다음 화살 한 발의 공격력이 2배 (활을 들었을 때만)", Skills.PowerShotCooldown, true);
         // 처음엔 단검과 활. 나머지 무기는 들판 몹이 떨어뜨림 (WeaponPickup.cs)
         UnlockWeapon("dagger", "단검", "짧고 빠른 근접 무기 (콤보 없음)", "icon_sword", true);
         UnlockWeapon("bow", "활", "화살을 소비하는 원거리 무기", "icon_bow", true);
@@ -369,6 +372,8 @@ public class InventoryUI : MonoBehaviour
                 if (Button(new Rect(r.x + 168 + slot * 52, r.y + 5, 48, 26), equippedWeapons[slot] == weapon.id ? "●" + (slot + 1) : (slot + 1).ToString()))
                 {
                     if (EquipWeapon(weapon.id, index)) message = weapon.name + " → 무기 " + (slot + 1);
+                    else if (combat != null && !combat.CanEquip(Weapon.Get(weapon.id)))
+                        message = "악행이 " + Weapon.Get(weapon.id).evilLimit + " 이상이라 " + weapon.name + "을 쥘 수 없습니다.";
                     else message = "새 무기의 전투 동작을 연결해야 합니다.";
                 }
             }
