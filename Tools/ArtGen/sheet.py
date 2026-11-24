@@ -53,15 +53,19 @@ for n in names:
     if not path.endswith(".png"): path += ".png"
     im = Image.open(path).convert("RGBA")
     box = im.getbbox()
+    # aimed frames (make_aim.py) keep their feet 8 + 150 px above the bottom, with room for a blade below them
+    feet = im.height - 158 if "_aim_" in path else None
     if box: im = im.crop((box[0], 0, box[2], box[3]))   # keep the bottom (feet line), drop empty sides
     scale = 100 / ppu(path) * zoom
-    ims.append(im.resize((max(1, int(im.width * scale)), max(1, int(im.height * scale))), Image.NEAREST))
+    below = int(max(0, box[3] - feet) * scale) if feet is not None and box else 0
+    ims.append((im.resize((max(1, int(im.width * scale)), max(1, int(im.height * scale))), Image.NEAREST), below))
 pad = 20
-w = sum(i.width for i in ims) + pad * (len(ims) + 1); h = max(i.height for i in ims) + pad * 2
+above = max(i.height - b for i, b in ims); under = max(b for _, b in ims)
+w = sum(i.width for i, _ in ims) + pad * (len(ims) + 1); h = above + under + pad * 2
 sheet = Image.new("RGBA", (w, h), sky + (255,))
 x = pad
-for im in ims:
-    sheet.alpha_composite(im, (x, h - pad - im.height)); x += im.width + pad
+for im, b in ims:
+    sheet.alpha_composite(im, (x, pad + above + b - im.height)); x += im.width + pad
 os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
 sheet.save(out)
 print(out, sheet.size)

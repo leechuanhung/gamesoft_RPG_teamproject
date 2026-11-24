@@ -7,6 +7,7 @@ import hashlib, os, shutil, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ART = "Assets/Resources/JinaV4"
+SOUND = "Assets/Resources/JinaSound"   # teammates' wavs are left alone; make_sound.py writes only its own
 # (script, arguments). Order matters only where one picture feeds another: make_young before the frames cut from him.
 JOBS = [
     ("make_props.py", [f"{ART}/13_Props"]),                       # ledges, tavern, keeper (+ run), charm ...
@@ -31,19 +32,20 @@ JOBS = [
     ("make_run.py", [f"{ART}/10_Player_Walk", f"{ART}/11_Player_Run"]),
     ("make_player_down.py", [ART]),
     ("make_player_ko.py", [ART]),                                # game-over collapse
-    ("make_bow_aim.py", [ART]),
+    ("make_aim.py", [ART]),                                      # aimed bow and sword frames (mouse aiming)
     ("make_boss_death.py", [ART]),
     ("make_boss_remorse.py", [ART]),
     ("make_ghost_death.py", [ART]),
     ("make_ghost_attack.py", [ART]),
     ("make_elder.py", [ART]),
+    ("make_sound.py", [SOUND]),                                  # synthesized music and sounds where the team has none
 ]
 
 def digests():
     out = {}
-    for root, _, files in os.walk(ART):
+    for root, _, files in [w for d in (ART, SOUND) for w in os.walk(d)]:
         for f in files:
-            if f.endswith(".png"):
+            if f.endswith(".png") or f.endswith(".wav"):
                 path = os.path.join(root, f).replace("\\", "/")
                 with open(path, "rb") as fh: out[path] = hashlib.md5(fh.read()).hexdigest()
     return out
@@ -57,5 +59,5 @@ changed = sorted(p for p in after if before.get(p) != after[p])
 removed = sorted(set(before) - set(after))
 for p in changed: print(("new " if p not in before else "changed ") + p)
 for p in removed: print("missing " + p)
-print(f"{len(after)} pictures, {len(changed)} changed")
+print(f"{len(after)} pictures and sounds, {len(changed)} changed")
 if "--check" in sys.argv and (changed or removed): sys.exit(1)

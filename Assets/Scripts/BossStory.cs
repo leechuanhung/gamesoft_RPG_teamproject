@@ -8,7 +8,10 @@ public class BossEncounter : MonoBehaviour
 {
     public Combat combat;
     public const string Name = "미혹된 도깨비", Epithet = "망국의 원한에 사로잡힌 산의 주인";
-    public const string Line = "죽인다죽인다죽인다죽인다";
+    // 대사 대신 "죽인다"가 빨간 글씨로 화면 곳곳에 하나씩 늘어나며 떨린다(처음엔 드문드문, 갈수록 빽빽하게).
+    public const string Line = "죽인다";
+    public const int KillWords = 48;
+    public const float WordsSpread = 1.6f;
     // 초: 전체 장면, 카메라가 오가는 시간, 포효, 이름 카드, 대사.
     public const float Length = 4.6f, Pan = .5f, RoarAt = .7f, RoarLength = 1.4f, CardAt = 1f, LineAt = 2.3f;
 
@@ -68,7 +71,44 @@ public class BossEncounter : MonoBehaviour
         View.Focus(combat.BossPosition.x, weight);
     }
 
-    // 띠, 이름 카드, 대사를 그린다.
+    // 글자 하나: 화면 비율 자리, 크기, 나타나는 때(대사 시작부터 초), 떨림 위상.
+    struct Word { public float x, y, at, phase; public int size; }
+    static Word[] words;
+    static Word[] Words()
+    {
+        if (words != null) return words;
+        var rng = new System.Random(7);
+        words = new Word[KillWords];
+        for (int i = 0; i < KillWords; i++)
+        {
+            float k = (float)i / KillWords;
+            words[i] = new Word
+            {
+                x = .06f + .88f * (float)rng.NextDouble(), y = .16f + .68f * (float)rng.NextDouble(),
+                at = WordsSpread * Mathf.Sqrt(k), phase = (float)rng.NextDouble() * 10,
+                size = 18 + rng.Next(0, 34) + (i % 9 == 0 ? 26 : 0),
+            };
+        }
+        return words;
+    }
+
+    // "죽인다"의 홍수: 핏빛 글씨가 검은 그림자와 함께 덜덜 떨며 쌓인다.
+    void DrawKillWords(float since, float fade)
+    {
+        foreach (var w in Words())
+        {
+            if (since < w.at) continue;
+            float a = Mathf.Clamp01((since - w.at) / .06f) * fade;
+            float pop = 1 + .35f * Mathf.Clamp01(1 - (since - w.at) / .12f);
+            int size = Mathf.RoundToInt(w.size * pop);
+            float dx = Mathf.Sin(Time.unscaledTime * 41 + w.phase) * 2.5f, dy = Mathf.Cos(Time.unscaledTime * 33 + w.phase * 1.7f) * 2.5f;
+            var r = new Rect(w.x * JinaUI.W - 220 + dx, w.y * JinaUI.H - size + dy, 440, size * 2);
+            JinaUI.Text(new Rect(r.x + 3, r.y + 3, r.width, r.height), Line, size, new Color(0, 0, 0, .85f * a), TextAnchor.MiddleCenter, true);
+            JinaUI.Text(r, Line, size, new Color(.82f + .12f * Mathf.Sin(w.phase), .04f, .05f, a), TextAnchor.MiddleCenter, true);
+        }
+    }
+
+    // "죽인다" 글자, 띠, 이름 카드를 그린다(글자 위에 띠와 이름 카드가 덮여 이름은 읽힌다).
     void OnGUI()
     {
         if (!Playing) return;
@@ -76,6 +116,7 @@ public class BossEncounter : MonoBehaviour
         KoreanUI.Apply();
         float t = Elapsed, bars = Mathf.Clamp01(t / .4f) * Mathf.Clamp01((SceneLength - t) / .4f);
         float bar = JinaUI.H * .11f * bars;
+        if (t >= LineAt && t < Length - .3f) DrawKillWords(t - LineAt, Mathf.Clamp01((Length - .3f - t) / .3f));
         JinaUI.Fill(new Rect(0, 0, JinaUI.W, bar), Color.black);
         JinaUI.Fill(new Rect(0, JinaUI.H - bar, JinaUI.W, bar), Color.black);
         // 이름 카드는 왼쪽 아래, 아래 띠 위로 왼쪽에서 밀려 들어온다.
@@ -88,8 +129,6 @@ public class BossEncounter : MonoBehaviour
             JinaUI.Fill(new Rect(x, y + size * 1.05f, size * 7 * card, 3), new Color(.95f, .45f, .35f, card));
             JinaUI.Text(new Rect(x, y + size * 1.15f, JinaUI.W, size * 1.8f), Name, 43, new Color(.95f, .45f, .35f, card), TextAnchor.MiddleLeft, true);
         }
-        if (t >= LineAt && t < Length - .3f)
-            SpeechBubble.Draw(new Vector3(combat.BossPosition.x, 2.3f, 0), "도깨비", Line);
         if (WispResonating)
         {
             SpeechBubble.Draw(new Vector3(combat.BossPosition.x, 2.9f, 0), "도깨비", "…으윽, 이 빛은… 내가… 누구였지…?");

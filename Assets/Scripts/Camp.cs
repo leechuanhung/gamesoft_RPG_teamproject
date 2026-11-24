@@ -185,6 +185,7 @@ public class Camp : MonoBehaviour
         if (m.hp <= 0)
         {
             m.visual.Down(); m.windup = -1; m.visual.Winding = false;
+            GameAudio.Play(GameAudio.Sfx.GhostDie);
             m.vanishAt = Time.time + 1.5f;
             Kills++;
             JinaItems.ForgetMob(m);

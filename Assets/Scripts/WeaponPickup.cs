@@ -79,6 +79,7 @@ public class WeaponPickup : MonoBehaviour
         if (ui == null || !ui.GiveWeapon(id)) return;
         string name = Weapon.Get(id).name;
         JinaFx.Glint(transform.position, new Color(1, .9f, .5f));
+        GameAudio.Play(GameAudio.Sfx.Rare);
         JinaFx.Word(transform.position + Vector3.up * .8f, name + " 획득!", new Color(1f, .9f, .5f), 22);
         Destroy(gameObject);
     }

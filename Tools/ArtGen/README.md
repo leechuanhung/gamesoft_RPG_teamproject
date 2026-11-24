@@ -11,7 +11,7 @@ python Tools/ArtGen/sheet.py <scratchpad>/out.png 01_Player/player_idle 13_Props
 ```
 
 - `make_all.py`는 아래 스크립트를 모두 돌린다. 새 스크립트를 만들면 `JOBS`에 추가한다.
-- `sheet.py`는 그림을 게임 속 크기로 나란히 놓는다(발 높이를 맞추고 `JinaArt.Load`의 배율을 따름). 새 그림은 반드시 기존 캐릭터 옆에 놓고 본다. 결과는 scratchpad에 저장하고 `Assets`에는 두지 않는다.
+- `sheet.py`는 그림을 게임 속 크기로 나란히 놓는다(발 높이를 맞추고 `JinaArt.Load`의 배율을 따름, 겨눈 그림 `_aim_`은 넓힌 아래쪽만큼 올림). 새 그림은 반드시 기존 캐릭터 옆에 놓고 본다. 결과는 scratchpad에 저장하고 `Assets`에는 두지 않는다.
 
 ## 두 종류의 그림
 
@@ -27,7 +27,7 @@ python Tools/ArtGen/sheet.py <scratchpad>/out.png 01_Player/player_idle 13_Props
 - `bend(a, lean, top, hip, step, cut)`: `hip` 위의 행을 `lean`px만큼 민다(`top`에서 최대, `hip`에서 0). `cut=(y0, y1)`이면 그 행들을 지워서 위쪽이 내려앉는다(무릎 꺾기).
 - `clean(a)`: alpha 128 미만을 지우고 5×5 열림 연산으로 1~4px 잔선을 없앤다. 행을 민 뒤에는 반드시 쓴다.
 - `scatter(a, level, step, seed)`: 블록 단위로 부서져 흩어진다(보스·유령 죽음).
-- 90° 회전은 `np.rot90`으로 하면 손실이 없다(시체). 그 밖의 각도는 원래 해상도에서 최근접 회전을 한다(`make_bow_aim.py`). 10px 격자 단위로 돌리면 가는 선(활, 시위)이 끊긴다.
+- 90° 회전은 `np.rot90`으로 하면 손실이 없다(시체). 그 밖의 각도는 원래 해상도에서 최근접 회전을 한다(`make_aim.py`). 10px 격자 단위로 돌리면 가는 선(활, 시위)이 끊긴다.
 - 프레임 캔버스: 같은 애니메이션 안에서는 같은 크기로 하고, 발 높이를 고정한다. 대기 그림에서 잘라 낸 프레임은 대기 그림의 캔버스를 그대로 쓰거나(필요하면 좌우로 넓힘) 그 넓힌 양을 `JinaArt.CutFrom`에 적는다.
 
 ## pixlib.py (새 그림)
@@ -57,7 +57,7 @@ python Tools/ArtGen/sheet.py <scratchpad>/out.png 01_Player/player_idle 13_Props
 | `make_player_ko.py` | `01_Player/player_ko_00~02`, `player_facedown` (게임 오버) | bend, 상체를 엉덩이 중심으로 회전, rot90 시계 방향 (캔버스 좌우 240px 넓힘) |
 | `make_items.py` | `14_Items/item_*` 인벤토리 아이콘 (24도트 격자) | pixlib |
 | `make_portraits.py` | `17_Portraits` 대화 초상화 7장. 사용자가 직접 만든 그림(`source/kongpat_portraits.webp`의 6칸, `source/elder_portrait.webp`의 노인)의 칸 안쪽을 잘라 112×121로 줄임(대화창에서 2배) | 사용자 그림 |
-| `make_young.py` | 선비 V6 프레임 17장의 얼굴과 깃을 고쳐 수염을 없앰. 고정 칸을 덮어 쓰므로 다시 돌려도 같다. `make_run`·`make_player_down`·`make_player_ko`·`make_bow_aim`이 그 뒤에 돌아야 한다 | 선비 원본 위에 덧칠 |
+| `make_young.py` | 선비 V6 프레임 17장의 얼굴과 깃을 고쳐 수염을 없앰. 고정 칸을 덮어 쓰므로 다시 돌려도 같다. `make_run`·`make_player_down`·`make_player_ko`·`make_aim`이 그 뒤에 돌아야 한다 | 선비 원본 위에 덧칠 |
 | `make_night.py` | `18_Night`: 콩밭 마을 하룻밤 연출. 사용자가 GPT로 만든 그림(`source/night/A1~F1, S`, 요청문은 `source/night/요청문.md`)의 가운데 띠를 잘라 2.4:1(1280×533)로 맞추고, 편집본은 원본에 정렬(`FIT`)해 바뀐 부분만 레이어로 뺀다. 문 창호지(그림자가 비치는 곳)와 바닥 달빛은 밝기로 가려낸다. 콩쥐 눈은 1280×720 | 사용자 그림 |
 | `make_ground.py` | `13_Props/ground_<맵>`(한양 가는 길: fort, station, grave, city, hall, manor) (옆으로 이어지는 땅, 320×150, 걷는 면은 위에서 6도트), `sky_<맵>`, `river_deep`, `cloud_0~2` | numpy |
 | `make_fx.py` | `20_Fx`: 칼빛 `arc`, 타격 `spark`, 먼지 `dust`, 충격파 `ring`, `glint`, 봉인 `seal`. 흰색으로 그리고 게임에서 색을 입힌다 | numpy |
@@ -66,7 +66,7 @@ python Tools/ArtGen/sheet.py <scratchpad>/out.png 01_Player/player_idle 13_Props
 | `make_kong_boss.py` | `21_KongBoss/kong_boss_<idle_00·idle_01·crouch·hop·open·tongue·cast·crack·death_00~02>`: 밑 빠진 독에 낀 두꺼비, 콩쥐의 노란 소매가 앞다리. 같은 12px 블록, 모든 프레임이 72×74 블록 캔버스(발은 맨 아래 가운데, 위 8칸은 눈이 넘치지 않게 비움). `13_Props/kong_spit·bean·salt·brine·tongue·tongue_tip·bind`, 뒷산의 `crock·crock_cracked·crock_broken·kong_honey·ledge_roof` | 블록 격자(pixlib), `framelib.scatter` |
 | `make_pass.py` | `13_Props/jangseung·seonang_tree·cairn·boulder` | pixlib |
 | `make_ferry.py` | `15_Ferryman/ferryman_idle` (보부상과 같은 12px 블록, 발 x=126), `13_Props/ferry_boat·ferry_hut·reeds·water·thorn_wall` | 블록 격자, pixlib |
-| `make_bow_aim.py` | `03_Player_Attack_Bow/bow_up_00~03`, `bow_down_00~03` | 팔·활·화살을 잘라 어깨 중심 30° 회전. 프레임마다 어깨 위치와 자르는 선이 다르다 |
+| `make_aim.py` | 마우스로 겨눈 공격: `03_Player_Attack_Bow/bow_aim_<u·d><15~90>_00~03`(15°마다), `02_Player_Attack_Sword/sword_aim_<u·d><30·60·90>_00~03`과 칼 없는 `sword_aim_empty_…` | 활은 앞팔·활·시위를 잘라 어깨 중심으로 돌려 몸 뒤에 그림(먼 쪽 팔이라 곧게 위로 쏘면 활이 갓 뒤로 감). 칼은 3번째 그림만 팔째 어깨 중심으로, 0·3번은 칼날만 손잡이 중심으로 돌리고, 1번(머리 위)은 그대로. 어깨 위는 겨눈 쪽으로 기움(90°에서 60px, `bend`와 같은 모양). 캔버스는 위아래 150px·오른쪽 100px 넓힘(`JinaArt.AimPad`) |
 | `make_boss_death.py` | `05_Boss_Brainwashed/boss_death_00~04` | bend, scatter |
 | `make_boss_remorse.py` | `06_Boss_Purified/boss_grieve_00~01` | bend. 눈(감김)과 송곳니만 기존 색으로 덮음 |
 | `make_ghost_attack.py` | `07_Ghost/ghost_attack_00~02` | 팔을 어깨 중심으로 25px 격자에서 회전하고 외곽선을 다시 두름, bend. 물귀신은 같은 프레임에 색만 입힘 |
@@ -76,6 +76,7 @@ python Tools/ArtGen/sheet.py <scratchpad>/out.png 01_Player/player_idle 13_Props
 | `make_hanyang.py` | `24_Hanyang/sangin·yusaeng·cheongji·ai·mudang·jumo·bangmul`(콩밭 마을과 같은 격자, 발 x=138. 방물장수 `bangmul`은 콩밭 마을 입구에 선다), `13_Props/beacon_off·beacon_on·fort_gate_shut·fort_gate_open·fort_wall·station_house·cart·grave·dead_tree·shop·lantern·hongsal·exam_board·pavilion·drink_table` | 블록 격자, pixlib |
 | `make_final_boss.py` | `25_Final/official_<idle·cup·blank>`(좌의정, 선비 도트), `final_<idle_00·idle_01·open·reach·raise·cast·death_00~02>`(어둑시니 좌의정, 100×112칸, 발은 맨 아래 가운데), `13_Props/final_ink·coin·hand·seal·mark` | pixlib, `framelib.scatter` |
 | `make_elder.py` | `08_Village_Elder/elder_cane·startle·draw_00~01·hit_00~01·down·corpse` | 지팡이 잘라 내기, bend, 갓 내리기, rot90 |
+| `make_sound.py` (+ `soundlib.py`) | `Resources/JinaSound`의 `bgm_<pass·hill·kong_fight·fort·station·grave·city·hall·manor·final_fight·ending>`, `sfx_<charm·keepsake·beacon·…>`, 무기 `sfx_w_<myeonggeom·saingeom·byeokjo·dagger>` | 그림이 아니라 소리. 가야금·대금·해금·피리·나발·장구·북·징·꽹과리·종을 numpy로 흉내 내 합성(고정 시드). 배경 음악은 끝 여운과 메아리를 앞에 접어 이음매 없이 되풀이. 팀원 wav는 건드리지 않음. 다른 컴퓨터의 소수점 오차(2 이하)로는 다시 쓰지 않음. `--only 이름`으로 하나만 |
 
 ## 새 그림을 게임에 넣을 때
 

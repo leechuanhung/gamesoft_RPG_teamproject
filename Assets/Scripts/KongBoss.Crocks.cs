@@ -79,6 +79,7 @@ public partial class KongBoss
         if (his) View.Shake(.03f, .1f);
         if (!c.Broken) { c.art.sprite = JinaArt.Prop("crock_cracked"); return; }
         c.art.sprite = JinaArt.Prop("crock_broken");
+        GameAudio.Play(GameAudio.Sfx.Crock);
         JinaFx.Dots(at, 14, new Color(.47f, .27f, .18f), 4, .6f, 0, 14);
         var dish = new GameObject("꿀 종지").AddComponent<SpriteRenderer>();
         dish.sprite = JinaArt.Prop("kong_honey"); dish.sortingOrder = 5;
@@ -100,6 +101,7 @@ public partial class KongBoss
             h.art.transform.position = p;
             if (!h.art.bounds.Intersects(him) || combat.PlayerHealth >= Combat.MaxPlayerHealth) continue;
             combat.RestoreHealth(HoneyHeal);
+            GameAudio.Play(GameAudio.Sfx.Heal);
             NoticeAt = Time.time; notice = "꿀 한 종지를 들이켰습니다. 체력 +" + HoneyHeal;
             Destroy(h.art.gameObject); honey.RemoveAt(i);
         }
