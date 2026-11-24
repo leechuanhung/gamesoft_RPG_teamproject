@@ -68,10 +68,14 @@ public partial class Combat : MonoBehaviour
     private SeonbiVisual playerVisual;
     public ElderQuest Quest { get; private set; }
     // ── 무기: 1·2칸 장착(보따리 무기 탭), S로 전환. 수치는 Weapon.cs ──
-    public readonly string[] EquippedWeapons = { "dagger", null };
+    public readonly string[] EquippedWeapons = { "dagger", "bow" };
     public int ActiveWeaponSlot { get; private set; }
     public string CurrentWeapon => EquippedWeapons[ActiveWeaponSlot] ?? EquippedWeapons[1 - ActiveWeaponSlot] ?? "dagger";
     public Weapon.Stats CurrentStats => Weapon.Get(CurrentWeapon);
+    // 악행 = 선악 값이 음수일 때 그 크기 (선악 -25 → 악행 25)
+    public int Evil => Quest != null ? Mathf.Max(0, -Quest.progress.Honor) : 0;
+    // 무기 장착 조건 (사인검: 악행 20 이상이면 불가)
+    public bool CanEquip(Weapon.Stats w) => w.evilLimit <= 0 || Evil < w.evilLimit;
     public bool UsingBow => CurrentStats.ranged;
     private Weapon.Stats pendingWeapon;
     private bool alerted;
@@ -329,7 +333,7 @@ public partial class Combat : MonoBehaviour
         playerArt.color = playerColor;
         player.Respawn();
         ActiveWeaponSlot = 0;
-        EquippedWeapons[0] = "dagger"; EquippedWeapons[1] = null;
+        EquippedWeapons[0] = "dagger"; EquippedWeapons[1] = "bow";
         WeaponPickup.ClearAll();
         Arrows = ShopRules.MaxArrows;
         noArrowsUntil = 0;
@@ -391,6 +395,14 @@ public partial class Combat : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.F4)) GainExp(100);
         // 무기 스왑: Q → S (Q는 스킬로 사용)
         if (Input.GetKeyDown(KeyCode.S) && EquippedWeapons[1 - ActiveWeaponSlot] != null) ActiveWeaponSlot = 1 - ActiveWeaponSlot;
+        // 장착 조건을 못 채우게 된 무기(악행이 쌓인 사인검)는 손에서 빠져나감
+        for (int i = 0; i < 2; i++)
+        {
+            if (EquippedWeapons[i] == null || CanEquip(Weapon.Get(EquippedWeapons[i]))) continue;
+            JinaFx.Word(player.transform.position + Vector3.up * 1.5f, "악행이 깊어 " + Weapon.Get(EquippedWeapons[i]).name + "이 손을 떠났습니다", new Color(1f, .6f, .52f), 20);
+            EquippedWeapons[i] = null;
+            if (i == ActiveWeaponSlot && EquippedWeapons[1 - i] != null) ActiveWeaponSlot = 1 - i;
+        }
         if (!EnemyDefeated && Input.GetKeyDown(KeyCode.F)
             && Vector2.Distance(player.transform.position, enemy.transform.position) < 2.2f
             && TryPurifyBoss())
@@ -442,7 +454,7 @@ public partial class Combat : MonoBehaviour
                 if (Mobs != null && Mobs.Slash(attackBounds, damage)) landed = true;
                 SwordFeel(pendingStep, landed);
                 // 전용 그림 근접 무기: 단검은 흰 칼빛, 명검은 칼 크기에 맞춘 검은 칼빛
-                if (w.art != null)
+                if (w.art != null && !w.hwandoSlash)
                 {
                     var feet = player.transform.position; feet.y = playerArt.bounds.min.y;
                     if (w.combo)
@@ -487,7 +499,7 @@ public partial class Combat : MonoBehaviour
     {
         var feet = player.transform.position; feet.y = playerArt.bounds.min.y;
         // 전용 그림 무기(명검)는 칼빛을 따로 그리므로 환도 칼빛은 건너뜀
-        bool ownArc = pendingWeapon != null && pendingWeapon.art != null;
+        bool ownArc = pendingWeapon != null && pendingWeapon.art != null && !pendingWeapon.hwandoSlash;
         if (step == 1 && !ownArc) JinaFx.Arc(feet + new Vector3(attackFacing * .78f, .92f, 0), attackFacing, 58, .9f, new Color(.92f, .96f, 1));
         if (step == 2)
         {
@@ -684,7 +696,7 @@ public partial class Combat : MonoBehaviour
         if (!weaponIcons.TryGetValue(w.id, out var sprite))
         {
             // 활은 bow 그림, 그림이 따로 없는 환도는 hwando 그림, 단검과 명검은 각자 그림
-            sprite = JinaArt.Load(w.id == "bow" ? "04_Weapons/bow" : w.art ?? "04_Weapons/hwando");
+            sprite = JinaArt.Load(w.ranged ? (w.bowArt ?? "04_Weapons/bow") : w.art ?? "04_Weapons/hwando");
             weaponIcons[w.id] = sprite;
         }
         return sprite;
