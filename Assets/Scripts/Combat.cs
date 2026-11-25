@@ -182,10 +182,18 @@ public partial class Combat : MonoBehaviour
     // 추가 퀘스트 보상은 보따리처럼 체크포인트 재시도 때도 유지한다.
     public void PreserveQuestHonor(int delta)
     {
-        if (!RoadCheckpoint.HasValue) return;
-        var save = RoadCheckpoint.Value;
-        save.honor += delta;
-        RoadCheckpoint = save;
+        if (RoadCheckpoint.HasValue)
+        {
+            var save = RoadCheckpoint.Value;
+            save.honor += delta;
+            RoadCheckpoint = save;
+        }
+        else if (Checkpoint.HasValue)
+        {
+            var save = Checkpoint.Value;
+            save.honor += delta;
+            Checkpoint = save;
+        }
     }
     public void RestartOnRoad()
     {
@@ -210,7 +218,8 @@ public partial class Combat : MonoBehaviour
         if (Maps != null) Maps.Jump();
         RevivedOnRoadAt = Time.time;
     }
-    public bool Paused => (Puzzles != null && Puzzles.IsOpen) || (KongBoss != null && KongBoss.Cutscene) || (FinalBoss != null && FinalBoss.Cutscene) || (Town != null && Town.IsOpen) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || (Lore != null && Lore.WispAsking) || InventoryPauseActive || (Cheats != null && Cheats.Open);
+    public QuestSystem SideQuests { get; set; }
+    public bool Paused => (SideQuests != null && SideQuests.IsDialogOpen) || (Puzzles != null && Puzzles.IsOpen) || (KongBoss != null && KongBoss.Cutscene) || (FinalBoss != null && FinalBoss.Cutscene) || (Town != null && Town.IsOpen) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || (Lore != null && Lore.WispAsking) || InventoryPauseActive || (Cheats != null && Cheats.Open);
     public void SetPlayerHealthFromSave(int health)
     {
         PlayerHealth = Mathf.Clamp(health, 0, MaxPlayerHealth);

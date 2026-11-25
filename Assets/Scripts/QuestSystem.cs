@@ -4,6 +4,7 @@ using UnityEngine;
 
 // 추가 퀘스트의 상태, 공통 표시와 진행 HUD를 담당한다.
 // 기존 도깨비불 퀘스트는 RoadsideLore의 상태를 읽기만 한다.
+[DefaultExecutionOrder(-120)]
 public class QuestSystem : MonoBehaviour
 {
     public Combat combat;
@@ -31,13 +32,28 @@ public class QuestSystem : MonoBehaviour
     const string ChildOffer = "선비님, 북망산 무덤길에 요괴가 너무 많아서 친구들이랑 놀러 가지도 못해요. 그곳의 요괴를 열 마리만 물리쳐 주실래요?";
 
 
+    // 초가의 의뢰: 수락 → 구슬 획득 → 초가에 반납.
+    const string OrbQuest = "ferry_orb";
+    const float HutX = 113f, FerryHutX = 70f, HutRange = .75f;
+    const int OrbHonor = -20;
+    const string OrbOffer = "왼편 나루터에 뱃사공의 오두막이 있소. 그 집에 숨겨 둔 구슬 하나를 훔쳐다 주시오. 값은 톡톡히 치르리다.";
+    bool hutOpen, hutAsking, hutClosing, ferrymanTold;
+    string[] hutLines;
+    int hutPage;
+    public bool IsDialogOpen => hutOpen;
+    bool HasOrb => JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.SuspiciousOrb) > 0;
+    string OrbObjective() => HasOrb ? "콩밭 마을 초가로 구슬 가져가기" : "나루터 뱃사공의 오두막에서 구슬 가져오기";
+
     void Start()
     {
         combat.Restarted += ResetQuests;
+        combat.SideQuests = this;
         child = Array.Find(HanyangTown.People, p => p.who == HanyangTown.Who.Ai);
         Register(ChildQuest, "아이의 부탁", ChildObjective,
             () => new Vector3(child.x, WorldBuilder.Top(child.x) + 1.85f, 0),
             () => combat.Quest.progress.Honor >= 0);
+        Register(OrbQuest, "수상한 의뢰", OrbObjective,
+            () => new Vector3(HutX, WorldBuilder.Top(HutX) + 1.85f, 0));
     }
 
     // 신규 퀘스트 등록. markerPosition은 느낌표 중심의 월드 좌표(둥실거림 제외).
@@ -100,7 +116,7 @@ public class QuestSystem : MonoBehaviour
             combat.Quest.progress.CheatHonor(ChildHonor);
             combat.PreserveQuestHonor(ChildHonor);
             return new[] { "와아! 이제 친구들이랑 놀러 갈 수 있겠어요. 고마워요, 선비님!",
-                "엄마가 저 먹으라고 주신 약과인데, 선비님 드릴래요. 꼭 받아 주세요! (약과 " + ChildYakgwa + "개 획득 · 선행 +" + ChildHonor + ")" };
+                "엄마가 저 먹으라고 주신 약과인데, 선비님 드릴래요. 꼭 받아 주세요!" };
         }
         return original;
     }
@@ -110,11 +126,16 @@ public class QuestSystem : MonoBehaviour
     // 도깨비불과 같은 별도 퀘스트 수락 창. 선택 결과는 한양 NPC에 전달한다.
     public void DrawChildOffer(Action<bool> answer)
     {
+        DrawOffer("아이의 부탁", "부탁을 들어주시겠습니까?", ChildOffer, answer);
+    }
+
+    void DrawOffer(string title, string hint, string text, Action<bool> answer)
+    {
         float width = Mathf.Min(720, JinaUI.W - 32);
         float height = 240;
         var box = new Rect((JinaUI.W - width) / 2, JinaUI.H - height - 24, width, height);
-        var inside = JinaUI.Window(box, "아이의 부탁", "부탁을 들어주시겠습니까?");
-        JinaUI.Text(new Rect(inside.x, inside.y, inside.width, 108), ChildOffer, 18, JinaUI.TextDark);
+        var inside = JinaUI.Window(box, title, hint);
+        JinaUI.Text(new Rect(inside.x, inside.y, inside.width, 108), text, 18, JinaUI.TextDark);
         float choiceY = inside.y + 112, half = (inside.width - 12) / 2;
         if (JinaUI.Button(new Rect(inside.x, choiceY, half, 40), "1 · 수락")) answer(true);
         else if (JinaUI.Button(new Rect(inside.x + half + 12, choiceY, half, 40), "2 · 거절")) answer(false);
@@ -129,6 +150,108 @@ public class QuestSystem : MonoBehaviour
         return "정말요? 고마워요, 선비님! 조심해서 다녀오세요.";
     }
 
+    // 기존 배경 오두막을 조사 지점으로 사용한다. 다른 NPC나 상점은 만들지 않는다.
+    bool NearHut(float x) => Mathf.Abs(combat.player.transform.position.x - x) < HutRange
+        && Mathf.Abs(combat.player.transform.position.y - WorldBuilder.Top(x)) < 2.1f;
+
+    bool AtClient => NearHut(HutX) && (CanAccept(OrbQuest) || IsActive(OrbQuest));
+    bool AtOrb => NearHut(FerryHutX) && IsActive(OrbQuest) && !HasOrb;
+
+    void Update()
+    {
+        if (combat == null || combat.PlayerHealth <= 0) return;
+        if (hutOpen)
+        {
+            if (hutClosing) return;
+            if (hutAsking)
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha1)) AnswerOrb(true);
+                else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Escape)) AnswerOrb(false);
+            }
+            else if (Input.GetKeyDown(KeyCode.Escape)) hutClosing = true;
+            else if (JinaUI.Interact && ++hutPage >= hutLines.Length) hutClosing = true;
+            return;
+        }
+        if (combat.Paused || !JinaUI.Interact) return;
+        if (combat.KongBoss != null && combat.KongBoss.Fighting) return;
+        if (AtOrb)
+        {
+            if (JinaItems.Inventory == null || !JinaItems.Inventory.TryAdd(JinaItems.SuspiciousOrb)) return;
+            combat.Quest.progress.CheatHonor(OrbHonor);
+            combat.PreserveQuestHonor(OrbHonor);
+            OpenHut("오두막 안쪽에 놓인 구슬을 챙겼다.");
+        }
+        else if (AtClient)
+        {
+            if (CanAccept(OrbQuest)) { OpenHut(); hutAsking = true; }
+            else if (!HasOrb) OpenHut("나루터의 오두막이라 했소. 구슬을 가져오면 약속대로 값을 치르리다.");
+            else ReturnOrb();
+        }
+    }
+
+    void OpenHut(params string[] say)
+    {
+        hutOpen = true; hutAsking = hutClosing = false;
+        hutLines = say; hutPage = 0;
+        combat.player.CanMove = false;
+    }
+
+    void AnswerOrb(bool accept)
+    {
+        if (!hutAsking) return;
+        if (accept && TryAccept(OrbQuest))
+            OpenHut("흐흐, 말이 통하는 선비로군. 기다리고 있겠소.");
+        else OpenHut("마음이 바뀌거든 다시 오시오.");
+    }
+
+    void ReturnOrb()
+    {
+        var bag = JinaItems.Inventory;
+        var ui = bag != null ? bag.GetComponent<InventoryUI>() : null;
+        if (ui == null || (!ui.HasWeapon("saingeom") && !ui.GiveWeapon("saingeom")))
+        {
+            OpenHut("칼을 담을 자리를 마련하고 다시 오시오.");
+            return;
+        }
+        if (!bag.TryRemove(JinaItems.SuspiciousOrb)) return;
+        Complete(OrbQuest);
+        OpenHut("허허, 드디어 돌아왔군. 예전에 내가 죄를 지어 이 구슬을 빼앗겼소.",
+            "신비로운 검을 얻어 되찾으려 했으나, 내 마음이 삿되어 그 검이 나를 받아들이지 않더군.",
+            "이제 이 사인검은 선비에게 주겠소. 부디 나처럼 그 칼조차 쥘 수 없는 몸이 되지는 마시오. 흐흐.");
+    }
+
+    // 뱃사공의 기존 대화 앞에 한 번만 덧붙인다. 대화 여부는 반납 조건이 아니다.
+    public string[] OrbFerryLines(string[] original)
+    {
+        if (!IsActive(OrbQuest) || !HasOrb || ferrymanTold) return original;
+        ferrymanTold = true;
+        var result = new List<string> {
+            "내 오두막의 구슬을 가져갔구려. 내가 맡아 보관하던 물건이오.",
+            "그대가 가져가는 것도 하늘의 뜻이겠지. 굳이 막지는 않겠소. 마음대로 하시오."
+        };
+        result.AddRange(original);
+        return result.ToArray();
+    }
+
+    void OnGUI()
+    {
+        if (combat == null || combat.PlayerHealth <= 0) return;
+        KoreanUI.Apply();
+        if (hutOpen)
+        {
+            if (hutClosing) return;
+            if (hutAsking) { DrawOffer("수상한 의뢰", "부탁을 들어주시겠습니까?", OrbOffer, AnswerOrb); return; }
+            float width = Mathf.Min(720, JinaUI.W - 32), height = 180;
+            var inside = JinaUI.Window(new Rect((JinaUI.W - width) / 2, JinaUI.H - height - 24, width, height),
+                NearHut(FerryHutX) ? "뱃사공의 오두막" : "수상한 사람", "Enter: 다음 · Esc: 닫기");
+            JinaUI.Text(new Rect(inside.x, inside.y, inside.width, 108), hutLines[hutPage], 18, JinaUI.TextDark);
+            return;
+        }
+        if (combat.Paused || (combat.KongBoss != null && combat.KongBoss.Fighting)) return;
+        if (AtClient) JinaUI.Prompt("Enter: 초가집의 수상한 사람과 이야기하기");
+        else if (AtOrb) JinaUI.Prompt("Enter: 뱃사공의 오두막 조사하기");
+    }
+
     // 기존 도깨비불 상태만 참조한다. 동행 및 흡수 로직은 변경하지 않는다.
     bool WispActive => combat.Lore != null && combat.Lore.WispFollowing
         && combat.Quest.progress.Outcome == EncounterOutcome.Unresolved
@@ -137,6 +260,12 @@ public class QuestSystem : MonoBehaviour
     // 신규 퀘스트 모두 같은 이미지와 움직임을 사용한다.
     void LateUpdate()
     {
+        // 같은 Enter 입력이 다른 NPC에게 전달되지 않도록 프레임 끝에 닫는다.
+        if (hutClosing)
+        {
+            hutOpen = hutClosing = false;
+            combat.player.CanMove = combat.PlayerHealth > 0;
+        }
         foreach (var pair in quests)
         {
             var q = pair.Value;
@@ -206,6 +335,7 @@ public class QuestSystem : MonoBehaviour
     {
         expanded = true;
         graveKillsAtAccept = roadAliveAtAccept = 0;
+        hutOpen = hutAsking = hutClosing = ferrymanTold = false;
         foreach (var q in quests.Values) q.state = State.Available;
     }
 

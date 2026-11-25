@@ -301,8 +301,9 @@ public class Ferry : NpcTalk
     // 뱃사공 대화를 연다.
     public void Open()
     {
-        Begin(Lines(combat.Quest.progress, talked, JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0, combat.Kong != null && (combat.Kong.Invited || combat.Kong.Stayed),
-            combat.KongBoss != null && combat.KongBoss.Fighting));
+        var original = Lines(combat.Quest.progress, talked, JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0, combat.Kong != null && (combat.Kong.Invited || combat.Kong.Stayed),
+            combat.KongBoss != null && combat.KongBoss.Fighting);
+        Begin(combat.SideQuests != null ? combat.SideQuests.OrbFerryLines(original) : original);
         talked = true;
     }
 
