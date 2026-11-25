@@ -15,9 +15,11 @@ public class RoadMobs : MonoBehaviour
     public enum Kind { Wisp, Brute, Blade, Bow }
 
     // ── 능력치 ──
-    public const int WispHealth = 20, BruteHealth = 50, BruteAttack = 15;
-    // 관군 무장 단계별 체력·공격력·방어력(1~3). 선비 공격력 10에서 방어력만큼 덜 들어간다.
-    public static readonly int[] SoldierHealth = { 0, 30, 40, 50 }, SoldierAttack = { 0, 8, 12, 16 }, SoldierDefense = { 0, 0, 2, 4 };
+    // 역참·무덤길(후반)의 몬스터라 들판 유령(30·10·2)보다 세다. 도깨비불은 약하지만 빠르고, 두억시니는 단단하고 아프다.
+    public const int WispHealth = 30, WispAttack = 12, WispDefense = 3;
+    public const int BruteHealth = 70, BruteAttack = 18, BruteDefense = 5;
+    // 관군 무장 단계별 체력·공격력·방어력(1~3). 선비 공격력에서 방어력만큼 덜 들어간다.
+    public static readonly int[] SoldierHealth = { 0, 35, 45, 60 }, SoldierAttack = { 0, 8, 13, 18 }, SoldierDefense = { 0, 0, 2, 4 };
     // 선악에 따른 관군 무장 단계: 0 이상이면 0(오지 않음), −1~−29 → 1, −30~−59 → 2, −60 이하 → 3.
     public static int Rank(int honor) => honor >= 0 ? 0 : honor > -30 ? 1 : honor > -60 ? 2 : 3;
     // 무리 구성(칼병, 활병): 단계가 높을수록 많다.
@@ -104,8 +106,8 @@ public class RoadMobs : MonoBehaviour
         art.sortingOrder = soldier ? 4 : 3;
         var m = new Mob { kind = kind, rank = rank, art = art, home = x, left = left, right = right, map = map, soldier = soldier, phase = mobs.Count * 1.7f };
         m.max = m.hp = soldier ? SoldierHealth[rank] : kind == Kind.Wisp ? WispHealth : BruteHealth;
-        m.attack = soldier ? SoldierAttack[rank] : kind == Kind.Brute ? BruteAttack : Combat.MonsterAttack;
-        m.defense = soldier ? SoldierDefense[rank] : Combat.MonsterDefense;
+        m.attack = soldier ? SoldierAttack[rank] : kind == Kind.Brute ? BruteAttack : WispAttack;
+        m.defense = soldier ? SoldierDefense[rank] : kind == Kind.Brute ? BruteDefense : WispDefense;
         m.pos = new Vector3(x, kind == Kind.Wisp ? 1.6f : WorldBuilder.Top(x), 0);
         m.ready = Time.time + 1;
         mobs.Add(m);
@@ -169,7 +171,7 @@ public class RoadMobs : MonoBehaviour
         if (m == null || !m.Alive) return;
         if (combat != null && combat.Cheats != null) damage = combat.Cheats.Power(damage);   // 개발자 치트: 한 방
         int before = m.hp;
-        m.hp = Mathf.Max(0, m.hp - Combat.CalcDamage(damage + JinaItems.AttackBonus(combat), JinaItems.RopeDefense(m, m.defense, combat)));
+        m.hp = Mathf.Max(0, m.hp - Combat.CalcDamage(damage + (combat != null ? combat.BonusAttack : 0), JinaItems.RopeDefense(m, m.defense, combat)));
         m.hurtAt = Time.time;
         var at = m.Body.center;
         int away = combat.player.transform.position.x < m.pos.x ? 1 : -1;
@@ -191,6 +193,7 @@ public class RoadMobs : MonoBehaviour
         if (m.kind == Kind.Wisp) JinaFx.Dots(at, 14, new Color(.6f, .85f, 1), 3, .5f);
         else JinaFx.Dust(m.pos, 0, m.kind == Kind.Brute ? 1.4f : 1);
         if (combat != null) combat.FindCoins(m.soldier ? 3 : 2, FelledNote(m));
+        if (combat != null) combat.GainExp(m.soldier ? Combat.SoldierExp[m.rank] : m.kind == Kind.Brute ? Combat.BruteExp : Combat.WispExp);
     }
     // 화살이 이 프레임에 지나는 길에서 가장 먼저 맞는 몬스터(없으면 null)와 그 거리.
     public Mob ArrowTarget(Vector2 origin, Vector2 direction, float step, out float distance)
@@ -453,19 +456,12 @@ public class RoadMobs : MonoBehaviour
             if (SpeechBubble.OnScreen(head)) SpeechBubble.Draw(head, "관군", Shout, null, Time.time - ShoutAt);
             else JinaUI.Toast("관군: " + Shout);
         }
-        var oldMatrix = GUI.matrix;
-        GUI.matrix = Matrix4x4.identity;
         foreach (var m in mobs)
         {
             if (!m.Alive || m.leaving || m.witness || m.art == null) continue;
-            var screen = Camera.main.WorldToScreenPoint(new Vector3(m.pos.x, m.Body.max.y + .3f, 0));
-            if (screen.z < 0 || screen.x < -80 || screen.x > Screen.width + 80) continue;
-            float width = 100, height = 18;
-            var r = new Rect(screen.x - width / 2, Screen.height - screen.y - height, width, height);
-            Combat.DrawBar(r, (float)m.hp / m.max, m.soldier ? new Color(.85f, .55f, .2f) : new Color(.9f, .2f, .2f), m.hp + " / " + m.max, 14);
-            Combat.DrawName(r, Name(m) + (m.soldier ? " · " + m.rank + "단계" : ""), m.soldier ? new Color(1, .82f, .6f) : m.kind == Kind.Wisp ? new Color(.7f, .9f, 1) : new Color(.86f, .84f, .92f));
+            JinaUI.MobBar(new Vector3(m.pos.x, m.Body.max.y + .3f, 0), (float)m.hp / m.max, m.soldier ? new Color(.86f, .52f, .16f) : new Color(.82f, .2f, .17f),
+                Name(m) + (m.soldier ? " · " + m.rank + "단계" : ""), m.soldier ? new Color(1, .82f, .6f) : m.kind == Kind.Wisp ? new Color(.7f, .9f, 1) : new Color(.86f, .84f, .92f), m.art.GetInstanceID());
         }
-        GUI.matrix = oldMatrix;
     }
 
     void OnDestroy()

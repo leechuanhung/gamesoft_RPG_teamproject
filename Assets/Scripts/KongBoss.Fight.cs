@@ -15,7 +15,7 @@ public partial class KongBoss
 {
     public enum Attack { None, Spit, Beans, Tongue, Salt }
     public Attack Doing { get; private set; }
-    public const int SpitDamage = 15, BrineDamage = 8, BeanDamage = 8, TongueDamage = 18, SaltDamage = 10;
+    public const int SpitDamage = 18, BrineDamage = 10, BeanDamage = 10, TongueDamage = 22, SaltDamage = 12;
     public const float MinX = WorldBuilder.RiverRight + 1.4f, MaxX = WorldBuilder.HillEnd - 1.5f, VillageCentre = 130f;
     // 뛰기: 보통 뛰기와 높이 뛰기의 높이(약 2.45, 3.6칸), 추격 속도와 걸음 속도.
     public const float Gravity = 9.81f * 3, HopRise = 12f, HighRise = 14.6f, ChaseHop = 6.6f, StepHop = 4.2f, CrouchLength = .2f, HopRest = .28f;
@@ -446,23 +446,12 @@ public partial class KongBoss
         if (since < .12f) Flash(picture, .85f * (1 - since / .12f), Color.white);
     }
 
-    // 위 가운데 체력 막대(팀원 방식), 절반에 표시: 그 아래면 은비녀가 닿는다.
+    // 위 가운데 두루마리 체력 막대, 절반에 표시: 그 아래면 은비녀가 닿는다.
     void DrawFightGUI()
     {
         if (CastAt >= 0 && Time.time - CastAt < 3.2f && SpeechBubble.OnScreen(Feet))
             SpeechBubble.Draw(Feet + Vector3.up * 3.2f, "콩쥐 요괴", "보름까지 기다릴 것 없지. 잔치는 지금이다!");
         if (!Fighting) return;
-        var oldMatrix = GUI.matrix; var oldColor = GUI.color;
-        GUI.matrix = Matrix4x4.identity;
-        float width = Screen.width * .4f, height = 18, x = (Screen.width - width) / 2, y = 32;
-        float ratio = (float)Health / MaxHealth;
-        GUI.color = new Color(0, 0, 0, .75f); GUI.DrawTexture(new Rect(x - 2, y - 2, width + 4, height + 4), Texture2D.whiteTexture);
-        GUI.color = new Color(.12f, .2f, .08f); GUI.DrawTexture(new Rect(x, y, width, height), Texture2D.whiteTexture);
-        GUI.color = new Color(.5f, .7f, .25f); GUI.DrawTexture(new Rect(x, y, width * ratio, height), Texture2D.whiteTexture);
-        GUI.color = new Color(1, .95f, .8f, .9f); GUI.DrawTexture(new Rect(x + width / 2 - 1, y - 4, 2, height + 8), Texture2D.whiteTexture);
-        GUI.color = Color.white;
-        var style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
-        GUI.Label(new Rect(x, y - 26, width, 24), Name + "   " + Health + " / " + MaxHealth, style);
-        GUI.color = oldColor; GUI.matrix = oldMatrix;
+        JinaUI.BossBar(Name, (float)Health / MaxHealth, new Color(.42f, .6f, .2f), Mathf.Max(0, Health) + " / " + MaxHealth, .5f);
     }
 }

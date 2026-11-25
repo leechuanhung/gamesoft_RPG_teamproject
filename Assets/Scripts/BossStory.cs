@@ -121,14 +121,7 @@ public class BossEncounter : MonoBehaviour
         JinaUI.Fill(new Rect(0, JinaUI.H - bar, JinaUI.W, bar), Color.black);
         // 이름 카드는 왼쪽 아래, 아래 띠 위로 왼쪽에서 밀려 들어온다.
         float card = Mathf.Clamp01((t - CardAt) / .5f) * Mathf.Clamp01((Length - .4f - t) / .4f);
-        if (card > 0)
-        {
-            const float size = 33;
-            float x = 60 - (1 - card) * 80, y = JinaUI.H - bar - size * 3.4f;
-            JinaUI.Text(new Rect(x, y, JinaUI.W, size), Epithet, 18, new Color(.92f, .9f, .85f, card), TextAnchor.MiddleLeft);
-            JinaUI.Fill(new Rect(x, y + size * 1.05f, size * 7 * card, 3), new Color(.95f, .45f, .35f, card));
-            JinaUI.Text(new Rect(x, y + size * 1.15f, JinaUI.W, size * 1.8f), Name, 43, new Color(.95f, .45f, .35f, card), TextAnchor.MiddleLeft, true);
-        }
+        JinaUI.NameCard(Epithet, Name, new Color(.95f, .45f, .35f), card, JinaUI.H - bar, "鬼");
         if (WispResonating)
         {
             SpeechBubble.Draw(new Vector3(combat.BossPosition.x, 2.9f, 0), "도깨비", "…으윽, 이 빛은… 내가… 누구였지…?");

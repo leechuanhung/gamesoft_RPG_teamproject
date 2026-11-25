@@ -76,8 +76,8 @@ public static partial class JinaPlayChecks
         Set(combat.Quest,"charmReveal",-1f);
         player.ResetPose(); player.SendMessage("LateUpdate");
         boss.transform.position=new Vector3(combat.player.transform.position.x+2.5f,boss.transform.position.y,0);
-        hp=combat.PlayerHealth;
         Check(combat.TryPurifyBoss(),"Purification succeeds");
+        hp=combat.PlayerHealth;   // 정화의 경험치로 레벨이 오르면 체력도 오르므로 정화한 뒤에 잰다
         Check(combat.BossPurified && combat.EnemyDefeated && boss.enabled,"Friendly boss remains visible and resolves encounter");
         Check(boss.GetComponentInChildren<SpriteRenderer>().enabled,"Boss renderer enabled");
         typeof(Combat).GetMethod("DamageEnemy",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(combat,new object[]{5});

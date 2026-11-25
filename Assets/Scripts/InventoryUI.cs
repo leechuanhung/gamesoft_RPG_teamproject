@@ -455,7 +455,9 @@ public class InventoryUI : MonoBehaviour
         var iconBox = new Rect(left, y, 80, 80);
         Box(iconBox, PaperDark, SlotEdge, 1);
         // 실제 무기 스프라이트를 왼쪽 창에 크게 그린다.
-        DrawIcon(WeaponArt(stats.id), new Rect(iconBox.x + 6, iconBox.y + 6, 68, 68));
+        //   활 종류는 전용 활 그림(벽조궁 등)이 있으면 그것, 없으면 기본 활. 칼은 전용 그림이 없으면 환도.
+        string art = stats.ranged ? stats.bowArt ?? "04_Weapons/bow" : stats.art ?? "04_Weapons/hwando";
+        DrawIcon(JinaArt.Load(art), new Rect(iconBox.x + 6, iconBox.y + 6, 68, 68));
         Text(new Rect(left + 92, y + 5, inner - 92, 30), weapon.name, 19, TextDark, TextAnchor.MiddleLeft, true);
         Text(new Rect(left + 92, y + 42, inner - 92, 26), "보유 중", 13, TextDim, TextAnchor.MiddleLeft);
         y += 92;

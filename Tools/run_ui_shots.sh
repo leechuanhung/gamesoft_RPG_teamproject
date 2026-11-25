@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Screenshots of the game's real UI, which the camera captures in the play checks cannot show.
-#   bash Tools/run_ui_shots.sh      PNGs go to validation/ui/ (look at them, then delete them)
+#   bash Tools/run_ui_shots.sh          PNGs go to validation/ui/ (look at them, then delete them)
+#   bash Tools/run_ui_shots.sh --maps   only one end-to-end picture per map (prop layout), into validation/maps/
 # It works on a copy of the project in the temp folder, so the Unity editor can stay open. A small game window
 # appears for a few minutes while it photographs each state at three screen sizes (Assets/Scripts/UiShots.cs).
 set -u
@@ -17,9 +18,11 @@ MSYS_NO_PATHCONV=1 "$UNITY" -batchmode -quit -projectPath "$(cygpath -m "$COPY")
 if ! grep -q "UI_SHOTS_BUILD: Succeeded" "$WORK/build.log"; then
   grep -E "error CS|UI_SHOTS_BUILD|Error building" "$WORK/build.log" | head -20; echo "build FAILED (log: $WORK/build.log)"; exit 1
 fi
-rm -rf validation/ui; mkdir -p validation/ui
-SHOTS="$(cd validation/ui && pwd -W)"
-"$EXE" -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile "$(cygpath -w "$WORK/player.log")" -uishots "$SHOTS"
+DIR=validation/ui; MODE=
+[ "${1:-}" = "--maps" ] && { DIR=validation/maps; MODE=-mapshots; }
+rm -rf "$DIR"; mkdir -p "$DIR"
+SHOTS="$(cd "$DIR" && pwd -W)"
+"$EXE" -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile "$(cygpath -w "$WORK/player.log")" -uishots "$SHOTS" $MODE
 grep -E "Exception" "$WORK/player.log" | head -10
-python -c "import glob,os; from PIL import Image; [(Image.open(f).save(f[:-3]+'png'), os.remove(f)) for f in glob.glob('validation/ui/*.ppm')]"
-echo "$(ls validation/ui | wc -l) screenshots in validation/ui"
+python -c "import glob,os,sys; from PIL import Image; [(Image.open(f).save(f[:-3]+'png'), os.remove(f)) for f in glob.glob(sys.argv[1]+'/*.ppm')]" "$DIR"
+echo "$(ls "$DIR" | wc -l) screenshots in $DIR"

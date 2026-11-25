@@ -216,7 +216,7 @@ public class Ferry : NpcTalk
         Boat.ferry = this;
 
         var wall = new GameObject("숲 끝 가시덤불");
-        wall.transform.position = new Vector3(WorldBuilder.FerryStart - .5f, -.5f, 0);
+        wall.transform.position = new Vector3(WorldBuilder.FerryStart - 1f, -.5f, 0);   // 그림 폭 2: 숲 맵 오른쪽 끝에 붙음
         wall.layer = 8;
         thorns = wall.AddComponent<SpriteRenderer>(); thorns.sprite = JinaArt.Prop("thorn_wall"); thorns.sortingOrder = 7;
         thornWall = wall.AddComponent<BoxCollider2D>();

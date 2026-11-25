@@ -12,7 +12,8 @@ from pixlib import Canvas
 OUT = sys.argv[1]
 preview = sys.argv[sys.argv.index('--preview') + 1] if '--preview' in sys.argv else None
 PPU = 546 / 1.9 / 12            # art pixels per unit, as JinaArt.PropPixelsPerUnit
-# Area spans in units (WorldBuilder): the layers are 4 units wider and fade out at their ends.
+# Area spans in units (WorldBuilder). The layers are drawn 4 units wider, then cut to the area's exact width when saved
+# (save), so no layer reaches into the next map: the camera stops at a map's edge, and what lay past it showed there.
 AREAS = {'stele': 30, 'camp': 28, 'village': 40, 'forest': 36, 'ferry': 46, 'kong': 40, 'pass': 48,
          'fort': 46, 'station': 46, 'grave': 46, 'city': 46, 'hall': 40, 'manor': 50}
 SKY = {'stele': (43, 46, 71), 'camp': (118, 58, 46), 'village': (112, 146, 164), 'forest': (30, 66, 54), 'ferry': (114, 136, 150), 'kong': (176, 150, 110), 'pass': (116, 74, 100),
@@ -22,7 +23,10 @@ def mix(a, b, t): return tuple(int(round(x + (y - x) * t)) for x, y in zip(a, b)
 def lighter(c, t): return mix(c, (236, 232, 220), t)
 def darker(c, t): return mix(c, (8, 8, 12), t)
 
-def ridge(w, base, amps, seed, taper=60):
+# What is cut from each end when saving: the 2 extra units.
+CUT = int(round(2 * PPU))
+
+def ridge(w, base, amps, seed, taper=CUT):
     """A mountain skyline: summed waves that repeat across the width, rounded to whole art pixels."""
     rng = np.random.default_rng(seed)
     x = np.arange(w)
@@ -53,7 +57,9 @@ def pine(c, cx, bottom, height, colour, shade):
 
 def save(c, name):
     img = np.zeros((c.h, c.w, 4), np.uint8); img[..., :3] = c.c; img[..., 3] = np.where(c.a, 255, 0)
-    Image.fromarray(img).save(f"{OUT}/{name}.png")
+    keep = int(AREAS[name.split('_')[1]] * PPU)   # never wider than the area
+    left = (c.w - keep) // 2
+    Image.fromarray(img[:, left:left + keep]).save(f"{OUT}/{name}.png")
     return f"{OUT}/{name}.png"
 
 def width(area): return int(round((AREAS[area] + 4) * PPU))

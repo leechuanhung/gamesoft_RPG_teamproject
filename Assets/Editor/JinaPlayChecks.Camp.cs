@@ -26,7 +26,7 @@ public static partial class JinaPlayChecks
         Check(Picture(waterGhost).sprite.name.EndsWith("ghost_attack_00") && waterGhost.tint!=Color.white,"The water ghost uses the same motion in its own colour");
         Capture("water-ghost-attack",new Vector3(combat.River.mobs[0].art.transform.position.x,1,-10),2.5f);
         waterGhost.Winding=false; waterGhost.Refresh();
-        combat.Camp.Hit(mob,Camp.GhostHealth);
+        combat.Camp.Hit(mob,Camp.GhostHealth+mob.defense);
         Check(mob.hp==0 && combat.Camp.Remaining==2 && mob.art.enabled && visual.DownAt>=0,"Felled ghost starts its death motion");
         float[] times={.05f,.3f,.6f};
         for(int i=0;i<3;i++)

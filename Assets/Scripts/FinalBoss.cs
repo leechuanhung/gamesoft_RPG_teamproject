@@ -17,6 +17,8 @@ public partial class FinalBoss : MonoBehaviour
     public enum Phase { Waiting, Banquet, Changing, Fighting, Slain }
     public Phase Now { get; private set; }
     public const int MaxHealth = 420;
+    // 방어력: 마지막 보스라 가장 높다(도깨비·콩쥐 요괴 5).
+    public const int Defense = 7;
     public int Health { get; private set; } = MaxHealth;
     public bool Fighting => Now == Phase.Fighting;
     public bool Resolved => Now == Phase.Slain;
@@ -181,7 +183,7 @@ public partial class FinalBoss : MonoBehaviour
         if (!Fighting) return false;
         if (combat.Cheats != null) amount = combat.Cheats.Power(amount);   // 개발자 치트: 한 방
         int before = Health;
-        Health = Mathf.Max(0, Health - Combat.CalcDamage(amount + JinaItems.AttackBonus(combat), 0));
+        Health = Mathf.Max(0, Health - Combat.CalcDamage(amount + combat.BonusAttack, Defense));
         HitAt = Time.time;
         var at = Feet + new Vector3(0, 2.2f * Size, 0);
         int away = PlayerX < Feet.x ? 1 : -1;
@@ -313,12 +315,7 @@ public partial class FinalBoss : MonoBehaviour
         // 변신 대사는 길어서 변신이 끝날 때까지 남겨 둔다(다 찍히고도 읽을 틈이 있게).
         if (t >= FlashAt && t < ChangeLength - .1f) SpeechBubble.Draw(Feet + Vector3.up * 4.4f, Official, Roar);
         float card = Mathf.Clamp01((t - CardAt) / .5f) * Mathf.Clamp01((ChangeLength - .3f - t) / .4f);
-        if (card <= 0) return;
-        const float size = 33;
-        float x = 60 - (1 - card) * 80, y = JinaUI.H - bar - size * 3.4f;
-        JinaUI.Text(new Rect(x, y, JinaUI.W, size), Epithet, 18, new Color(.92f, .9f, .85f, card), TextAnchor.MiddleLeft);
-        JinaUI.Fill(new Rect(x, y + size * 1.05f, size * 7 * card, 3), new Color(.8f, .2f, .24f, card));
-        JinaUI.Text(new Rect(x, y + size * 1.15f, JinaUI.W, size * 1.8f), Name, 43, new Color(.92f, .36f, .38f, card), TextAnchor.MiddleLeft, true);
+        JinaUI.NameCard(Epithet, Name, new Color(.92f, .36f, .38f), card, JinaUI.H - bar, "闇");
     }
 
     void OnDestroy() { ClearShots(); if (sealMark != null) Destroy(sealMark.gameObject); }
