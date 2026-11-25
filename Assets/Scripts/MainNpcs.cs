@@ -50,6 +50,16 @@ public class ElderQuest : NpcTalk
     public bool RevealingCharm => charmReveal >= 0;
     private Player Player => combat.player;
 
+    // 두 비석 퍼즐이 끝나면 기존 부적 보상 상태와 발견 연출을 이어 준다.
+    public void StelePuzzleSolved()
+    {
+        if (!progress.CompleteStelePuzzle()) return;
+        shrineDialog = true;
+        message = "비석의 봉인이 풀리고 정화 부적 한 장이 드러났다.\n창을 닫고 도깨비 가까이에서 F를 누르세요.";
+        lines = null; Page = 0; IsOpen = true; charmReveal = 0;
+        if (Player != null) Player.CanMove = false;
+    }
+
     // 노인 표시를 만들고 그림을 붙인다.
     void Start()
     {
@@ -111,17 +121,6 @@ public class ElderQuest : NpcTalk
             if (JinaUI.Interact && !shrineDialog && !progress.ElderDead && JinaUI.FinishTyping(message)) return;
             if (JinaUI.Interact && lines != null && Page + 1 < lines.Length) { message = lines[++Page]; return; }
             if (Input.GetKeyDown(KeyCode.Escape) || JinaUI.Interact) { Close(); return; }
-            if (shrineDialog && progress.HeardClue && !progress.HasCharm && progress.Outcome == EncounterOutcome.Unresolved)
-            {
-                int symbol = Input.GetKeyDown(KeyCode.Alpha1) ? 1 : Input.GetKeyDown(KeyCode.Alpha2) ? 2 : Input.GetKeyDown(KeyCode.Alpha3) ? 3 : 0;
-                if (symbol != 0)
-                {
-                    bool correct = progress.ChooseSymbol(symbol);
-                    if (progress.HasCharm) charmReveal = 0;
-                    message = progress.HasCharm ? "비석의 빛이 잦아들고 부적 한 장이 드러났다.\n[정화 부적 획득] 창을 닫고 도깨비 가까이에서 F를 누르세요."
-                        : correct ? "문양에 희미한 빛이 깃들었다. 다음 문양을 고르세요." : "빛이 사그라들었다. 첫 문양부터 다시 고르세요.";
-                }
-            }
             return;
         }
         if (!JinaUI.Interact || combat.InventoryPauseActive || (combat.BossTalk != null && combat.BossTalk.IsOpen)) return;
@@ -137,11 +136,27 @@ public class ElderQuest : NpcTalk
         {
             if (combat.Camp != null && !combat.Camp.Cleared) return;
             shrineDialog = true;
-            message = progress.Outcome != EncounterOutcome.Unresolved ? "이곳의 일은 이미 끝났다.\n다른 선택을 해 보려면 R을 눌러 처음부터 시작하세요."
-                : progress.HasCharm ? "정화 부적을 지니고 있다.\n창을 닫고 도깨비 가까이에서 F를 누르세요."
-                : !progress.HeardClue ? "비석에 낯선 문양이 새겨져 있다.\n먼저 갈색 갓을 쓴 마을 노인에게 이야기를 들어 보세요."
-                : "달과 강과 산의 문양이 새겨져 있다.\n노인에게 들은 차례대로 문양을 고르세요.";
-            Begin();
+            if (progress.Outcome != EncounterOutcome.Unresolved)
+            {
+                message = "이곳의 일은 이미 끝났다.\n다른 선택을 해 보려면 R을 눌러 처음부터 시작하세요.";
+                Begin();
+            }
+            else if (progress.HasCharm)
+            {
+                message = "비석에서 얻은 정화 부적을 지니고 있다.\n도깨비 가까이에서 F를 누르면 저주를 풀 수 있다.";
+                Begin();
+            }
+            else if (!progress.HeardClue)
+            {
+                message = "비석에 봉인을 푸는 장치가 있다.\n먼저 마을 촌장에게 비석에 얽힌 이야기를 들어 보자.";
+                Begin();
+            }
+            else if (combat.Puzzles != null)
+            {
+                shrineDialog = false;
+                if (!combat.Puzzles.TutorialSolved) combat.Puzzles.OpenTutorial();
+                else combat.Puzzles.OpenMainPuzzle();
+            }
         }
     }
     // 이야기 진행에 따라 노인이 할 말. 항목 하나가 말풍선 하나.
@@ -154,7 +169,7 @@ public class ElderQuest : NpcTalk
             keepsake ? "그 비녀… 그 집 안주인의 것이로군. 원한은 원한으로 풀리지 않는 법이네. 그 아이를 베기 전에 그것부터 써 보게."
                 : "그 아이를 칼로 베면 끝은 나겠지. 허나 강물이 품은 것이 있다면… 그것이 그 아이를 돌려줄지도 모르네.",
             "주모에게 요기라도 하고, 보부상에게 화살도 넉넉히 사 가게. 서두르게. 그 마을엔 피할 데가 없다네." };
-        if (q.ElderDead) return new[] { "노인은 마지막 힘을 다해 도깨비에게 맞섰으나 끝내 쓰러졌다.\n품에 남은 쪽지에는 ‘달, 강, 산’이라 적혀 있다. 비석으로 가려면 서쪽의 망령을 " + Camp.SealKills + "번 물리쳐야 한다." };
+        if (q.ElderDead) return new[] { "노인은 마지막 힘을 다해 도깨비에게 맞섰으나 끝내 쓰러졌다.\n품에 남은 쪽지에는 ‘옛 비석의 봉인을 풀면 부적이 드러난다’고 적혀 있다. 비석으로 가려면 서쪽의 망령을 " + Camp.SealKills + "번 물리쳐야 한다." };
         if (q.Outcome == EncounterOutcome.Purified) return new[] {
             "그 도깨비를 살려 주셨구려. 어젯밤엔 숲에서 울음소리 대신 솔바람 소리가 내려오더이다.",
             "내 젊어서 저 아이와 씨름도 하고 술도 나눠 마셨다오. …이 늙은이 소원을 선비께서 들어주셨소. 부디 남은 길도 평안히 가시오." };
@@ -167,7 +182,7 @@ public class ElderQuest : NpcTalk
         return new[] {
             "한양 가는 길이시오? 그 길은 지금 막혔소. 동쪽 숲 끝에 가시덤불이 자라 나루터로 가는 길을 틀어막았다오.",
             "숲의 도깨비 짓이오. 본디 산을 지키던 착한 놈이었는데, 망한 나라의 원한이 씌어 저리 되었소.",
-            "저 아이를 꼭 베어야만 한다면 어쩔 수 없겠지. 허나 풀어 줄 길도 있소. 서쪽 비석 터의 옛 비석에 달, 강, 산의 차례로 손을 얹으면 부적이 나온다 하오.",
+            "저 아이를 꼭 베어야만 한다면 어쩔 수 없겠지. 허나 풀어 줄 길도 있소. 서쪽 비석 터의 옛 비석에 새겨진 수수께끼를 풀면 정화 부적을 얻을 수 있을 것이오.",
             "비석 터로 가려면 들판의 망령들을 물리쳐야 하오. 그리고 부디, 도깨비를 마을로 끌어들이지는 마시오. 주민들이 다칠까 두렵소." };
     }
 
@@ -179,7 +194,8 @@ public class ElderQuest : NpcTalk
         if (!IsOpen && combat.PlayerHealth > 0 && !combat.Paused)
         {
             if (Near(WorldBuilder.Elder)) JinaUI.Prompt(progress.ElderDead ? "Enter: 노인이 남긴 쪽지 살펴보기" : "Enter: 마을 노인과 대화");
-            else if (Near(WorldBuilder.Stone)) JinaUI.Prompt("Enter: 비석 살펴보기");
+            else if (Near(WorldBuilder.Stone)) JinaUI.Prompt(progress.HeardClue && !progress.HasCharm && progress.Outcome == EncounterOutcome.Unresolved
+                ? "Enter: 비석의 돌 퍼즐 풀기" : "Enter: 비석 살펴보기");
         }
         if (!IsOpen) return;
         if (!shrineDialog && !progress.ElderDead)
@@ -192,13 +208,10 @@ public class ElderQuest : NpcTalk
         // 비석과 쪽지: 글 높이만큼의 한지 창.
         float width = Mathf.Min(760, JinaUI.W - 30), inner = width - JinaUI.WindowPad * 2;
         float textHeight = JinaUI.Height(message, 17, inner);
-        bool puzzle = shrineDialog && progress.HeardClue;
-        float height = JinaUI.TitleHeight + 12 + textHeight + (puzzle ? 34 : 0) + 30 + JinaUI.WindowPad;
+        float height = JinaUI.TitleHeight + 12 + textHeight + 30 + JinaUI.WindowPad;
         var box = new Rect((JinaUI.W - width) / 2, JinaUI.H - height - 14, width, height);
         var inside = JinaUI.Window(box, shrineDialog ? "오래된 비석" : "노인이 남긴 흔적", "Enter / Esc 닫기");
         JinaUI.Text(new Rect(inside.x, inside.y, inner, textHeight), message, 17, JinaUI.TextDark);
-        if (puzzle)
-            JinaUI.Text(new Rect(inside.x, inside.y + textHeight + 8, inner, 24), "1: 강     2: 달     3: 산          맞춘 문양: " + progress.PuzzleStep + " / 3", 16, JinaUI.Red, TextAnchor.MiddleLeft, true);
         JinaUI.Text(new Rect(inside.x, box.yMax - JinaUI.WindowPad - 20, inner, 20), "대화 중에는 전투가 멈춥니다.", 13, JinaUI.TextDim);
         if (charmReveal >= 0) DrawCharmReveal(charmReveal);
     }

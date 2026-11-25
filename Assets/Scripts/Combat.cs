@@ -120,6 +120,7 @@ public partial class Combat : MonoBehaviour
     public GameAudio Audio { get; private set; }
     public Ferry Ferry { get; private set; }
     public Hud Hud { get; private set; }
+    public SeonbiGridPuzzle Puzzles { get; private set; }
     public MountainPass Pass { get; private set; }
     public KongVillage Kong { get; private set; }
     public KongNightStay Stay { get; private set; }
@@ -201,7 +202,7 @@ public partial class Combat : MonoBehaviour
         if (Maps != null) Maps.Jump();
         RevivedOnRoadAt = Time.time;
     }
-    public bool Paused => (KongBoss != null && KongBoss.Cutscene) || (FinalBoss != null && FinalBoss.Cutscene) || (Town != null && Town.IsOpen) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || (Lore != null && Lore.WispAsking) || InventoryPauseActive || (Cheats != null && Cheats.Open);
+    public bool Paused => (Puzzles != null && Puzzles.IsOpen) || (KongBoss != null && KongBoss.Cutscene) || (FinalBoss != null && FinalBoss.Cutscene) || (Town != null && Town.IsOpen) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || (Lore != null && Lore.WispAsking) || InventoryPauseActive || (Cheats != null && Cheats.Open);
     public void SetPlayerHealthFromSave(int health)
     {
         PlayerHealth = Mathf.Clamp(health, 0, MaxPlayerHealth);
@@ -254,6 +255,9 @@ public partial class Combat : MonoBehaviour
         Maps.combat = this;
         Hud = gameObject.AddComponent<Hud>();
         Hud.combat = this;
+        Puzzles = gameObject.AddComponent<SeonbiGridPuzzle>();
+        Puzzles.combat = this;
+        Puzzles.onMainPuzzleSolved.AddListener(() => { if (Quest != null) Quest.StelePuzzleSolved(); });
         Ferry = gameObject.AddComponent<Ferry>();
         Ferry.combat = this;
         Pass = gameObject.AddComponent<MountainPass>();
@@ -312,6 +316,7 @@ public partial class Combat : MonoBehaviour
     public void Restart()
     {
         if (enemy == null) return;
+        if (Puzzles != null) Puzzles.ResetPuzzles();
         JinaItems.ClearEffects();
         ResetLevel();
         PlayerHealth = MaxHealth;
