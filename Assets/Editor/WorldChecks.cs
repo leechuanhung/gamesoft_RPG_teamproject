@@ -78,12 +78,16 @@ public static class WorldChecks
         Require(Array.TrueForAll(arts, a => a.GetComponent<SpriteRenderer>().sprite != null), "…and every picture comes back");
         var land = GameObject.Find("지면 village").GetComponent<SpriteRenderer>();
         Require(land.drawMode == SpriteDrawMode.Tiled && Mathf.Abs(land.size.x - 40) < .01f, "Tiled ground keeps its width");
-        // Moved and added things survive a rebake.
+        // Moved and added things survive a rebake; an untouched prop follows the code. (The house pretends it was baked at
+        // x 30 and never moved, so the code's x 4.5 is a new layout.)
+        var house = GameObject.Find("마을 기와집");
+        house.GetComponent<WorldArt>().builtAt = house.transform.localPosition = new Vector3(30, -.5f, 0);
         tavern.transform.position += Vector3.right * 3;
         var added = UnityEngine.Object.Instantiate(GameObject.Find("마을 기와집"), world.transform.Find(WorldBuilder.PropGroup));
         added.name = "새 기와집";
         world = WorldBake.Bake(square);
         Require(Mathf.Abs(GameObject.Find("주막").transform.position.x - 14) < .01f, "Rebaking keeps a moved prop where it was moved");
+        Require(Mathf.Abs(GameObject.Find("마을 기와집").transform.position.x - 4.5f) < .01f, "Rebaking moves an untouched prop to the code's new place");
         Require(GameObject.Find("새 기와집") != null && GameObject.Find("새 기와집").transform.parent.parent == world.transform, "Rebaking keeps a prop added in the scene");
         Require(UnityEngine.Object.FindObjectsOfType<WorldBuilder>().Length == 1 && Count("주막") == 1, "One world after rebaking");
         // Playing uses the baked world and builds no second one.

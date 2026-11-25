@@ -172,9 +172,9 @@ public static partial class JinaPlayChecks
         Check(combat.PlayerHealth==before-FinalBoss.SweepAttack && boss.FightPose()=="reach","The sweep along the ground hits a grounded seonbi");
         Call(boss,"LateUpdate"); Capture("road-final-sweep",new Vector3(boss.Feet.x-2,2,-10),4f);
         // Half his health: darkness, and he grows.
-        Check(boss.Damage(FinalBoss.MaxHealth/2) && boss.Dark && boss.Size>1,"At half health the dark deepens and he grows");
+        Check(boss.Damage(FinalBoss.MaxHealth/2+FinalBoss.Defense) && boss.Dark && boss.Size>1,"At half health the dark deepens and he grows");
         int honour=q.Honor;
-        Check(boss.Damage(FinalBoss.MaxHealth) && boss.Resolved && q.FinalOutcome==EncounterOutcome.Slain && q.Honor==honour+10,"Struck down: +10");
+        Check(boss.Damage(FinalBoss.MaxHealth+FinalBoss.Defense) && boss.Resolved && q.FinalOutcome==EncounterOutcome.Slain && q.Honor==honour+10,"Struck down: +10");
         Set(boss,"<DownAt>k__BackingField",Time.time-1.3f); Call(boss,"LateUpdate");
         Check(Field<SpriteRenderer>(boss,"picture").sprite.name.EndsWith("final_death_01"),"He crumbles into the dark");
         Set(boss,"<DownAt>k__BackingField",Time.time-FinalBoss.DeathLength-.01f); Call(boss,"LateUpdate");
@@ -189,10 +189,10 @@ public static partial class JinaPlayChecks
         Set(boss,"<ChangedAt>k__BackingField",Time.time-FinalBoss.ChangeLength-.01f); Call(boss);
         var (b2,w2)=RoadMobs.Squad(RoadMobs.Rank(q.Honor));
         Check(boss.Fighting && mobs.SoldiersAlive(13)==b2+w2 && mobs.Shout==FinalBoss.SoldiersCome,"Negative honour: the soldiers say they knew it, and attack him");
-        boss.Damage(FinalBoss.MaxHealth/2);
+        boss.Damage(FinalBoss.MaxHealth/2+FinalBoss.Defense);
         Check(mobs.SoldiersAlive(13)==2*(b2+w2),"At half health another squad comes");
         Capture("road-final-soldiers",new Vector3(WorldBuilder.OfficialX-4,2.2f,-10),5f);
-        boss.Damage(FinalBoss.MaxHealth);
+        boss.Damage(FinalBoss.MaxHealth+FinalBoss.Defense);
         Check(mobs.SoldiersAlive(13)==0,"When he falls the soldiers withdraw");
 
         // The road checkpoint: struck down on the road, he rises at the last place it saved, honour as it was.
@@ -261,7 +261,7 @@ public static partial class JinaPlayChecks
         Check(RoadMobs.Name(wisp)=="도깨비불" && RoadMobs.Name(brute)=="두억시니","The new monsters have names");
         while(wisp.Alive) mobs.Hit(wisp,Combat.SwordDamage);
         Check(string.Format(combat.CoinsNote,combat.CoinsFound).StartsWith("도깨비불이 꺼지며 엽전 2문"),"A wisp goes out");
-        combat.Camp.Hit(combat.Camp.mobs[0],Camp.GhostHealth);
+        combat.Camp.Hit(combat.Camp.mobs[0],Camp.GhostHealth+combat.Camp.mobs[0].defense);
         Check(combat.CoinsNote==Combat.DefaultCoinsNote && combat.CoinsFound>=1 && combat.CoinsFound<=10,"A ghost scatters 1~10 coins");
         q.SacrificeElder(); Goto(310); Call(mobs);
         RoadMobs.Mob soldier=null; foreach(var m in mobs.mobs) if(m.soldier) { soldier=m; break; }

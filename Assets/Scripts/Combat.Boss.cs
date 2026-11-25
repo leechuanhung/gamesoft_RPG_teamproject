@@ -194,6 +194,7 @@ public partial class Combat
     {
         if (EnemyDefeated || Quest == null || !Quest.progress.Resolve(true)) return false;
         PurifiedAt = Time.time;
+        GainExp(DokkaebiExp);
         enemy.enabled = true;
         enemy.color = new Color(.8f,.2f,.25f);
         windupUntil = -1;
@@ -218,7 +219,7 @@ public partial class Combat
         int defense = Encounter != null && Encounter.WispWeakened
             ? 2 : BossDefense;
 
-        EnemyHealth -= CalcDamage(amount + (amount == ElderCounterDamage ? 0 : JinaItems.AttackBonus(this)), defense);
+        EnemyHealth -= CalcDamage(amount + (amount == ElderCounterDamage ? 0 : BonusAttack), defense);
         alerted = true;
         hitFlashUntil = Time.time + .12f;
         BossHitAt = Time.time;
@@ -234,5 +235,6 @@ public partial class Combat
         windupUntil = -1;
         if (Move != BossMove.None) EndMove(0);
         if (Quest != null) Quest.progress.Resolve(false);
+        GainExp(DokkaebiExp);
     }
 }

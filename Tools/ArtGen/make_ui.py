@@ -127,4 +127,64 @@ def vignette():
     img = np.zeros((h, w, 4), np.uint8); img[..., 3] = alpha.astype(np.uint8)
     Image.fromarray(img).save(f"{OUT}/vignette.png")
 
+def seal():
+    # A cinnabar stamp: square, the ink thinner at the edges and missing in a few places like a real impression.
+    rng = np.random.default_rng(5)
+    c = Canvas(14, 14)
+    RED, RED2, RED3 = (196, 46, 36), (156, 30, 26), (222, 84, 62)
+    c.paint(c.rect(0, 0, 13, 13), RED2, inside=False)
+    c.paint(c.rect(1, 1, 12, 12), RED, inside=False)
+    c.paint(c.rect(1, 1, 12, 1) | c.rect(1, 1, 1, 12), RED3, inside=False)
+    for _ in range(9):
+        x, y = int(rng.integers(0, 14)), int(rng.integers(0, 14))
+        if x in (0, 13) or y in (0, 13): c.a[y, x] = False
+        else: c.c[y, x] = RED2
+    for x, y in ((0, 0), (13, 0), (0, 13), (13, 13)): c.a[y, x] = False
+    save(c, "seal")
+
+def dancheong():
+    # The painted band under the eaves: red, a green and a blue panel with white rims and a yellow bead, black lines.
+    c = Canvas(16, 6)
+    RED, GREEN, BLUE, WHITE, YELLOW = (178, 52, 40), (58, 140, 96), (52, 104, 168), (236, 230, 210), (238, 196, 72)
+    c.paint(c.rect(0, 0, 15, 5), RED, inside=False)
+    c.paint(c.rect(0, 0, 15, 0) | c.rect(0, 5, 15, 5), K, inside=False)
+    c.paint(c.rect(1, 1, 6, 4), WHITE, inside=False); c.paint(c.rect(2, 2, 5, 3), GREEN, inside=False)
+    c.paint(c.rect(9, 1, 14, 4), WHITE, inside=False); c.paint(c.rect(10, 2, 13, 3), BLUE, inside=False)
+    c.paint(c.rect(3, 2, 4, 3) | c.rect(11, 2, 12, 3), YELLOW, inside=False)
+    save(c, "dancheong")
+
+def roller():
+    # A scroll's roller seen end-on from the front: a dark wood rod with brass knobs above and below.
+    c = Canvas(10, 26)
+    WOOD, WOOD2, WOOD3 = (110, 66, 38), (76, 44, 26), (150, 98, 58)
+    BRASS, BRASS2, BRASS3 = (214, 170, 84), (150, 108, 48), (246, 214, 138)
+    rod = c.rect(2, 3, 7, 22)
+    c.layer(rod, WOOD)
+    c.paint(c.rect(6, 3, 7, 22), WOOD2); c.paint(c.rect(3, 3, 3, 22), WOOD3)
+    for y0, y1 in ((0, 3), (22, 25)):
+        knob = c.rect(1, y0, 8, y1)
+        c.layer(knob, BRASS)
+        c.paint(c.rect(7, y0, 8, y1), BRASS2); c.paint(c.rect(2, y0, 2, y1), BRASS3)
+    save(c, "roller")
+
+def brush():
+    # One stroke of a dry brush: full and wet at the left, splitting into hairs towards the right.
+    rng = np.random.default_rng(8)
+    w, h = 120, 18
+    a = np.zeros((h, w), bool)
+    for y in range(h):
+        d = abs(y - h / 2 + .5) / (h / 2)
+        start = int(2 + 5 * d * d + rng.integers(0, 2))
+        end = int(w - 4 - 30 * d ** 1.5 - rng.integers(0, 6))
+        a[y, start:end] = True
+        # Dry streaks: gaps that grow towards the end of the stroke.
+        x = start + 40 + int(rng.integers(0, 20))
+        while x < end:
+            gap = int(rng.integers(1, 3 + (x - start) // 25))
+            a[y, x:x + gap] = False
+            x += gap + int(rng.integers(4, 14))
+    img = np.zeros((h, w, 4), np.uint8); img[..., :3] = K; img[..., 3] = np.where(a, 255, 0)
+    Image.fromarray(img).save(f"{OUT}/brush.png")
+
 paper(); wood(); night(); corner(); icons(); vignette()
+seal(); dancheong(); roller(); brush()

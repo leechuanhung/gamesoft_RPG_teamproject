@@ -31,6 +31,14 @@ public class UiShots : MonoBehaviour
         Application.runInBackground = true;
         Directory.CreateDirectory(folder);
         while ((combat = FindObjectOfType<Combat>()) == null || combat.Ending == null || combat.Hud == null) yield return null;
+        // -mapshots: 맵마다 끝에서 끝까지 한 장(기물 배치 보기)만 찍고 끝낸다.
+        if (System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-mapshots") >= 0)
+        {
+            combat.Intro.Skip();
+            yield return Panoramas();
+            Application.Quit();
+            yield break;
+        }
         width = 1280; height = 720;
         yield return Size(width, height);
         yield return new WaitForSecondsRealtime(3.5f);
@@ -69,6 +77,50 @@ public class UiShots : MonoBehaviour
             for (int row = image.height - 1; row >= 0; row--) file.Write(raw, row * image.width * 3, image.width * 3);
         }
         Destroy(image);
+    }
+
+    // 맵마다 왼쪽 끝부터 오른쪽 끝까지 게임 카메라 높이 그대로 한 장씩(map_<번호>.ppm). 산성은 문이 열린 모습도.
+    IEnumerator Panoramas()
+    {
+        const int PixelsPerUnit = 40;
+        var cam = Camera.main;
+        for (int i = 0; i < Maps.All.Length; i++)
+        {
+            var map = Maps.All[i];
+            Fresh(map.left + 1.5f); Solve();
+            yield return new WaitForSecondsRealtime(.5f);
+            yield return Panorama(cam, map.left, map.right, PixelsPerUnit, "map_" + i.ToString("00"));
+            if (map.left == WorldBuilder.FortStart)
+            {
+                foreach (int k in BeaconFort.Order) combat.Fort.Light(k);
+                yield return new WaitForSecondsRealtime(.3f);
+                yield return Panorama(cam, map.left, map.right, PixelsPerUnit, "map_" + i.ToString("00") + "_open");
+            }
+        }
+    }
+    // 카메라를 [left, right] 전체가 들어가게 넓혀 한 번 그려서 저장한다.
+    IEnumerator Panorama(Camera cam, float left, float right, int ppu, string name)
+    {
+        yield return new WaitForEndOfFrame();
+        int w = Mathf.RoundToInt((right - left) * ppu), h = Mathf.RoundToInt(cam.orthographicSize * 2 * ppu);
+        var rt = new RenderTexture(w, h, 24);
+        var saved = cam.transform.position;
+        cam.transform.position = new Vector3((left + right) / 2, saved.y, saved.z);
+        cam.targetTexture = rt; cam.aspect = (float)w / h;
+        cam.Render();
+        RenderTexture.active = rt;
+        var image = new Texture2D(w, h, TextureFormat.RGB24, false);
+        image.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+        image.Apply();
+        RenderTexture.active = null; cam.targetTexture = null; cam.ResetAspect(); cam.transform.position = saved;
+        using (var file = File.Create(Path.Combine(folder, name + ".ppm")))
+        {
+            var header = System.Text.Encoding.ASCII.GetBytes("P6 " + w + " " + h + " 255 ");
+            file.Write(header, 0, header.Length);
+            var raw = image.GetRawTextureData();
+            for (int row = h - 1; row >= 0; row--) file.Write(raw, row * w * 3, w * 3);
+        }
+        Destroy(image); rt.Release(); Destroy(rt);
     }
 
     // 비공개 필드를 이름으로 찾는다.

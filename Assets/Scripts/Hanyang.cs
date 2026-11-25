@@ -31,6 +31,7 @@ public class HanyangTown : NpcTalk
     public bool HeardProphecy { get; private set; }
     public Who Speaking { get; private set; }
     private SpriteRenderer[] arts;
+    private bool childOfferOpen;
 
     bool Wicked => combat != null && combat.Quest != null && combat.Quest.progress.Honor < 0;
 
@@ -83,7 +84,7 @@ public class HanyangTown : NpcTalk
         ResetTown();
     }
     void OnDestroy() { if (root != null) Destroy(root); }
-    public void ResetTown() { IsOpen = false; Invited = HeardProphecy = false; Page = 0; lines = null; }
+    public void ResetTown() { childOfferOpen = false; IsOpen = false; Invited = HeardProphecy = false; Page = 0; lines = null; }
 
     // 가장 가까운 사람 번호(없으면 -1).
     public int Near()
@@ -104,11 +105,29 @@ public class HanyangTown : NpcTalk
     public void Talk(int i)
     {
         Speaking = People[i].who;
-        Begin(Lines(Speaking, Wicked, Invited));
+        var say = Lines(Speaking, Wicked, Invited);
+        var quests = GetComponent<QuestSystem>();
+        childOfferOpen = Speaking == Who.Ai && quests != null && quests.CanOfferChild;
+        if (Speaking == Who.Ai && quests != null && !childOfferOpen) say = quests.ChildDialogue(say);
+        Begin(say);
         if (Speaking == Who.Mudang) HeardProphecy = true;
     }
+    // 수락/거절 뒤에는 기존 아이 대사를 이어서 보여 준다.
+    void AnswerChildOffer(bool accept)
+    {
+        if (!childOfferOpen) return;
+        childOfferOpen = false;
+        var quests = GetComponent<QuestSystem>();
+        var original = Lines(Speaking, Wicked, Invited);
+        var say = new string[original.Length + 1];
+        say[0] = quests.AnswerChild(accept);
+        System.Array.Copy(original, 0, say, 1, original.Length);
+        Begin(say);
+    }
+
     protected override void Close()
     {
+        childOfferOpen = false;
         if (Speaking == Who.Cheongji) Invited = true;
         base.Close();
     }
@@ -116,7 +135,16 @@ public class HanyangTown : NpcTalk
     void Update()
     {
         if (combat == null || combat.PlayerHealth <= 0) return;
-        if (IsOpen) { TalkKeys(); return; }
+        if (IsOpen)
+        {
+            if (childOfferOpen)
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha1)) AnswerChildOffer(true);
+                else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Escape)) AnswerChildOffer(false);
+                return;
+            }
+            TalkKeys(); return;
+        }
         if (combat.Paused || !JinaUI.Interact) return;
         int i = Near();
         if (i >= 0) Talk(i);
@@ -144,6 +172,11 @@ public class HanyangTown : NpcTalk
         {
             int i = System.Array.FindIndex(People, p => p.who == Speaking);
             var head = new Vector3(People[i].x, 1.9f, 0);
+            if (childOfferOpen)
+            {
+                GetComponent<QuestSystem>().DrawChildOffer(AnswerChildOffer);
+                return;
+            }
             SpeechBubble.Draw(head, People[i].name, lines[Page], PageHint);
             return;
         }

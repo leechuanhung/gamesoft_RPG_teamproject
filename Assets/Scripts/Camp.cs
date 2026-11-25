@@ -37,6 +37,9 @@ public class Camp : MonoBehaviour
     // 한양 가는 길의 유령(InitializeRoad)이 지키는 맵.
     public float zoneLeft, zoneRight;
     public int coins = CoinsPerGhost;
+    // 이 무리 유령의 체력·공격력·방어력. 한양 가는 길(후반)의 유령은 더 세다(InitializeRoad).
+    public const int RoadGhostHealth = 40, RoadGhostAttack = 12, RoadGhostDefense = 3;
+    public int maxHp = GhostHealth, attack = Combat.MonsterAttack, defense = Combat.MonsterDefense;
     private bool wasInside;
     public const float FlySpeed = 2.2f, SightRange = 8f, StrikeRange = 1.3f, StrikeWindup = .55f, StrikeCooldown = .9f;
     // 쉴 때 땅 위로 떠 있는 높이와 가장 높이 나는 높이.
@@ -106,6 +109,7 @@ public class Camp : MonoBehaviour
     public void InitializeRoad(Combat owner, Sprite sprite, float[] homes, float left, float right)
     {
         combat = owner; road = true; coins = 2;
+        maxHp = RoadGhostHealth; attack = RoadGhostAttack; defense = RoadGhostDefense;
         zoneLeft = left; zoneRight = right; minX = left + 1; maxX = right - 1;
         body = new Color(.4f, .3f, .45f); tint = new Color(.86f, .8f, 1f);
         Spawn(sprite, "길의 유령", homes);
@@ -123,7 +127,7 @@ public class Camp : MonoBehaviour
             art.sprite = sprite;
             var visual = (GhostVisual)JinaActorVisual.Attach(art, JinaArt.Ghost, combat);
             visual.tint = tint;
-            mobs.Add(new Mob { art = art, visual = visual, home = x, phase = mobs.Count * 2.1f });
+            mobs.Add(new Mob { art = art, visual = visual, home = x, phase = mobs.Count * 2.1f, hp = maxHp, defense = defense });
         }
     }
     // 구역: 마을 서쪽 들판, 또는 물귀신이면 나루터 맵.
@@ -149,7 +153,7 @@ public class Camp : MonoBehaviour
         m.art.gameObject.SetActive(true);
         m.vanishAt = -1; m.respawnAt = -1;
         JinaItems.ForgetMob(m);
-        m.hp = GhostHealth; m.windup = -1; m.ready = Time.time + 1;
+        m.hp = maxHp; m.windup = -1; m.ready = Time.time + 1;
         m.art.transform.position = new Vector3(m.home, HoverY, 0);
         m.art.enabled = true;
         m.visual.Revive();
@@ -170,7 +174,7 @@ public class Camp : MonoBehaviour
         if (m == null || m.hp <= 0) return;
         if (combat != null && combat.Cheats != null) damage = combat.Cheats.Power(damage);   // 개발자 치트: 한 방
         int before = m.hp;
-        m.hp -= Combat.CalcDamage(damage + JinaItems.AttackBonus(combat), JinaItems.RopeDefense(m, m.defense, combat));
+        m.hp -= Combat.CalcDamage(damage + (combat != null ? combat.BonusAttack : 0), JinaItems.RopeDefense(m, m.defense, combat));
         var at = m.art.transform.position;
         int away = combat != null && combat.player.transform.position.x < at.x ? 1 : -1;
         JinaFx.Hit(at + Vector3.up * .1f, away, river ? new Color(.74f, .92f, 1) : new Color(1, .92f, .72f));
@@ -191,7 +195,7 @@ public class Camp : MonoBehaviour
             JinaItems.ForgetMob(m);
             JinaItems.RollDrops(at);
             // 들판 몹: 4~10 무작위 (Random.Range의 끝 숫자는 포함 안 돼서 +1)
-            if (combat != null) combat.GainExp(river ? Combat.WaterGhostExp : Random.Range(Combat.GhostExpMin, Combat.GhostExpMax + 1));
+            if (combat != null) combat.GainExp(river ? Combat.WaterGhostExp : road ? Combat.RoadGhostExp : Random.Range(Combat.GhostExpMin, Combat.GhostExpMax + 1));
             if (!river) m.respawnAt = Time.time + RespawnDelay;
             // 들판 몹: 무기 표(Weapon.cs)의 dropChance 확률로, 아직 없고 땅에도 없는 무기를 떨어뜨림
             if (!river)
@@ -219,27 +223,18 @@ public class Camp : MonoBehaviour
         return landed;
     }
 
-    // 몬스터 머리 위 체력바 (숫자는 막대 안쪽)
+    // 몬스터 머리 위 체력 막대와 이름
     void OnGUI()
     {
         if (combat == null || combat.PlayerHealth <= 0 || combat.Paused || Camera.main == null) return;
         KoreanUI.Apply();
-        var oldMatrix = GUI.matrix;
-        GUI.matrix = Matrix4x4.identity;
         foreach (var m in mobs)
         {
             // 쓰러졌거나 사라진 몬스터는 건너뜀
             if (m.hp <= 0 || !m.art.gameObject.activeSelf) continue;
-            Vector3 head = new Vector3(m.art.transform.position.x, m.art.bounds.max.y + .3f, 0);
-            Vector3 screen = Camera.main.WorldToScreenPoint(head);
-            // 화면 밖에 있는 몬스터는 그리지 않음
-            if (screen.z < 0 || screen.x < -80 || screen.x > Screen.width + 80) continue;
-            float width = 100, height = 20;
-            var r = new Rect(screen.x - width / 2, Screen.height - screen.y - height, width, height);
-            Combat.DrawBar(r, (float)m.hp / GhostHealth, new Color(.9f, .2f, .2f), m.hp + " / " + GhostHealth, 15);
-            Combat.DrawName(r, Name, river ? new Color(.74f, .9f, 1) : new Color(.9f, .84f, 1));
+            var head = new Vector3(m.art.transform.position.x, m.art.bounds.max.y + .3f, 0);
+            JinaUI.MobBar(head, (float)m.hp / maxHp, new Color(.82f, .2f, .17f), Name, river ? new Color(.74f, .9f, 1) : new Color(.9f, .84f, 1), m.art.GetInstanceID());
         }
-        GUI.matrix = oldMatrix;
     }
 
     // 유령마다 추격, 준비 동작, 공격을 돌린다.
@@ -276,7 +271,7 @@ public class Camp : MonoBehaviour
                 // 공격은 노린 자리에 그대로 떨어진다. 움직이거나 뛰면 피할 수 있다.
                 if (Time.time >= m.windup)
                 {
-                    if (new Bounds(m.strike, new Vector3(1.5f, 1.5f, 1)).Intersects(combat.player.GetComponent<SpriteRenderer>().bounds)) combat.HurtPlayer(Combat.MonsterAttack);
+                    if (new Bounds(m.strike, new Vector3(1.5f, 1.5f, 1)).Intersects(combat.player.GetComponent<SpriteRenderer>().bounds)) combat.HurtPlayer(attack);
                     m.windup = -1; m.ready = Time.time + StrikeCooldown;
                     m.visual.Strike();
                 }

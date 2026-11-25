@@ -18,6 +18,7 @@ public class InventoryUI : MonoBehaviour
     public const int Columns = 5, PageSize = 20, PageCount = 3;
     private int selected, itemPage, collectionPage;
     private int selectedWeapon;
+    private Vector2 keyItemScroll;
     private string message = "";
     public bool IsOpen => isOpen;
     public int Selected => selected;
@@ -229,6 +230,7 @@ public class InventoryUI : MonoBehaviour
         previousCanMove = combat.player.CanMove;
         previousTimeScale = Time.timeScale < .5f ? 1f : Time.timeScale;
         isOpen = true;
+        keyItemScroll = Vector2.zero;
         message = "";
         Select(selected);
         combat.InventoryPauseActive = true;
@@ -275,6 +277,7 @@ public class InventoryUI : MonoBehaviour
         float gridHeight = 4 * cell + 3 * gap;
         float width = gridWidth + WindowPad * 2;
         float height = TitleHeight + 12 + gridHeight + 12 + 88 + WindowPad;
+        if (tab == PageTab.KeyItems) height = Mathf.Min(height, JinaUI.H - 63);
         var window = new Rect(JinaUI.W - width - 12, 51, width, height);
 
         string[] tabNames = { "보따리", "귀중품", "스킬", "무기" };
@@ -282,7 +285,7 @@ public class InventoryUI : MonoBehaviour
         for (int i = 0; i < tabNames.Length; i++)
         {
             var r = new Rect(window.x + i * tabWidth, window.y - 38, tabWidth - 3, 34);
-            if (Button(r, tabNames[i])) { tab = (PageTab)i; collectionPage = 0; message = ""; }
+            if (Button(r, tabNames[i])) { tab = (PageTab)i; collectionPage = 0; keyItemScroll = Vector2.zero; message = ""; }
         }
         var inside = Window(window, tabNames[(int)tab], "I / Esc 닫기");
         Rect content = new Rect(inside.x, inside.y, gridWidth, gridHeight);
@@ -290,7 +293,7 @@ public class InventoryUI : MonoBehaviour
         switch (tab)
         {
             case PageTab.Items: DrawOrdinary(window, content, cell, gap); break;
-            case PageTab.KeyItems: DrawKeyItems(content); break;
+            case PageTab.KeyItems: DrawKeyItems(inside); break;
             case PageTab.Skills: DrawSkills(content); break;
             case PageTab.Weapons: DrawWeapons(window, content); break;
         }
@@ -342,19 +345,42 @@ public class InventoryUI : MonoBehaviour
         bool hasHairpin = inventory.GetQuantity(JinaItems.Keepsake) > 0;
         bool hasWisp = inventory.GetQuantity(JinaItems.Wisp) > 0;
         bool hasCharm = combat != null && combat.Quest != null && combat.Quest.progress.HasCharm;
-        float y = content.y;
+        var items = new List<(string name, string description, Sprite icon)>();
         if (hasHairpin)
-        {
-            string description = JinaItems.Keepsake.Description;
-            y += DrawKeyItemRecord(new Rect(content.x, y, content.width, 0), "은비녀", description, JinaItems.Keepsake.Icon);
-        }
+            items.Add(("은비녀", JinaItems.Keepsake.Description, JinaItems.Keepsake.Icon));
         if (hasWisp)
-            y += DrawKeyItemRecord(new Rect(content.x, y, content.width, 0), JinaItems.Wisp.ItemName, JinaItems.Wisp.Description, JinaItems.Wisp.Icon);
+            items.Add((JinaItems.Wisp.ItemName, JinaItems.Wisp.Description, JinaItems.Wisp.Icon));
         if (hasCharm)
         {
             string description = "망한 나라의 옛 비석이 품고 있던 부적. 비석을 세운 이들은 나라와 함께 사라졌으나, 그들이 남긴 글씨는 아직 저주를 알아본다. 숲의 주인에게 씌운 것은 본디 그들의 원한이었다.\n도깨비 가까이에서 F를 눌러 정화한다.";
-            y += DrawKeyItemRecord(new Rect(content.x, y, content.width, 0), "정화 부적", description, JinaArt.Prop("charm"));
+            items.Add(("정화 부적", description, JinaArt.Prop("charm")));
         }
+
+        float width = content.width;
+        float totalHeight = 0;
+        foreach (var item in items) totalHeight += KeyItemHeight(item.description, width) + 8;
+        bool scroll = totalHeight > content.height;
+        if (scroll)
+        {
+            width -= 20;
+            totalHeight = 0;
+            foreach (var item in items) totalHeight += KeyItemHeight(item.description, width) + 8;
+            keyItemScroll.x = 0;
+            keyItemScroll.y = Mathf.Clamp(keyItemScroll.y, 0, totalHeight - content.height);
+            keyItemScroll = GUI.BeginScrollView(content, keyItemScroll,
+                new Rect(0, 0, width, totalHeight), false, true);
+        }
+        else keyItemScroll = Vector2.zero;
+
+        float x = scroll ? 0 : content.x, y = scroll ? 0 : content.y;
+        foreach (var item in items)
+            y += DrawKeyItemRecord(new Rect(x, y, width, 0), item.name, item.description, item.icon);
+        if (scroll) GUI.EndScrollView();
+    }
+
+    float KeyItemHeight(string description, float width)
+    {
+        return Mathf.Max(68, Height(description, 12, width - 62) + 42);
     }
 
     float DrawKeyItemRecord(Rect place, string name, string description, Sprite sprite)
@@ -362,7 +388,7 @@ public class InventoryUI : MonoBehaviour
         const float pad = 8;
         float textWidth = place.width - 62;
         float bodyHeight = Height(description, 12, textWidth);
-        float rowHeight = Mathf.Max(68, bodyHeight + 34);
+        float rowHeight = KeyItemHeight(description, place.width);
         var r = new Rect(place.x, place.y, place.width, rowHeight);
         Box(r, PaperLight, SlotEdge, 1);
         if (sprite != null) DrawIcon(sprite, new Rect(r.x + 6, r.y + 7, 43, 43));
@@ -455,7 +481,9 @@ public class InventoryUI : MonoBehaviour
         var iconBox = new Rect(left, y, 80, 80);
         Box(iconBox, PaperDark, SlotEdge, 1);
         // 실제 무기 스프라이트를 왼쪽 창에 크게 그린다.
-        DrawIcon(WeaponArt(stats.id), new Rect(iconBox.x + 6, iconBox.y + 6, 68, 68));
+        //   활 종류는 전용 활 그림(벽조궁 등)이 있으면 그것, 없으면 기본 활. 칼은 전용 그림이 없으면 환도.
+        string art = stats.ranged ? stats.bowArt ?? "04_Weapons/bow" : stats.art ?? "04_Weapons/hwando";
+        DrawIcon(JinaArt.Load(art), new Rect(iconBox.x + 6, iconBox.y + 6, 68, 68));
         Text(new Rect(left + 92, y + 5, inner - 92, 30), weapon.name, 19, TextDark, TextAnchor.MiddleLeft, true);
         Text(new Rect(left + 92, y + 42, inner - 92, 26), "보유 중", 13, TextDim, TextAnchor.MiddleLeft);
         y += 92;

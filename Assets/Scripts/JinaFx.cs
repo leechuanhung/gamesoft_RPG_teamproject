@@ -231,7 +231,8 @@ public class JinaFx : MonoBehaviour
             var c = p.colour; c.a = Mathf.Clamp01((1 - t) * 3);
             // 잠깐 커졌다가 가라앉는다.
             int size = Mathf.RoundToInt(p.size * (t < .15f ? 1 + (1 - t / .15f) * .35f : 1));
-            var r = new Rect(at.x - 60, at.y - 20, 120, 40);
+            // 긴 글(레벨 업과 오른 능력치)도 한 줄로.
+            var r = new Rect(at.x - 220, at.y - 20, 440, 40);
             var ink = new Color(.04f, .03f, .04f, c.a);
             foreach (var o in Offsets) JinaUI.Text(new Rect(r.x + o.x, r.y + o.y, r.width, r.height), p.text, size, ink, TextAnchor.MiddleCenter, true);
             JinaUI.Text(r, p.text, size, c, TextAnchor.MiddleCenter, true);

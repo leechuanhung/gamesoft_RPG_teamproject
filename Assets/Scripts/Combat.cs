@@ -13,7 +13,7 @@ public partial class Combat : MonoBehaviour
     public int PlayerHealth { get; private set; } = MaxPlayerHealth;
     public const int PlayerAttack = 10;
     public int PlayerDefense = 0;
-    public int EffectivePlayerDefense => PlayerDefense + JinaItems.DefenseBonus(this);
+    public int EffectivePlayerDefense => PlayerDefense + LevelDefense + JinaItems.DefenseBonus(this);
     // 스킬: 스킬 무적(Q 물러서기)이 끝나는 시각과 스킬 관리자
     private float skillInvulnerableUntil;
     public bool SkillInvulnerable => Time.time < skillInvulnerableUntil;
@@ -178,6 +178,14 @@ public partial class Combat : MonoBehaviour
     {
         if (Quest == null) return;
         RoadCheckpoint = new RoadSave { at = at, honor = Quest.progress.Honor, arrows = Arrows };
+    }
+    // 추가 퀘스트 보상은 보따리처럼 체크포인트 재시도 때도 유지한다.
+    public void PreserveQuestHonor(int delta)
+    {
+        if (!RoadCheckpoint.HasValue) return;
+        var save = RoadCheckpoint.Value;
+        save.honor += delta;
+        RoadCheckpoint = save;
     }
     public void RestartOnRoad()
     {
@@ -608,116 +616,12 @@ public partial class Combat : MonoBehaviour
         ClearArrows();
     }
 
-    // 막대 하나 그리기: 검은 테두리 + 어두운 바탕 + 비율만큼 채우기 + 가운데 글씨(그림자)
-    // 다른 파일에서도 Combat.DrawBar(...)로 씀. GUI.matrix는 부르는 쪽에서 맞춤.
-    public static void DrawBar(Rect r, float ratio, Color fill, string text, int fontSize)
-    {
-        var old = GUI.color;
-        GUI.color = new Color(0, 0, 0, .8f);
-        GUI.DrawTexture(new Rect(r.x - 2, r.y - 2, r.width + 4, r.height + 4), Texture2D.whiteTexture);
-        GUI.color = new Color(.15f, .15f, .15f, .9f);
-        GUI.DrawTexture(r, Texture2D.whiteTexture);
-        GUI.color = fill;
-        GUI.DrawTexture(new Rect(r.x, r.y, r.width * Mathf.Clamp01(ratio), r.height), Texture2D.whiteTexture);
-        var style = new GUIStyle(GUI.skin.label)
-        {
-            alignment = TextAnchor.MiddleCenter, fontSize = fontSize, fontStyle = FontStyle.Bold,
-            padding = new RectOffset(0, 0, 0, 0), margin = new RectOffset(0, 0, 0, 0),
-            clipping = TextClipping.Overflow, wordWrap = false
-        };
-        // 글씨 상자를 위아래로 넉넉히 잡아서 막대 정가운데에 오게 함
-        var textRect = new Rect(r.x, r.y - 24, r.width, r.height + 40);
-        GUI.color = Color.black;
-        GUI.Label(new Rect(textRect.x + 1, textRect.y + 1, textRect.width, textRect.height), text, style);
-        GUI.color = Color.white;
-        GUI.Label(textRect, text, style);
-        GUI.color = old;
-    }
-
     // 개발자 치트(DevCheats): 도깨비를 바로 토벌한다.
     public void SlayBossForCheat() { if (!EnemyDefeated) DamageEnemy(EnemyHealth + BossDefense + 1); }
 
-    // 몬스터 머리 위 체력 막대 위의 이름(그림자 있는 작은 글씨). GUI.matrix는 부르는 쪽에서 맞춤.
-    public static void DrawName(Rect bar, string name, Color colour)
-    {
-        var old = GUI.color;
-        var style = new GUIStyle(GUI.skin.label)
-        {
-            alignment = TextAnchor.LowerCenter, fontSize = 15, fontStyle = FontStyle.Bold,
-            padding = new RectOffset(0, 0, 0, 0), margin = new RectOffset(0, 0, 0, 0), clipping = TextClipping.Overflow, wordWrap = false
-        };
-        var r = new Rect(bar.x - 40, bar.y - 26, bar.width + 80, 22);
-        GUI.color = Color.black;
-        GUI.Label(new Rect(r.x + 1, r.y + 1, r.width, r.height), name, style);
-        GUI.color = colour;
-        GUI.Label(r, name, style);
-        GUI.color = old;
-    }
-
-        // 아래 UI 전체 너비 (체력·스테미너 길이). Skills.cs도 이 값을 씀
-    public const float HudWidth = 720;
-
-    // 화면 아래 가운데: 체력(맨 위), 스테미너, 그 아래 왼쪽에 스킬창(Skills.cs), 오른쪽에 레벨 칸
-    void DrawPlayerHealthBar()
-    {
-        if (PlayerHealth <= 0 || Paused) return;
-        var oldMatrix = GUI.matrix;
-        GUI.matrix = Matrix4x4.identity;
-
-        // 스킬창과 같은 값 (Skills.cs: 칸 64, 아래 여백 20)
-        float skillSize = 64, skillBottom = 20;
-        float skillsY = Screen.height - skillBottom - skillSize;
-
-        float width = HudWidth, gap = 8;
-        float x = (Screen.width - width) / 2;
-        float staminaY = skillsY - 14 - 30;                     // 스킬창 위로 14 띄우고 스테미너 (높이 30)
-        float healthY = staminaY - gap - 34;                    // 그 위에 체력 (높이 34)
-
-        // 체력: 50% 초과 초록, 25% 초과 노랑, 그 이하 빨강
-        float hp = (float)PlayerHealth / MaxHealth;
-        Color hpColor = hp > .5f ? new Color(.3f, .85f, .3f) : hp > .25f ? new Color(.95f, .75f, .2f) : new Color(.9f, .2f, .2f);
-        DrawBar(new Rect(x, healthY, width, 34), hp, hpColor,
-            "체력  " + Mathf.Max(0, PlayerHealth) + " / " + MaxHealth, 20);
-
-        // 스테미너: 파란색, 체력과 같은 길이
-        DrawBar(new Rect(x, staminaY, width, 30), (float)player.Stamina / player.MaxStamina, new Color(.25f, .55f, 1f),
-            "스테미너  " + player.Stamina + " / " + player.MaxStamina, 18);
-
-        // 레벨 + 경험치: 막대 오른쪽 끝에 맞춘 칸, 스킬 칸과 같은 높이. 모은 경험치만큼 노랗게 차오름
-        float expRatio = MaxedLevel ? 1 : (float)Exp / ExpToNext(Level);
-        // 두 번째 무기 칸(끝: x + 360) 바로 옆부터 체력바 오른쪽 끝까지
-        float levelX = x + 5 * (skillSize + gap) + 8;
-        var levelRect = new Rect(levelX, skillsY, x + width - levelX, skillSize);
-        DrawBar(levelRect, expRatio, new Color(.85f, .65f, .2f),
-            MaxedLevel ? "Lv." + Level + "\nMAX" : "Lv." + Level + "\n" + Exp + " / " + ExpToNext(Level), 18);
-
-        // 장착 무기 2칸: QWE(3칸) 바로 오른쪽, 스킬 칸과 같은 크기. 그림만 표시
-        //   지금 손에 든 무기 칸은 금색으로 칠함, 빈 칸은 테두리만
-        for (int i = 0; i < 2; i++)
-        {
-            string id = EquippedWeapons[i];
-            bool holding = id != null && id == CurrentWeapon;
-            var slot = new Rect(x + (3 + i) * (skillSize + gap) + 8, skillsY, skillSize, skillSize);
-            DrawBar(slot, holding ? 1 : 0, new Color(1f, .86f, .35f, .35f), "", 18);
-            if (id == null) continue;
-            var icon = WeaponIcon(Weapon.Get(id));
-            if (icon == null) continue;
-            var tex = icon.texture;
-            var tr = icon.textureRect;
-            var uv = new Rect(tr.x / tex.width, tr.y / tex.height, tr.width / tex.width, tr.height / tex.height);
-            // 그림 비율 유지해서 칸 안에 맞춤
-            float s = skillSize - 8;
-            float iw = tr.width >= tr.height ? s : s * tr.width / tr.height;
-            float ih = tr.width >= tr.height ? s * tr.height / tr.width : s;
-            GUI.DrawTextureWithTexCoords(new Rect(slot.x + 4 + (s - iw) / 2, slot.y + 4 + (s - ih) / 2, iw, ih), tex, uv);
-        }
-
-        GUI.matrix = oldMatrix;
-    }
-
     // 무기 그림 (한 번 불러오면 저장해 두고 다시 씀)
     readonly Dictionary<string, Sprite> weaponIcons = new Dictionary<string, Sprite>();
-    Sprite WeaponIcon(Weapon.Stats w)
+    public Sprite WeaponIcon(Weapon.Stats w)
     {
         if (!weaponIcons.TryGetValue(w.id, out var sprite))
         {
@@ -728,26 +632,19 @@ public partial class Combat : MonoBehaviour
         return sprite;
     }
 
-    // 도깨비(보스) 체력바: 화면 위 가운데
+    // 아래 UI 전체 너비(화면 픽셀). 스킬창(Skills.cs)이 이 값으로 자리를 잡고, Hud의 체력·기력·무기·레벨이 그 둘레에 맞춘다.
+    public const float HudWidth = 720;
+
+    // 도깨비(보스) 체력: 위 가운데 두루마리(JinaUI.BossBar).
     void DrawBossHealthBar()
     {
         if (!alerted || EnemyDefeated || PlayerHealth <= 0 || Paused) return;
-        var oldMatrix = GUI.matrix;
-        GUI.matrix = Matrix4x4.identity;
-
-        float width = Screen.width * .4f, height = 30;
-        float x = (Screen.width - width) / 2;
-        float y = 28;
-        DrawBar(new Rect(x, y, width, height), (float)EnemyHealth / EnemyMaxHealth, new Color(.85f, .15f, .2f),
-            "도깨비   " + Mathf.Max(0, EnemyHealth) + " / " + EnemyMaxHealth, 18);
-
-        GUI.matrix = oldMatrix;
+        JinaUI.BossBar("도깨비", (float)EnemyHealth / EnemyMaxHealth, new Color(.78f, .16f, .14f), Mathf.Max(0, EnemyHealth) + " / " + EnemyMaxHealth);
     }
 
     void OnGUI()
     {
         KoreanUI.Apply();
-        DrawPlayerHealthBar();
         DrawBossHealthBar();
         if (PlayerHealth <= 0) return;
         if (Time.time < noArrowsUntil) JinaUI.Toast("화살이 떨어졌습니다. 주막 옆 보부상에게서 사세요.");
