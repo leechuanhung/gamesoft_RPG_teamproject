@@ -178,6 +178,14 @@ public partial class Combat : MonoBehaviour
         if (Quest == null) return;
         RoadCheckpoint = new RoadSave { at = at, honor = Quest.progress.Honor, arrows = Arrows };
     }
+    // 추가 퀘스트 보상은 보따리처럼 체크포인트 재시도 때도 유지한다.
+    public void PreserveQuestHonor(int delta)
+    {
+        if (!RoadCheckpoint.HasValue) return;
+        var save = RoadCheckpoint.Value;
+        save.honor += delta;
+        RoadCheckpoint = save;
+    }
     public void RestartOnRoad()
     {
         if (!RoadCheckpoint.HasValue) { Restart(); return; }

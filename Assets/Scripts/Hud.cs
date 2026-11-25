@@ -10,6 +10,13 @@ public class Hud : MonoBehaviour
     public const float PanelWidth = 276, Margin = 12, GuideFoldsAfter = 22f;
     public bool GuideOpen { get; private set; } = true;
     private bool guideTouched;
+    private QuestSystem questSystem;
+
+    void Start()
+    {
+        questSystem = gameObject.AddComponent<QuestSystem>();
+        questSystem.combat = combat;
+    }
 
     static readonly string[] Guide =
     {
@@ -242,6 +249,7 @@ public class Hud : MonoBehaviour
         y += 16;
         foreach (var row in rows)
             if (row != null) { JinaUI.Text(new Rect(x + 12, y, inner, 18), row, 12, JinaUI.Bright); y += 18; }
+        questSystem.DrawPanel(x, Margin + 52 + shown * 18 + 6, w);
     }
 
     // 보스 막대가 있으면 알림을 그 아래로 내린다.

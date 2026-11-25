@@ -210,6 +210,7 @@ public class RoadsideLore : MonoBehaviour
     private float wispBobOffset;
     private float wispGlimmer;
     private bool wispAbsorbed;
+    private bool wispQuestClosed;
     private bool wispApproachingBoss;
     private Vector3 wispApproachStart;
     private const float WispAbsorbAfter = 1.5f; // 추가 연출(2.2초) 중 도깨비에게 닿는 시점
@@ -329,7 +330,7 @@ public class RoadsideLore : MonoBehaviour
                 new Vector2(.5f, .5f), texture.height / 1.5f);
             questMarker.sortingOrder = 9;
         }
-        questMarker.enabled = !WispFollowing && !wispAbsorbed && !WispAsking;
+        questMarker.enabled = !WispFollowing && !wispAbsorbed && !WispAsking && !wispQuestClosed;
         if (questMarker.enabled)
             questMarker.transform.position = new Vector3(Spots[WispStoneIndex].x,
                 WorldBuilder.Top(Spots[WispStoneIndex].x) + 1.85f + Mathf.Sin(Time.time * 2f) * .09f, 0);
@@ -340,7 +341,7 @@ public class RoadsideLore : MonoBehaviour
     public void ResetLore()
     {
         saidAt = -1; said = "";
-        WispAsking = WispFollowing = wispAbsorbed = wispApproachingBoss = false;
+        WispAsking = WispFollowing = wispAbsorbed = wispApproachingBoss = wispQuestClosed = false;
         wispBob = wispBobOffset = 0f;
         if (wisp != null) { Destroy(wisp.gameObject); wisp = null; }
         if (questMarker != null) { Destroy(questMarker.gameObject); questMarker = null; }
@@ -366,7 +367,23 @@ public class RoadsideLore : MonoBehaviour
     // 조사 지점 `i`의 글을 연다.
     public void Read(int i)
     {
-        if (i == WispStoneIndex && !WispFollowing) { AskWisp(); return; }
+        if (i == WispStoneIndex && !WispFollowing)
+        {
+            var outcome = combat.Quest != null ? combat.Quest.progress.Outcome : EncounterOutcome.Unresolved;
+            if (outcome != EncounterOutcome.Unresolved)
+            {
+                if (!wispQuestClosed)
+                {
+                    said = outcome == EncounterOutcome.Slain
+                        ? "선돌에 희미한 빛이 머물다 사라졌다. 어딘가에서 누군가가 슬퍼하는 듯하다."
+                        : "선돌에 따스한 빛이 스쳤다. 어딘가에서 누군가가 기뻐하는 듯하다.";
+                    wispQuestClosed = true;
+                    saidAt = Time.time;
+                    return;
+                }
+            }
+            else if (!wispQuestClosed) { AskWisp(); return; }
+        }
         var s = Spots[i];
         said = s.afterNight != null && combat.Kong != null && combat.Kong.Stayed ? s.afterNight : s.said;
         saidAt = Time.time;
