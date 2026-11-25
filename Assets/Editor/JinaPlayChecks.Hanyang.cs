@@ -261,7 +261,7 @@ public static partial class JinaPlayChecks
         Check(RoadMobs.Name(wisp)=="도깨비불" && RoadMobs.Name(brute)=="두억시니","The new monsters have names");
         while(wisp.Alive) mobs.Hit(wisp,Combat.SwordDamage);
         Check(string.Format(combat.CoinsNote,combat.CoinsFound).StartsWith("도깨비불이 꺼지며 엽전 2문"),"A wisp goes out");
-        combat.Camp.Hit(combat.Camp.mobs[0],Camp.GhostHealth);
+        combat.Camp.Hit(combat.Camp.mobs[0],Camp.GhostHealth+combat.Camp.mobs[0].defense);
         Check(combat.CoinsNote==Combat.DefaultCoinsNote && combat.CoinsFound>=1 && combat.CoinsFound<=10,"A ghost scatters 1~10 coins");
         q.SacrificeElder(); Goto(310); Call(mobs);
         RoadMobs.Mob soldier=null; foreach(var m in mobs.mobs) if(m.soldier) { soldier=m; break; }

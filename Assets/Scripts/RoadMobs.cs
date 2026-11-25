@@ -456,19 +456,12 @@ public class RoadMobs : MonoBehaviour
             if (SpeechBubble.OnScreen(head)) SpeechBubble.Draw(head, "관군", Shout, null, Time.time - ShoutAt);
             else JinaUI.Toast("관군: " + Shout);
         }
-        var oldMatrix = GUI.matrix;
-        GUI.matrix = Matrix4x4.identity;
         foreach (var m in mobs)
         {
             if (!m.Alive || m.leaving || m.witness || m.art == null) continue;
-            var screen = Camera.main.WorldToScreenPoint(new Vector3(m.pos.x, m.Body.max.y + .3f, 0));
-            if (screen.z < 0 || screen.x < -80 || screen.x > Screen.width + 80) continue;
-            float width = 100, height = 18;
-            var r = new Rect(screen.x - width / 2, Screen.height - screen.y - height, width, height);
-            Combat.DrawBar(r, (float)m.hp / m.max, m.soldier ? new Color(.85f, .55f, .2f) : new Color(.9f, .2f, .2f), m.hp + " / " + m.max, 14);
-            Combat.DrawName(r, Name(m) + (m.soldier ? " · " + m.rank + "단계" : ""), m.soldier ? new Color(1, .82f, .6f) : m.kind == Kind.Wisp ? new Color(.7f, .9f, 1) : new Color(.86f, .84f, .92f));
+            JinaUI.MobBar(new Vector3(m.pos.x, m.Body.max.y + .3f, 0), (float)m.hp / m.max, m.soldier ? new Color(.86f, .52f, .16f) : new Color(.82f, .2f, .17f),
+                Name(m) + (m.soldier ? " · " + m.rank + "단계" : ""), m.soldier ? new Color(1, .82f, .6f) : m.kind == Kind.Wisp ? new Color(.7f, .9f, 1) : new Color(.86f, .84f, .92f), m.art.GetInstanceID());
         }
-        GUI.matrix = oldMatrix;
     }
 
     void OnDestroy()

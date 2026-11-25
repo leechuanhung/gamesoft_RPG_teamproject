@@ -459,12 +459,7 @@ public partial class KongBoss : MonoBehaviour
         float bar = JinaUI.H * .11f * Mathf.Clamp01((ChangeLength - t) / .4f);
         if (t >= FlashAt && t < RoarUntil + .4f) SpeechBubble.Draw(Feet + Vector3.up * 3.2f, "콩쥐", Roar);
         float card = Mathf.Clamp01((t - CardAt) / .5f) * Mathf.Clamp01((ChangeLength - .3f - t) / .4f);
-        if (card <= 0) return;
-        const float size = 33;
-        float x = 60 - (1 - card) * 80, y = JinaUI.H - bar - size * 3.4f;
-        JinaUI.Text(new Rect(x, y, JinaUI.W, size), Epithet, 18, new Color(.92f, .9f, .85f, card), TextAnchor.MiddleLeft);
-        JinaUI.Fill(new Rect(x, y + size * 1.05f, size * 7 * card, 3), new Color(.62f, .8f, .45f, card));
-        JinaUI.Text(new Rect(x, y + size * 1.15f, JinaUI.W, size * 1.8f), Name, 43, new Color(.7f, .86f, .5f, card), TextAnchor.MiddleLeft, true);
+        JinaUI.NameCard(Epithet, Name, new Color(.7f, .86f, .5f), card, JinaUI.H - bar, "妖");
     }
 
     void OnDestroy() { ClearShots(); foreach (var h in honey) if (h.art != null) Destroy(h.art.gameObject); if (miasma != null) Destroy(miasma); }

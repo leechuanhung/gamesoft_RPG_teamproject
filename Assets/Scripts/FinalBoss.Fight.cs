@@ -285,11 +285,7 @@ public partial class FinalBoss
             float a = Mathf.Clamp01((Time.time - DarkAt) / 1.2f) * .28f;
             JinaUI.Fill(new Rect(0, 0, JinaUI.W, JinaUI.H), new Color(.05f, 0, .06f, a));
         }
-        var oldMatrix = GUI.matrix;
-        GUI.matrix = Matrix4x4.identity;
-        float width = Screen.width * .4f, height = 30;
-        Combat.DrawBar(new Rect((Screen.width - width) / 2, 28, width, height), (float)Health / MaxHealth, new Color(.62f, .12f, .3f), Name + "   " + Health + " / " + MaxHealth, 18);
-        GUI.matrix = oldMatrix;
+        JinaUI.BossBar(Name, (float)Health / MaxHealth, new Color(.56f, .13f, .32f), Mathf.Max(0, Health) + " / " + MaxHealth);
         if (Dark && Time.time - DarkAt < 3f) JinaUI.Toast("어둠이 짙어집니다. 좌의정이 더 커지고 빨라졌습니다!");
     }
 }

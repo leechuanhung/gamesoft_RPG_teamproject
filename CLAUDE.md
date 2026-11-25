@@ -32,7 +32,7 @@
 | `Shops.cs` | 주막(`TavernShop`)·보부상 상점(`PeddlerShop`), 돈과 가격 규칙(`TavernWallet`, `ShopRules`). 가게는 여러 곳(`ShopStall`, `Stalls`): 음식은 첫 마을 주막·한양 국밥집, 물건은 첫 마을 보부상·콩밭 마을 방물장수(싸움 중 피란)·한양 잡화전. 상중 규칙은 첫 마을 가게에서만(`Mourning`) |
 | `Townsfolk.cs`의 `ShopChatter` | 주모·보부상 잡담 |
 | `Narration.cs` (`IntroNarration`, `EndingNarration` ← `Narration`) | 인트로·결말 낭독(검은 화면에 한 줄씩, 스페이스 길게 눌러 건너뛰기) |
-| `Maps.cs` | 맵 일곱 개, 카메라 가두기(`ClampView`), 경계에서 어둠 전환과 맵 이름 |
+| `Maps.cs` | 맵 열네 개, 카메라 가두기(`ClampView`), 경계에서 어둠 전환과 맵 이름 현판(`JinaUI.Signboard`) |
 | `MainNpcs.cs`의 `KongVillage` (그림은 `ActorVisuals.cs`의 `VillagerVisual`) | 콩밭 마을: 콩쥐·팥쥐·아낙·나무꾼, 괴롭힘 장면(`Scenes`, 아침 뒤 `MorningScenes`), 대화(`Lines`, 콩쥐·팥쥐는 창 안 왼쪽에 초상화가 들어가는 `TalkWindow`), 넷을 모두 만난 뒤(`Met`, `ReadyForNight`) 다시 말을 걸면 콩쥐가 하룻밤을 청함, 팥쥐의 은비녀 이야기는 두 번째 만남부터 한 번만(`KeepsakeTold`), 하룻밤 뒤(`Stayed`)에 열리는 단서 3개와 정체 드러남(`Revealed`). 팥쥐는 콩쥐의 강요로 남들 앞에서 반말과 막말을 한다. 말만 하는 훈장·엿장수·할멈(`TownLines`). 요괴가 마을에 들면 모두 묶이고(`StartRaid`, `Fate`) 팥쥐는 맨 왼쪽으로 달아나며, 오른쪽부터 죽는다(`NextVictim`, `Kill`). 싸움 뒤 대사 `AfterLines`. 콩쥐는 싸우기 전 선비가 고개에 있으면 마을에 없다(`KongBoss.AtHome`) |
 | `KongBoss.cs`, `.Fight.cs` | 콩쥐 요괴: 뒷산에서 기다림 → 초상화 대화(`MeetingLines`, 마지막 `LastLine` "젓갈로 담가 주마!") → 변신(`Changing`, 띠·카메라·검은 형체·번쩍·이름 카드) → 싸움(`Fighting`). 체력 260, 뛰어서 이동(동적 `Rigidbody2D`, 선비와 충돌 무시, 강 건너 못 감 `MinX`), 젓갈 침·콩알 산탄·소금 비(절반 아래)·혀 채찍(근접 하나), 높은 곳·벽 앞·제자리면 높이 뛰기(`HighHop`). 마을에서는 묶인 사람을 오른쪽부터 죽이고 칼 두 번에 멈칫(`Stagger`). 토벌(`Slain`), 체력 절반 아래에서 은비녀로 정화(`TryPurify`, F 또는 보따리). 해결할 때까지 뒷산 끝을 두꺼비 독기 장막이 막는다(`Sealed`, 싸우다 산성으로 달아나 건너뛰지 못하게) |
 | `KongBoss.Crocks.cs` | 뒷산 큰 독(체력이 아닌 기믹): 요괴 탄 3번(`CrockShots`) 또는 선비의 타격 2번(`CrockBlows`, 칼·화살·돌진베기 무엇이든 피해와 상관없이 한 대)에 깨지고 꿀단지를 떨굼, 닿으면 체력 +20(`HoneyHeal`, 인벤토리 아님) |
@@ -46,17 +46,17 @@
 | `RoadEvents.cs`의 `RoadsideLore` | 길가의 조사 지점(`Spots`, 엔터). 콩밭 마을의 것은 마을 사람들 말과 어긋나는 단서다. 전투 중에는 나오지 않는다 |
 | `JinaFx.cs` | 초승달 칼빛(`Arc`), 타격 별(`Hit`), 먼지(`Dust`), 충격파(`Shock`), 잔상(`AfterImage`), 숫자(`Number`), 히트스톱(`Stop`). 게임 상태와 무관한 풀링 스프라이트 |
 | `WorldBuilder.cs`의 `MapAmbience` | 맵별 구름·먼지·반딧불·연기·강 물빛, 화면 비네트 |
-| `JinaUI.cs` (`JinaUI`, 말풍선 `SpeechBubble`, 배율·글꼴 `KoreanUI`) | UI 공통 모양(한지 창 `Window`, HUD 판 `HudPanel`, 글자 `Text`·`Height`, 타자 효과 `Visible`·`VisibleAuto`·`FinishTyping`, `Button`, 판매 칸 `Good`, 초상화 대화창 `TalkWindow`, 쌓이는 알림 `Toast`, 행동 안내 `Prompt`). UI 좌표는 화면 높이 720 기준의 레이아웃 단위다(`Scale`, `W`, `H`, `FromWorld`). `Screen.width` 대신 `JinaUI.W`를 쓰고, `GUI.Label` 대신 `JinaUI.Text`를 쓴다(그래야 글자가 또렷하다). 새 UI는 고정 높이 대신 `Height`로 재서 쌓고, 알림은 `GUI.Box` 대신 `Toast`·`Prompt`를 쓴다 |
+| `JinaUI.cs` (`JinaUI`, 말풍선 `SpeechBubble`, 배율·글꼴 `KoreanUI`) | UI 공통 모양(한지 창 `Window`, HUD 판 `HudPanel`, 글자 `Text`·`Height`, 타자 효과 `Visible`·`VisibleAuto`·`FinishTyping`, `Button`, 판매 칸 `Good`, 초상화 대화창 `TalkWindow`, 쌓이는 알림 `Toast`, 행동 안내 `Prompt`). 시대 장식: 낙관 `Seal`, 단청 `Dancheong`, 놋쇠 게이지 `Gauge`(잃은 만큼 `Lag`), 두루마리 보스 막대 `BossBar`, 머리 위 막대 `MobBar`, 외곽선 글자 `Outlined`, 보스 이름 카드 `NameCard`, 맵 현판 `Signboard`, 사라짐 `Alpha`. UI 좌표는 화면 높이 720 기준의 레이아웃 단위다(`Scale`, `W`, `H`, `FromWorld`). `Screen.width` 대신 `JinaUI.W`를 쓰고, `GUI.Label` 대신 `JinaUI.Text`를 쓴다(그래야 글자가 또렷하다). 새 UI는 고정 높이 대신 `Height`로 재서 쌓고, 알림은 `GUI.Box` 대신 `Toast`·`Prompt`를 쓴다 |
 | `GameAudio.cs` | 배경 음악(맵·연출·보스전마다, 엇갈려 바꿈)과 효과음(무기, 타격, 부적·은비녀·봉화·정화·변신 등). 팀원 소리 + `make_sound.py`로 합성한 소리 |
-| `Hud.cs` | 상시 화면: 상태·할 일(`Goal`)·조작 안내(H), 선악, 보스 막대, 길 안내. 연출 중에는 숨는다 |
+| `Hud.cs` | 상시 화면: 이름패·할 일(`Goal`)·조작 안내(H), 선악, 길 안내, 아래 가운데 체력·기력·무기·레벨(`DrawTray`). 스킬창은 팀원의 `Skills.cs`가 그리고(손대지 않는다), 상은 그 자리(`JinaUI.SkillRow`, `Combat.HudWidth`)에 맞춘다. 연출 중에는 숨는다 |
 | `RoadEvents.cs`의 `MountainPass` | 고개: 굴러오는 바위(`Step`), 서낭당 회복(`UseShrine`). 지형 높이는 `WorldBuilder.Top` |
 | `Townsfolk.cs`의 `Ferry` | 숲 끝 가시덤불(도깨비 해결 전까지 나루터를 막음, `ThornsShut`), 뱃사공 대화(`Lines`), 나룻배(`FerryBoat`), 강에 빠짐(`Splash`) |
 | `JinaItems.cs`, `InventoryUI.cs` | 인벤토리 아이템(`JinaItem.Use`: 회복·화살·액막이·짚신), 아이콘 칸 인벤토리 화면(인벤토리 본체는 팀원 담당) |
 | `GameOver.cs` | 게임 오버: 검은 화면 위 선비 혼자 무너지는 연출(`player_ko_*`, `player_facedown`), 문구 |
 | `BossStory.cs`의 `BossEncounter` | 보스 첫 조우 연출(띠, 카메라 `View.Focus`, 포효, 이름 카드) |
 | `BossStory.cs`의 `BossTalk`, `BossRemorse` | 정화된 도깨비의 사연(엔터), 노인을 해친 도깨비의 죄책감 |
-| `WorldBuilder.cs` (`WorldBuilder`, `MapAmbience`), `ParallaxLayer.cs` | 땅·기물·배경 배치(땅 충돌체는 높이가 같으면 하나로 합침 `Solids`, 이음매에 선비가 걸리지 않게), 발판(`CampLedges`·`ForestLedges`, 한 방향 `PlatformEffector2D`, 레이어 8), 원경 패럴랙스(±2칸). 무리(`Group`), 구운 세계(`Baked`, `Ensure`, `Layout`), 씬 창 이름표 |
-| `WorldArt.cs`, `Editor/WorldBake.cs` | 구운 세계의 그림 이름(`WorldArt.Apply`·`Clear`), 굽기·다시 굽기(옮긴 것 유지)·지우기 메뉴, 저장할 때 그림 비우기, 배치 모드 `WorldBake.BakeGameScene` |
+| `WorldBuilder.cs` (`WorldBuilder`, `MapAmbience`), `ParallaxLayer.cs` | 땅·기물·배경 배치(땅 충돌체는 높이가 같으면 하나로 합침 `Solids`, 이음매에 선비가 걸리지 않게), 발판(`CampLedges`·`ForestLedges`, 한 방향 `PlatformEffector2D`, 레이어 8), 원경 패럴랙스(±2칸, 카메라가 그 맵을 볼 때만). 배경은 맵 폭 그대로라 옆 맵에 끼어들지 않는다. 맵 끝의 문(산성 문 `FortGateX`, 좌의정 댁 대문과 뒷문 `GoalX`)은 맵 끝에 딱 붙인다. 무리(`Group`), 구운 세계(`Baked`, `Ensure`, `Layout`), 씬 창 이름표 |
+| `WorldArt.cs`, `Editor/WorldBake.cs` | 구운 세계의 그림 이름(`WorldArt.Apply`·`Clear`)과 구울 때의 자리(`built`), 굽기·다시 굽기(씬에서 손댄 것만 유지, 나머지는 새 코드 자리)·지우기 메뉴, 저장할 때 그림 비우기, 배치 모드 `WorldBake.BakeGameScene`(`-freshbake`면 처음부터) |
 | `JinaArt.cs` | 그림 로딩. `Load`(캐릭터, 경로별 발 위치·배율), `CutFrom`(대기 그림에서 잘라 낸 프레임), `Prop`(기물) |
 | `ActorVisuals.cs`의 `GhostVisual` | 유령·물귀신(색만 다름) 공격(`Winding`, `Strike`)·쓰러짐 프레임 |
 | `SeonbiVisual.cs` | 선비 프레임(걷기·달리기·점프·공격·조준·쓰러짐) |
@@ -82,6 +82,7 @@
 - `bash Tools/run_checks.sh` 하나로 돌린다(`--art`: 그림 재생성 확인, `--keep`: `validation/` 장면 캡처를 남김. 확인한 뒤 지운다).
   - 규칙 검사 `PlayerArtChecks.Run`(Tavern → Morality → World → Arrow → Quest → KoreanUI)과 플레이 검사 `JinaPlayChecks.Begin`을 차례로 실행한다. 오래 걸리므로 백그라운드나 긴 시간 제한으로 돌린다.
   - Unity 에디터가 열려 있으면 배치 검사를 할 수 없어, 스크립트가 게임·에디터 코드 컴파일만 확인한다. 전체 검사가 필요하면 사용자에게 에디터를 닫아 달라고 한다.
+  - 맵 배치는 `bash Tools/run_ui_shots.sh --maps`로 맵마다 끝에서 끝까지 찍어 `validation/maps/`에서 보고 지운다.
 - IMGUI(창, 말풍선, 띠, 이름 카드, 결말 문장)는 플레이 검사의 캡처에 찍히지 않는다. UI를 바꾸면 `bash Tools/run_ui_shots.sh`로 실제 빌드의 스크린샷을 찍어 `validation/ui/`에서 확인하고 지운다(프로젝트 복사본에서 돌아서 에디터가 열려 있어도 된다. 새 UI 상태는 `Assets/Scripts/UiShots.cs`에 추가).
 - `JinaPlayChecks`는 partial 클래스다: `JinaPlayChecks.cs`(실행 순서·헬퍼)와 `.Player`·`.Boss`·`.Camp`·`.Elder`·`.Village`·`.Story`·`.Terrain`·`.Ending`·`.Items`(아이템, 맵, 나루터, 고개, 콩밭 마을)·`.KongBoss`(뒷산, 콩쥐 요괴, 마을 습격, 정화 뒤 장면)·`.Hanyang`(한양 가는 길, 관군, 산성 퍼즐, 좌의정, 길 체크포인트, 과거장 결말).
   - 비공개 필드는 `Field`/`Set`(자동 속성은 `<Name>k__BackingField`). 컴포넌트 하나의 `Update`는 `Call(component)`로 돌린다. `SendMessage`는 같은 오브젝트의 관리 컴포넌트 전부를 실행한다.

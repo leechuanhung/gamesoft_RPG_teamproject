@@ -13,6 +13,13 @@ public class WorldArt : MonoBehaviour
     public string art;
     // 옆으로 이어 그리는 그림(땅 띠, 깊은 강물)의 크기. 그림을 다시 입힐 때 되돌린다.
     public Vector2 tiled;
+    // 구울 때 코드가 놓은 자리·뒤집기·순서·색(WorldBake가 기록). 다시 구울 때 지금 모습이 이와 같으면 씬에서 손대지 않은
+    // 것이라 새 코드의 자리를 따르고, 다르면 씬에서 옮긴 것이라 그대로 둔다.
+    public bool built;
+    public Vector3 builtAt;
+    public bool builtFlip;
+    public int builtOrder;
+    public Color builtColor = Color.white;
 
     // 렌더러에 그림 이름을 기억시킨다.
     public static void Mark(SpriteRenderer renderer, Kind kind, string art)

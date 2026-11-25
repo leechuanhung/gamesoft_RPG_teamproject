@@ -52,7 +52,7 @@ public partial class Combat
             string text = "레벨 업! Lv." + Level;
             if ((Level - 1) % LevelsPerAttack == 0) text += "  공격력 +1";
             if ((Level - 1) % LevelsPerDefense == 0) text += "  방어력 +1";
-            if (Level % 10 == 0) text += "  스테미너 회복 +1";
+            if (Level % 10 == 0) text += "  기력 회복 +1";
             JinaFx.Word(at + Vector3.up * 1.5f, text, new Color(1f, .86f, .35f), 24);
         }
         if (MaxedLevel) Exp = 0;
@@ -73,13 +73,5 @@ public partial class Combat
     {
         Level = 1; Exp = 0;
         ApplyLevelStats();
-    }
-
-    // 레벨·경험치 막대 (노란색). 만렙이면 MAX
-    void DrawLevelBar(Rect r)
-    {
-        float ratio = MaxedLevel ? 1 : (float)Exp / ExpToNext(Level);
-        string text = MaxedLevel ? "Lv." + Level + "   MAX" : "Lv." + Level + "   경험치 " + Exp + " / " + ExpToNext(Level);
-        DrawBar(r, ratio, new Color(.95f, .78f, .25f), text, 18);
     }
 }

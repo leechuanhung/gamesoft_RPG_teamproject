@@ -315,12 +315,7 @@ public partial class FinalBoss : MonoBehaviour
         // 변신 대사는 길어서 변신이 끝날 때까지 남겨 둔다(다 찍히고도 읽을 틈이 있게).
         if (t >= FlashAt && t < ChangeLength - .1f) SpeechBubble.Draw(Feet + Vector3.up * 4.4f, Official, Roar);
         float card = Mathf.Clamp01((t - CardAt) / .5f) * Mathf.Clamp01((ChangeLength - .3f - t) / .4f);
-        if (card <= 0) return;
-        const float size = 33;
-        float x = 60 - (1 - card) * 80, y = JinaUI.H - bar - size * 3.4f;
-        JinaUI.Text(new Rect(x, y, JinaUI.W, size), Epithet, 18, new Color(.92f, .9f, .85f, card), TextAnchor.MiddleLeft);
-        JinaUI.Fill(new Rect(x, y + size * 1.05f, size * 7 * card, 3), new Color(.8f, .2f, .24f, card));
-        JinaUI.Text(new Rect(x, y + size * 1.15f, JinaUI.W, size * 1.8f), Name, 43, new Color(.92f, .36f, .38f, card), TextAnchor.MiddleLeft, true);
+        JinaUI.NameCard(Epithet, Name, new Color(.92f, .36f, .38f), card, JinaUI.H - bar, "闇");
     }
 
     void OnDestroy() { ClearShots(); if (sealMark != null) Destroy(sealMark.gameObject); }

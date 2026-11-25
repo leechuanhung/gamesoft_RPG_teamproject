@@ -223,27 +223,18 @@ public class Camp : MonoBehaviour
         return landed;
     }
 
-    // 몬스터 머리 위 체력바 (숫자는 막대 안쪽)
+    // 몬스터 머리 위 체력 막대와 이름
     void OnGUI()
     {
         if (combat == null || combat.PlayerHealth <= 0 || combat.Paused || Camera.main == null) return;
         KoreanUI.Apply();
-        var oldMatrix = GUI.matrix;
-        GUI.matrix = Matrix4x4.identity;
         foreach (var m in mobs)
         {
             // 쓰러졌거나 사라진 몬스터는 건너뜀
             if (m.hp <= 0 || !m.art.gameObject.activeSelf) continue;
-            Vector3 head = new Vector3(m.art.transform.position.x, m.art.bounds.max.y + .3f, 0);
-            Vector3 screen = Camera.main.WorldToScreenPoint(head);
-            // 화면 밖에 있는 몬스터는 그리지 않음
-            if (screen.z < 0 || screen.x < -80 || screen.x > Screen.width + 80) continue;
-            float width = 100, height = 20;
-            var r = new Rect(screen.x - width / 2, Screen.height - screen.y - height, width, height);
-            Combat.DrawBar(r, (float)m.hp / maxHp, new Color(.9f, .2f, .2f), m.hp + " / " + maxHp, 15);
-            Combat.DrawName(r, Name, river ? new Color(.74f, .9f, 1) : new Color(.9f, .84f, 1));
+            var head = new Vector3(m.art.transform.position.x, m.art.bounds.max.y + .3f, 0);
+            JinaUI.MobBar(head, (float)m.hp / maxHp, new Color(.82f, .2f, .17f), Name, river ? new Color(.74f, .9f, 1) : new Color(.9f, .84f, 1), m.art.GetInstanceID());
         }
-        GUI.matrix = oldMatrix;
     }
 
     // 유령마다 추격, 준비 동작, 공격을 돌린다.

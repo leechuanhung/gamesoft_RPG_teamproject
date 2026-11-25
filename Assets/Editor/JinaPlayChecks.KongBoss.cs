@@ -75,12 +75,13 @@ public static partial class JinaPlayChecks
         // 돌진베기는 지난 물리 프레임 자리부터 훑는다: 옮긴 뒤 돌진하지 않는 프레임을 한 번 돌려 그 자리를 새로 잡는다.
         player.position=new Vector3(boss.Feet.x+1,boss.Feet.y+.95f,0); Call(dash,"FixedUpdate");
         hp=boss.Health;
+        int rushCut=Combat.CalcDamage(Combat.DashSlashDamage+combat.BonusAttack,KongBoss.Defense);   // 그녀의 가죽(방어력)만큼 덜 든다
         combat.player.StartDash(1,Skills.RushLength,Skills.RushSpeed,true);
         Call(dash,"FixedUpdate"); Call(dash,"FixedUpdate");
-        Check(boss.Health==hp-Combat.DashSlashDamage,"The rush cuts her once");
+        Check(boss.Health==hp-rushCut,"The rush cuts her once");
         combat.player.StartDash(-1,Skills.RetreatLength,Skills.RetreatSpeed,false);
         Call(dash,"FixedUpdate");
-        Check(boss.Health==hp-Combat.DashSlashDamage,"The retreat does not");
+        Check(boss.Health==hp-rushCut,"The retreat does not");
         Set(combat.player,"dodgeUntil",0f); Call(dash,"FixedUpdate"); player.position=feet;
         int standing=boss.CrocksStanding;
         boss.StrikeCrock(0,KongBoss.CrockShots-1); Check(boss.CrocksStanding==standing && boss.HoneyCount==0,"A crock takes a couple of her shots");
@@ -227,7 +228,7 @@ public static partial class JinaPlayChecks
         player.position=new Vector3(80,.3f,0);
         Check(boss.Goal(kong)==KongBoss.VillageCentre,"With nobody left she waits in the middle of the village");
         // Slain: +10.
-        Set(boss,"<Health>k__BackingField",Combat.SwordDamage);
+        Set(boss,"<Health>k__BackingField",1);
         boss.Damage(Combat.SwordDamage,false);
         Check(boss.Now==KongBoss.Phase.Slain && q.KongOutcome==EncounterOutcome.Slain && q.Honor==-50,"Slain: ten back");
 

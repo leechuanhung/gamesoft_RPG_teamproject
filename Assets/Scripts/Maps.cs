@@ -93,7 +93,7 @@ public class Maps : MonoBehaviour
     public float Cover => !Travelling ? 0 : EnteredAt < LeftAt ? Mathf.Clamp01((Time.time - LeftAt) / FadeOut)
         : 1 - Mathf.Clamp01((Time.time - EnteredAt) / FadeIn);
 
-    // 어둠과 맵 이름을 그린다.
+    // 어둠과 맵 이름 현판을 그린다.
     void OnGUI()
     {
         GUI.depth = -50;
@@ -105,11 +105,8 @@ public class Maps : MonoBehaviour
         // 걸어 들어온 맵의 이름(시작할 때나 R 뒤에는 없음).
         float t = EnteredAt < 0 ? -1 : Time.time - EnteredAt;
         if (t < 0 || t > CardLength || combat == null || combat.Paused) return;
+        // 단청을 두른 현판이 조금 내려오며 나타난다.
         float fade = Mathf.Clamp01(t / .4f) * Mathf.Clamp01((CardLength - t) / .6f);
-        float w = JinaUI.CenterWidth, lineHeight = JinaUI.Height(Here.line, 15, w - 24);
-        var card = new Rect((JinaUI.W - w) / 2, JinaUI.H * .3f, w, 56 + lineHeight);
-        JinaUI.Fill(card, new Color(.1f, .085f, .08f, .78f * fade));
-        JinaUI.Text(new Rect(card.x, card.y + 8, w, 36), "― " + Here.name + " ―", 26, new Color(1f, .86f, .52f, fade), TextAnchor.MiddleCenter, true);
-        JinaUI.Text(new Rect(card.x + 12, card.y + 46, w - 24, lineHeight), Here.line, 15, new Color(.97f, .94f, .86f, fade), TextAnchor.UpperCenter);
+        JinaUI.Signboard(Here.name, Here.line, JinaUI.H * .26f - 10 * (1 - Mathf.Clamp01(t / .4f)), fade);
     }
 }
