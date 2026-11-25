@@ -87,8 +87,8 @@ public class Skills : MonoBehaviour
     {
         var s = slots[index];
         if (s.empty || Time.time < s.readyAt) return;
-        // 활을 들고 있으면 W(돌진베기)는 못 씀 (스테미너·쿨타임도 안 씀)
-        if (index == 1 && combat.UsingBow) return;
+        // 활을 들고 있으면 돌진베기는 못 씀 (어느 칸에 있든)
+        if (s.skillId == "rush_slash" && combat.UsingBow) return;
         // 강궁은 활을 들고 있을 때만, 이미 준비된 상태면 다시 못 씀
         if (s.skillId == "power_shot" && (!combat.UsingBow || combat.PowerShotReady)) return;
         var p = combat.player;
@@ -178,8 +178,8 @@ public class Skills : MonoBehaviour
                 GUI.color = Color.white;
                 GUI.Label(r, "준비", cdStyle);
             }
-            // 활을 들고 있으면 W(돌진베기) 칸, 활이 없으면 강궁 칸을 어둡게 덮고 빨간 X
-            if ((i == 1 && combat.UsingBow) || (s.skillId == "power_shot" && !combat.UsingBow))
+            // 활을 들면 돌진베기 칸, 칼을 들면 강궁 칸을 어둡게 덮고 빨간 X (어느 칸에 있든 스킬을 따라감)
+            if ((s.skillId == "rush_slash" && combat.UsingBow) || (s.skillId == "power_shot" && !combat.UsingBow))
             {
                 GUI.color = new Color(0, 0, 0, .55f);
                 GUI.DrawTexture(r, Texture2D.whiteTexture);
