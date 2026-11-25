@@ -385,7 +385,9 @@ public class InventoryUI : MonoBehaviour
             var skill = ownedSkills[i];
             var r = new Rect(content.x, content.y + 24 + (i % perPage) * 30, content.width, 28);
             Box(r, PaperDark, SlotEdge, 1);
-            Text(new Rect(r.x + 7, r.y, 123, r.height), skill.name, 13, TextDark, TextAnchor.MiddleLeft);
+            var skillIcon = Skills.IconOf(skill.id);
+            if (skillIcon != null) DrawIcon(skillIcon, new Rect(r.x + 3, r.y + 2, 24, 24));
+            Text(new Rect(r.x + 31, r.y, 99, r.height), skill.name, 13, TextDark, TextAnchor.MiddleLeft);
             for (int slot = 0; slot < 3; slot++)
             {
                 int index = slot;
@@ -416,7 +418,7 @@ public class InventoryUI : MonoBehaviour
             var weapon = weapons[i];
             var r = new Rect(content.x, content.y + 28 + (i % perPage) * 38, content.width, 36);
             Box(r, PaperDark, SlotEdge, 1);
-            Icon(weapon.icon, r.x + 4, r.y + 4, 1f);
+            DrawIcon(WeaponArt(weapon.id), new Rect(r.x + 3, r.y + 3, 30, 30));
             if (GUI.Button(new Rect(r.x + 4, r.y + 2, 158, r.height - 4), "", GUIStyle.none)) { selectedWeapon = i; message = ""; }
             Text(new Rect(r.x + 37, r.y, 125, r.height), weapon.name, 14, TextDark, TextAnchor.MiddleLeft);
             for (int slot = 0; slot < 2; slot++)
@@ -453,8 +455,7 @@ public class InventoryUI : MonoBehaviour
         var iconBox = new Rect(left, y, 80, 80);
         Box(iconBox, PaperDark, SlotEdge, 1);
         // 실제 무기 스프라이트를 왼쪽 창에 크게 그린다.
-        string art = stats.id == "bow" ? "04_Weapons/bow" : stats.art ?? "04_Weapons/hwando";
-        DrawIcon(JinaArt.Load(art), new Rect(iconBox.x + 6, iconBox.y + 6, 68, 68));
+        DrawIcon(WeaponArt(stats.id), new Rect(iconBox.x + 6, iconBox.y + 6, 68, 68));
         Text(new Rect(left + 92, y + 5, inner - 92, 30), weapon.name, 19, TextDark, TextAnchor.MiddleLeft, true);
         Text(new Rect(left + 92, y + 42, inner - 92, 26), "보유 중", 13, TextDim, TextAnchor.MiddleLeft);
         y += 92;
@@ -533,6 +534,13 @@ public class InventoryUI : MonoBehaviour
         Text(new Rect(left + 116, y, inner - 116, hintHeight), hint, 12, TextDim, TextAnchor.MiddleLeft);
         y += hintHeight + 10;
         Text(new Rect(left, y, inner, messageHeight), message, 14, Red);
+    }
+
+        // 무기 실제 그림: 활 종류는 활 그림(벽조궁은 벽조궁), 칼은 전용 그림, 없으면 환도
+    public static Sprite WeaponArt(string id)
+    {
+        var s = Weapon.Get(id);
+        return JinaArt.Load(s.ranged ? (s.bowArt ?? "04_Weapons/bow") : s.art ?? "04_Weapons/hwando");
     }
 
     public static void DrawIcon(Sprite icon, Rect area)
