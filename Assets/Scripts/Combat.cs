@@ -13,7 +13,7 @@ public partial class Combat : MonoBehaviour
     public int PlayerHealth { get; private set; } = MaxPlayerHealth;
     public const int PlayerAttack = 10;
     public int PlayerDefense = 0;
-    public int EffectivePlayerDefense => PlayerDefense + JinaItems.DefenseBonus(this);
+    public int EffectivePlayerDefense => PlayerDefense + LevelDefense + JinaItems.DefenseBonus(this);
     // 스킬: 스킬 무적(Q 물러서기)이 끝나는 시각과 스킬 관리자
     private float skillInvulnerableUntil;
     public bool SkillInvulnerable => Time.time < skillInvulnerableUntil;

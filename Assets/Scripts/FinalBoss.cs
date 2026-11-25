@@ -17,6 +17,8 @@ public partial class FinalBoss : MonoBehaviour
     public enum Phase { Waiting, Banquet, Changing, Fighting, Slain }
     public Phase Now { get; private set; }
     public const int MaxHealth = 420;
+    // 방어력: 마지막 보스라 가장 높다(도깨비·콩쥐 요괴 5).
+    public const int Defense = 7;
     public int Health { get; private set; } = MaxHealth;
     public bool Fighting => Now == Phase.Fighting;
     public bool Resolved => Now == Phase.Slain;
@@ -181,7 +183,7 @@ public partial class FinalBoss : MonoBehaviour
         if (!Fighting) return false;
         if (combat.Cheats != null) amount = combat.Cheats.Power(amount);   // 개발자 치트: 한 방
         int before = Health;
-        Health = Mathf.Max(0, Health - Combat.CalcDamage(amount + JinaItems.AttackBonus(combat), 0));
+        Health = Mathf.Max(0, Health - Combat.CalcDamage(amount + combat.BonusAttack, Defense));
         HitAt = Time.time;
         var at = Feet + new Vector3(0, 2.2f * Size, 0);
         int away = PlayerX < Feet.x ? 1 : -1;

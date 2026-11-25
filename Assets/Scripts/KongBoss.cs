@@ -16,6 +16,8 @@ public partial class KongBoss : MonoBehaviour
     public enum Phase { Waiting, Meeting, Changing, Fighting, Slain, Purified }
     public Phase Now { get; private set; }
     public const int MaxHealth = 260;
+    // 방어력: 선비의 피해에서 이만큼 덜 들어간다(최소 1). 도깨비(5)와 같고, 대신 더 세게 때린다(KongBoss.Fight).
+    public const int Defense = 5;
     public int Health { get; private set; } = MaxHealth;
     // 절반 아래면 은비녀가 안의 콩쥐에게 닿는다.
     public bool Weakened => Health <= MaxHealth / 2;
@@ -244,7 +246,7 @@ public partial class KongBoss : MonoBehaviour
         if (!Fighting) return false;
         if (combat.Cheats != null) amount = combat.Cheats.Power(amount);   // 개발자 치트: 한 방
         int before = Health;
-        Health -= Combat.CalcDamage(amount + JinaItems.AttackBonus(combat), 0);
+        Health -= Combat.CalcDamage(amount + combat.BonusAttack, Defense);
         HitAt = Time.time;
         if (sword) Stagger(amount);
         var at = Feet + new Vector3(0, 1.4f, 0);
@@ -259,6 +261,7 @@ public partial class KongBoss : MonoBehaviour
         EndFight();
         if (combat.Quest != null) combat.Quest.progress.ResolveKong(false);
         if (combat.Kong != null) combat.Kong.Release();
+        combat.GainExp(Combat.KongExp);
         return true;
     }
 
@@ -289,6 +292,7 @@ public partial class KongBoss : MonoBehaviour
         EndFight();
         if (combat.Quest != null) combat.Quest.progress.ResolveKong(true);
         if (combat.Kong != null) combat.Kong.Release();
+        combat.GainExp(Combat.KongExp);
         return true;
     }
 

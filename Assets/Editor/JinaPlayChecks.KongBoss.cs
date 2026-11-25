@@ -69,7 +69,7 @@ public static partial class JinaPlayChecks
 
         // Blows, the hurt box, the cover, what she throws.
         int hp=boss.Health;
-        Check(boss.HurtBox.size.x>2 && boss.Damage(Combat.SwordDamage,true) && boss.Health==hp-Combat.SwordDamage,"A wide target that takes the sword");
+        Check(boss.HurtBox.size.x>2 && boss.Damage(Combat.SwordDamage,true) && boss.Health==hp-(Combat.SwordDamage+combat.BonusAttack-KongBoss.Defense),"A wide target that takes the sword, less her hide");
         // W 돌진베기도 그녀를 벤다(돌진 한 번에 한 번). Q 물러서기는 베지 않는다.
         var dash=combat.player.GetComponent<DashSlashAttack>(); var feet=player.position;
         // 돌진베기는 지난 물리 프레임 자리부터 훑는다: 옮긴 뒤 돌진하지 않는 프레임을 한 번 돌려 그 자리를 새로 잡는다.

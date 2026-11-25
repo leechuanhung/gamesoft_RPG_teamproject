@@ -15,7 +15,7 @@ public partial class KongBoss
 {
     public enum Attack { None, Spit, Beans, Tongue, Salt }
     public Attack Doing { get; private set; }
-    public const int SpitDamage = 15, BrineDamage = 8, BeanDamage = 8, TongueDamage = 18, SaltDamage = 10;
+    public const int SpitDamage = 18, BrineDamage = 10, BeanDamage = 10, TongueDamage = 22, SaltDamage = 12;
     public const float MinX = WorldBuilder.RiverRight + 1.4f, MaxX = WorldBuilder.HillEnd - 1.5f, VillageCentre = 130f;
     // 뛰기: 보통 뛰기와 높이 뛰기의 높이(약 2.45, 3.6칸), 추격 속도와 걸음 속도.
     public const float Gravity = 9.81f * 3, HopRise = 12f, HighRise = 14.6f, ChaseHop = 6.6f, StepHop = 4.2f, CrouchLength = .2f, HopRest = .28f;

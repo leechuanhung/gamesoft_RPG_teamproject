@@ -16,7 +16,7 @@ public partial class FinalBoss
     public bool Dark { get; private set; }
     public float DarkAt { get; private set; } = -1;
     public float Size => Dark ? 1.12f : 1f;
-    public const int SweepAttack = 16, SlamAttack = 20, InkAttack = 12, HandAttack = 14, CoinAttack = 8;
+    public const int SweepAttack = 22, SlamAttack = 28, InkAttack = 16, HandAttack = 18, CoinAttack = 10;
     public const float MinX = WorldBuilder.ManorStart + 2.5f, MaxX = WorldBuilder.ManorEnd - 2.5f, Glide = 1.2f;
     // 동작마다 준비(앞)와 전체 길이.
     public static float Windup(Move m) => m == Move.Sweep ? .75f : m == Move.Slam ? .95f : m == Move.Ink ? .5f : m == Move.Hands ? .4f : .45f;
