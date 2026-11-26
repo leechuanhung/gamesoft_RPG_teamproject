@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // ===== 고개: 굴러오는 바위·서낭당 (MountainPass) =====
 // 나루터 너머 고개(WorldBuilder.PassStart..PassEnd). 선비가 꼭대기 아래를 오르는 동안
 // 몇 초마다 바위가 계단을 굴러 내려온다: 뛰어넘거나 백스텝(K)으로 통과한다.
-// 고원의 서낭당에서 한 판에 한 번 돌탑에 돌을 얹으면(엔터) 체력이 다 찬다.
+// 고원의 서낭당에서 한 판에 한 번 돌탑에 돌을 얹으면(F·클릭) 체력이 다 찬다.
 public class MountainPass : MonoBehaviour
 {
     public Combat combat;
@@ -75,7 +75,7 @@ public class MountainPass : MonoBehaviour
         return true;
     }
 
-    // 때가 되면 바위를 굴리고, 서낭당에서 엔터를 받는다.
+    // 때가 되면 바위를 굴리고, 서낭당에서 F·클릭를 받는다.
     void Update()
     {
         if (combat == null || combat.PlayerHealth <= 0 || combat.Paused) return;
@@ -96,7 +96,7 @@ public class MountainPass : MonoBehaviour
         KoreanUI.Apply();
         if (ShrineAt >= 0 && Time.time - ShrineAt < 3f)
             JinaUI.Toast(shrineSaid);
-        if (NearShrine && !ShrineUsed) JinaUI.Prompt("Enter: 서낭당 돌무더기에 돌 얹기");
+        if (NearShrine && !ShrineUsed) JinaUI.Prompt("F·클릭: 서낭당 돌무더기에 돌 얹기");
     }
 
     void OnDestroy() { foreach (var r in rocks) if (r.art != null) Destroy(r.art.gameObject); }
@@ -347,7 +347,7 @@ public class RoadsideLore : MonoBehaviour
         if (questMarker != null) { Destroy(questMarker.gameObject); questMarker = null; }
     }
 
-    // 엔터로 조사 지점을 읽는다.
+    // F·클릭으로 조사 지점을 읽는다.
     void Update()
     {
         if (combat == null || combat.PlayerHealth <= 0) return;
@@ -410,7 +410,7 @@ public class RoadsideLore : MonoBehaviour
         if (saidAt >= 0 && Time.time - saidAt < ShowFor) JinaUI.Toast(said);
         int i = Near();
         if (i >= 0 && !SomeoneElseHere())
-            JinaUI.Prompt(i == WispStoneIndex && WispFollowing ? (wispAbsorbed ? "도깨비불의 빛은 숲의 주인에게 스며들었다." : "도깨비불이 선비와 함께하고 있다.") : "Enter: " + Spots[i].prompt);
+            JinaUI.Prompt(i == WispStoneIndex && WispFollowing ? (wispAbsorbed ? "도깨비불의 빛은 숲의 주인에게 스며들었다." : "도깨비불이 선비와 함께하고 있다.") : "F·클릭: " + Spots[i].prompt);
     }
 
     void OnDestroy() { if (wisp != null) Destroy(wisp.gameObject); if (questMarker != null) Destroy(questMarker.gameObject); }

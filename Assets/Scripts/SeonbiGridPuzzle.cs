@@ -2,7 +2,8 @@ using System;
 using UnityEngine;
 using UnityEngine.Events;
 
-// 한 칸씩 걷고 비석을 미는 격자형 미니게임. 이미지가 연결되지 않은 동안은 색 도형으로 표시한다.
+// 한 칸씩 걷고 비석을 미는 격자형 미니게임. 선비는 작은 선비, 미는 돌은 보석, 문양 칸은 보석 홈 그림(19_UI/puzzle_*, make_ui.py)으로 그린다.
+// 아래 이미지 칸을 채우면 그 그림이 먼저다. 그림이 없으면 색 도형으로 표시한다.
 public class SeonbiGridPuzzle : MonoBehaviour
 {
     public Combat combat;
@@ -160,6 +161,9 @@ public class SeonbiGridPuzzle : MonoBehaviour
         float startX = panel.x + (panelW - boardW) / 2;
         float startY = panel.y + 78;
         DrawBoard(startX, startY);
+        // 버튼 위의 클릭은 상호작용(F·클릭)이 아니다
+        JinaUI.MarkButton(new Rect(panel.x + 18, panel.y + panelH - 48, 104, 30));
+        JinaUI.MarkButton(new Rect(panel.x + panelW - 88, panel.y + 10, 72, 28));
         if (GUI.Button(new Rect(panel.x + 18, panel.y + panelH - 48, 104, 30), "다시 시작", ButtonStyle())) RestartCurrentPuzzle();
         Text(new Rect(panel.x + 126, panel.y + panelH - 52, panelW - 142, 38), "이동: 방향키 / WASD     닫기: Esc", 13, JinaUI.Bright, TextAnchor.MiddleCenter);
         if (GUI.Button(new Rect(panel.x + panelW - 88, panel.y + 10, 72, 28), "닫기", ButtonStyle())) Close();
@@ -173,20 +177,26 @@ public class SeonbiGridPuzzle : MonoBehaviour
             var r = new Rect(x + col * Tile, y + row * Tile, Tile - 2, Tile - 2);
             JinaUI.Fill(r, walls[col, row] ? new Color(.18f, .13f, .1f) : new Color(.77f, .68f, .52f));
             if (walls[col, row] && wallImage != null) DrawImage(wallImage, r);
-            if (!walls[col, row] && IsGoal(new Vector2Int(col, row)))
+            bool goal = !walls[col, row] && IsGoal(new Vector2Int(col, row));
+            int box = StoneAt(new Vector2Int(col, row));
+            if (goal)
             {
-                if (goalImage != null) DrawImage(goalImage, Inset(r, 12));
+                // 문양 칸: 바닥에 판 팔각 홈(make_ui.py의 puzzle_socket). 보석이 들어가면 금빛이 번진다.
+                var socket = goalImage != null ? goalImage : JinaUI.Art("puzzle_socket");
+                if (box >= 0) JinaUI.Fill(Inset(r, 3), new Color(1f, .82f, .36f, .55f + .2f * Mathf.Sin(Time.unscaledTime * 4f)));
+                if (socket != null) DrawImage(socket, Inset(r, 6));
                 else
                 {
                     JinaUI.Fill(Inset(r, 7), new Color(.82f, .62f, .2f));
                     JinaUI.Fill(Inset(r, 12), new Color(.77f, .68f, .52f));
                 }
             }
-            int box = StoneAt(new Vector2Int(col, row));
             if (box >= 0)
             {
-                Rect shape = Inset(r, 8);
-                if (steleImage != null) DrawImage(steleImage, shape);
+                // 밀어 옮기는 돌: 팔각으로 깎은 보석(0 홍옥, 1 청옥)
+                Rect shape = Inset(r, 7);
+                var gem = steleImage != null ? steleImage : JinaUI.Art("puzzle_gem_" + (box % 2));
+                if (gem != null) DrawImage(gem, shape);
                 else
                 {
                     JinaUI.Fill(shape, box == 0 ? new Color(.48f, .27f, .16f) : new Color(.35f, .33f, .39f));
@@ -195,10 +205,13 @@ public class SeonbiGridPuzzle : MonoBehaviour
             }
             if (player == new Vector2Int(col, row))
             {
-                Rect shape = Inset(r, 11);
-                if (playerImage != null) DrawImage(playerImage, shape);
+                // 선비: 앞을 보는 작은 선비(puzzle_seonbi)
+                Rect shape = Inset(r, 6);
+                var seonbi = playerImage != null ? playerImage : JinaUI.Art("puzzle_seonbi");
+                if (seonbi != null) DrawImage(seonbi, shape);
                 else
                 {
+                    shape = Inset(r, 11);
                     JinaUI.Fill(shape, new Color(.14f, .31f, .48f));
                     JinaUI.Fill(new Rect(shape.x + shape.width * .34f, shape.y + shape.height * .2f, shape.width * .32f, shape.height * .32f), JinaUI.PaperLight);
                 }

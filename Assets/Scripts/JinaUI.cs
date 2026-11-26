@@ -235,9 +235,17 @@ public static class JinaUI
         return Visible(s, now - seen.first);
     }
 
-    // 타자 중인 줄에서 엔터를 누를 때: 타자 중이었으면 true를 돌려주고 전체를 보여 준다.
-    // 대화·조사·다음 넘기기 키(엔터). 숫자판 엔터도 받는다.
-    public static bool Interact => Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter);
+    // 타자 중인 줄에서 F·클릭를 누를 때: 타자 중이었으면 true를 돌려주고 전체를 보여 준다.
+    // 대화·조사·다음 넘기기: F 또는 마우스 왼쪽 클릭. 창의 버튼 위를 누른 클릭은 그 버튼 몫이라 상호작용이 아니다.
+    public const string InteractKey = "F·클릭";
+    public static bool Interact => Input.GetKeyDown(KeyCode.F) || (Input.GetMouseButtonDown(0) && !OverButton);
+    // 지난 화면에서 마우스가 창의 버튼(Button, Good, MarkButton) 위에 있었는지.
+    static int overButtonFrame = -10;
+    public static bool OverButton => Time.frameCount - overButtonFrame <= 1;
+    public static void MarkButton(Rect r) { if (r.Contains(Event.current.mousePosition)) overButtonFrame = Time.frameCount; }
+    // 지난 화면에 상호작용 안내("F·클릭: 말 걸기")가 떠 있었는지. 떠 있으면 클릭은 공격이 아니라 상호작용이다(Combat).
+    static int offerFrame = -10;
+    public static bool Offering => Time.frameCount - offerFrame <= 1;
     public static bool FinishTyping(string s)
     {
         if (string.IsNullOrEmpty(s) || !typing.TryGetValue(s, out var seen)) return false;
@@ -250,6 +258,7 @@ public static class JinaUI
     public static bool Button(Rect r, string label, bool enabled = true)
     {
         bool over = enabled && r.Contains(Event.current.mousePosition);
+        MarkButton(r);
         Box(r, !enabled ? Gone : over ? WoodLight : Wood, over ? Gold : WoodLight, 1);
         Text(r, label, 15, enabled ? Bright : PaperDark, TextAnchor.MiddleCenter, true);
         return GUI.Button(r, "", GUIStyle.none) && enabled;
@@ -262,6 +271,7 @@ public static class JinaUI
     public static bool Good(Rect r, Sprite icon, string name, string price, string effect, bool open)
     {
         bool over = open && r.Contains(Event.current.mousePosition);
+        MarkButton(r);
         Box(r, over ? PaperLight : open ? PaperDark : Gone, over ? Red : SlotEdge, over ? 2 : 1);
         float x = r.x + 12;
         if (icon != null)
@@ -500,9 +510,10 @@ public static class JinaUI
     public static float SideRoom => TrayShown ? Tray.x - 22 : W - 40;
     public static float LeftBottom(float width) => width <= SideRoom ? H - 8 : Tray.y - 8;
     // 지금 여기서 할 수 있는 행동, 왼쪽 아래 길 안내 바로 위. 한 프레임에 두 스크립트가 부르면 먼저 부른 쪽이 이긴다.
-    // "Enter: 말 걸기"는 키를 작은 키캡으로 글 앞에 그린다.
+    // "F·클릭: 말 걸기"는 키를 작은 키캡으로 글 앞에 그린다. 이 안내가 뜬 동안 클릭은 공격이 아니다(Offering).
     public static void Prompt(string s)
     {
+        if (s != null && s.StartsWith(InteractKey + ":")) offerFrame = Time.frameCount;
         if (Event.current.type != EventType.Repaint || promptFrame == Time.frameCount) return;
         promptFrame = Time.frameCount;
         string key = null, words = s;

@@ -6,6 +6,10 @@ public static partial class JinaPlayChecks
     static void Items()
     {
         combat.Restart();
+        // 효과음마다 소리 파일이 있다(보스의 공격 소리 포함).
+        var files=(System.Collections.Generic.Dictionary<GameAudio.Sfx,string>)typeof(GameAudio).GetField("Files",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static).GetValue(null);
+        foreach(GameAudio.Sfx sfx in System.Enum.GetValues(typeof(GameAudio.Sfx)))
+            Check(files.ContainsKey(sfx) && Resources.Load<AudioClip>("JinaSound/"+files[sfx])!=null,"A sound for "+sfx);
         Check(System.Array.TrueForAll(JinaItems.All,i=>i.Icon!=null) && System.Array.TrueForAll(JinaItems.ForSale,i=>i.price>0),"Every item has its icon, and what is sold its price");
         var bag=JinaItems.Inventory; var ui=bag.GetComponent<InventoryUI>(); var wallet=combat.Tavern.wallet;
         Check(bag!=null && ui!=null && bag.Slots.Count==0,"The inventory starts empty");

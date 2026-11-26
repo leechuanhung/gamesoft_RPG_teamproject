@@ -111,6 +111,7 @@ public partial class KongBoss
         {
             kong.StartRaid();
             CastAt = Time.time; castUntil = Time.time + 1.3f; Doing = Attack.None; KillAt = -1;
+            GameAudio.PlayAt(GameAudio.Sfx.KongCast, Feet);
             JinaFx.Shock(Feet, 2.2f); View.Shake(.08f, .5f);
         }
         Victim = kong != null && kong.Raided ? kong.NextVictim() : null;
@@ -201,6 +202,7 @@ public partial class KongBoss
             if (grounded && v.y <= .05f && Time.time > leftGroundAt + .12f)
             {
                 airborne = false; v.x = 0; landedAt = Time.time; hopReadyAt = Time.time + HopRest;
+                GameAudio.PlayAt(GameAudio.Sfx.KongLand, Feet, HighHop ? 1 : .7f);
                 JinaFx.Dust(Feet, -1, 1.3f); JinaFx.Dust(Feet, 1, 1.3f);
                 if (combat.Maps != null && combat.Maps.Current == Maps.Index(Feet.x)) View.Shake(.05f, .15f);
             }
@@ -242,6 +244,8 @@ public partial class KongBoss
     {
         var mouth = Mouth(MouthOpen);
         var target = new Vector2(PlayerX, PlayerBody.center.y - .2f);
+        GameAudio.PlayAt(a == Attack.Spit ? GameAudio.Sfx.KongSpit : a == Attack.Beans ? GameAudio.Sfx.KongBeans
+            : a == Attack.Salt ? GameAudio.Sfx.KongSalt : GameAudio.Sfx.KongTongue, Feet);
         if (a == Attack.Spit)
         {
             float dx = target.x - mouth.x, dy = target.y - mouth.y;
@@ -392,7 +396,7 @@ public partial class KongBoss
     {
         float t = Time.time - KillAt;
         if (t < KillWindup) return;
-        if (!killed) { killed = true; kong.Kill(killing); View.Shake(.06f, .2f); }
+        if (!killed) { killed = true; kong.Kill(killing); View.Shake(.06f, .2f); GameAudio.PlayAt(GameAudio.Sfx.KongTongue, Feet); }
         if (t < KillWindup + TongueOut + TongueHold + TongueBack) return;
         KillAt = -1; nextKillAt = Time.time + KillGap; hopReadyAt = Time.time + .2f;
     }

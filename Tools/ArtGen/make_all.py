@@ -26,6 +26,7 @@ JOBS = [
     ("make_hanyang.py", [ART]),                                  # Hanyang people; fortress, station, grave, street, hall, manor props
     ("make_final_boss.py", [ART]),                               # the councillor and the eodugsini, what he throws
     ("make_hwando_sheath.py", [f"{ART}/04_Weapons"]),
+    ("make_clubs.py", [f"{ART}/04_Weapons"]),                    # dokkaebi clubs: plain (purified) and bloody (slain)
     ("make_items.py", [f"{ART}/14_Items"]),                       # inventory item icons
     ("make_peddler.py", [f"{ART}/12_Peddler/peddler_idle.png"]),  # peddler idle + run
     ("make_young.py", [ART]),                                    # clean-shaven seonbi; everything below is derived from it

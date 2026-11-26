@@ -5,7 +5,7 @@ using UnityEngine;
 
 // ===== NPC 대화 공통 바탕 (NpcTalk) =====
 // 노인, 콩밭 마을 사람들, 정화된 도깨비, 뱃사공, 주막·보부상이 같이 쓴다.
-// 엔터로 열고 넘기고(타자 중이면 먼저 문장을 다 보임), Esc로 닫는다. 대화 중에는 선비가 멈춘다.
+// F·클릭으로 열고 넘기고(타자 중이면 먼저 문장을 다 보임), Esc로 닫는다. 대화 중에는 선비가 멈춘다.
 // 하위 클래스는 누구와 무엇을 말할지(Begin에 넘기는 대사)와 닫을 때 할 일(Close)만 정한다.
 public abstract class NpcTalk : MonoBehaviour
 {
@@ -22,14 +22,14 @@ public abstract class NpcTalk : MonoBehaviour
     public virtual void Next() { if (++Page >= lines.Length) Close(); }
     // 창을 닫고 선비를 풀어 준다.
     protected virtual void Close() { IsOpen = false; combat.player.CanMove = combat.PlayerHealth > 0; }
-    // 열린 대화의 키: Esc는 닫기, 엔터는 다음(`typing`이면 타자 중인 문장을 먼저 다 보인다).
+    // 열린 대화의 키: Esc는 닫기, F·클릭는 다음(`typing`이면 타자 중인 문장을 먼저 다 보인다).
     protected void TalkKeys(bool typing = true)
     {
         if (Input.GetKeyDown(KeyCode.Escape)) Close();
         else if (JinaUI.Interact && !(typing && JinaUI.FinishTyping(lines[Page]))) Next();
     }
     // 말풍선 대화 아래의 안내.
-    protected string PageHint => "Enter: 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc: 그만 듣기";
+    protected string PageHint => "F·클릭: 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc: 그만 듣기";
 }
 
 // ===== 마을 노인과 비석 (ElderQuest) =====
@@ -104,7 +104,7 @@ public class ElderQuest : NpcTalk
         villager.transform.localScale = new Vector3(1.4f, .35f, 1);
         villager.transform.position = new Vector3(WorldBuilder.Elder.x, -.3f, 0);
     }
-    // 엔터로 노인·비석·쪽지와 상호작용하고, 부적 퍼즐을 처리한다.
+    // F·클릭으로 노인·비석·쪽지와 상호작용하고, 부적 퍼즐을 처리한다.
     void Update()
     {
         if (combat != null && ((combat.Tavern != null && combat.Tavern.IsOpen) || (combat.Peddler != null && combat.Peddler.IsOpen))) return;
@@ -123,7 +123,7 @@ public class ElderQuest : NpcTalk
             if (Input.GetKeyDown(KeyCode.Escape) || JinaUI.Interact) { Close(); return; }
             return;
         }
-        if (!JinaUI.Interact || combat.InventoryPauseActive || (combat.BossTalk != null && combat.BossTalk.IsOpen)) return;
+        if (!JinaUI.Interact || combat.Paused || combat.InventoryPauseActive || (combat.BossTalk != null && combat.BossTalk.IsOpen)) return;
         if (Near(WorldBuilder.Elder))
         {
             shrineDialog = false;
@@ -193,16 +193,16 @@ public class ElderQuest : NpcTalk
         KoreanUI.Apply();
         if (!IsOpen && combat.PlayerHealth > 0 && !combat.Paused)
         {
-            if (Near(WorldBuilder.Elder)) JinaUI.Prompt(progress.ElderDead ? "Enter: 노인이 남긴 쪽지 살펴보기" : "Enter: 마을 노인과 대화");
+            if (Near(WorldBuilder.Elder)) JinaUI.Prompt(progress.ElderDead ? "F·클릭: 노인이 남긴 쪽지 살펴보기" : "F·클릭: 마을 노인과 대화");
             else if (Near(WorldBuilder.Stone)) JinaUI.Prompt(progress.HeardClue && !progress.HasCharm && progress.Outcome == EncounterOutcome.Unresolved
-                ? "Enter: 비석의 돌 퍼즐 풀기" : "Enter: 비석 살펴보기");
+                ? "F·클릭: 비석의 돌 퍼즐 풀기" : "F·클릭: 비석 살펴보기");
         }
         if (!IsOpen) return;
         if (!shrineDialog && !progress.ElderDead)
         {
             // 노인은 초상화 창에서 말하고, 비석과 쪽지는 내레이션 상자로 남는다.
             bool more = lines != null && Page + 1 < lines.Length;
-            JinaUI.TalkWindow("마을 노인", "elder", message, more ? "Enter 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc 닫기" : "Enter / Esc 닫기", false);
+            JinaUI.TalkWindow("마을 노인", "elder", message, more ? "F·클릭 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc 닫기" : "F·클릭 / Esc 닫기", false);
             return;
         }
         // 비석과 쪽지: 글 높이만큼의 한지 창.
@@ -210,7 +210,7 @@ public class ElderQuest : NpcTalk
         float textHeight = JinaUI.Height(message, 17, inner);
         float height = JinaUI.TitleHeight + 12 + textHeight + 30 + JinaUI.WindowPad;
         var box = new Rect((JinaUI.W - width) / 2, JinaUI.H - height - 14, width, height);
-        var inside = JinaUI.Window(box, shrineDialog ? "오래된 비석" : "노인이 남긴 흔적", "Enter / Esc 닫기");
+        var inside = JinaUI.Window(box, shrineDialog ? "오래된 비석" : "노인이 남긴 흔적", "F·클릭 / Esc 닫기");
         JinaUI.Text(new Rect(inside.x, inside.y, inner, textHeight), message, 17, JinaUI.TextDark);
         JinaUI.Text(new Rect(inside.x, box.yMax - JinaUI.WindowPad - 20, inner, 20), "대화 중에는 전투가 멈춥니다.", 13, JinaUI.TextDim);
         if (charmReveal >= 0) DrawCharmReveal(charmReveal);
@@ -702,7 +702,7 @@ public class KongVillage : NpcTalk
         note = "항아리 곁에 떨어진 종이. 보름 잔칫상 차림표다. '젓갈 여섯 독' 아래로 마을 사람 이름이 하나씩 적혀 있다. 맨 끝에는… '선비'.";
     }
 
-    // 엔터 입력, 괴롭힘 장면, 걷기를 처리한다.
+    // F·클릭 입력, 괴롭힘 장면, 걷기를 처리한다.
     void Update()
     {
         if (combat == null || combat.PlayerHealth <= 0) { IsOpen = false; return; }
@@ -784,9 +784,9 @@ public class KongVillage : NpcTalk
         if (NoteAt >= 0 && Time.time - NoteAt < 4.5f)
             JinaUI.Toast(note);
         var near = Nearest();
-        string prompt = near.HasValue ? "Enter: " + Name(near.Value) + "와(과) 이야기하기"
-            : OnPaper ? "Enter: 항아리 곁의 종이 읽기"
-            : Near(WorldBuilder.JangdokX, LookRange) ? "Enter: 장독대 살펴보기" : null;
+        string prompt = near.HasValue ? "F·클릭: " + Name(near.Value) + "와(과) 이야기하기"
+            : OnPaper ? "F·클릭: 항아리 곁의 종이 읽기"
+            : Near(WorldBuilder.JangdokX, LookRange) ? "F·클릭: 장독대 살펴보기" : null;
         if (prompt != null) JinaUI.Prompt(prompt);
     }
 
@@ -797,7 +797,7 @@ public class KongVillage : NpcTalk
     // 본래 모습으로 돌아온 콩쥐는 제 얼굴을 되찾는다(상냥한 얼굴: 슬픈 초상화는 아직 없음).
     public string Portrait => !IsOpen ? null : Speaker == Who.Patjwi ? "patjwi"
         : Speaker == Who.Kongjwi ? (!afterTalk && unmasking && Page >= 1 ? "kongjwi_true" : "kongjwi") : null;
-    void DrawTalk() => TalkWindow(Speaker, Portrait, lines[Page], "Enter 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc 그만 듣기", unmasking && Page >= 1);
+    void DrawTalk() => TalkWindow(Speaker, Portrait, lines[Page], "F·클릭 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc 그만 듣기", unmasking && Page >= 1);
     // 왼쪽 끝 안에 초상화가 들어간 창. 창의 사각형을 돌려준다.
     public static Rect TalkWindow(Who who, string portrait, string line, string hint, bool menacing, float since = -1, bool toLeft = false)
         => JinaUI.TalkWindow(Name(who), portrait, line, hint, menacing, since, toLeft);

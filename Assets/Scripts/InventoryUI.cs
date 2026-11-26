@@ -125,6 +125,8 @@ public class InventoryUI : MonoBehaviour
                    : id == "myeonggeom" ? UnlockWeapon("myeonggeom", "명검", "이름을 잃은 장수의 칼. 망한 나라가 무너지던 날, 성문 앞에서 끝까지 버텼다고 한다. 칼은 주인보다 오래 살아남아 지금도 들판의 망령들 사이를 떠돈다.\n환도보다 무겁고 길다. 세 번 이어 벤다", "icon_sword", true)
                    : id == "saingeom" ? UnlockWeapon("saingeom", "사인검", "범의 해, 범의 달, 범의 날, 범의 시에만 벼린다는 칼. 칼날에 새긴 별자리가 사귀를 벤다. 마음이 더럽혀진 자의 손에서는 그저 쇠붙이일 뿐이다.\n세 번 이어 벤다. 악행 20 이상이면 쥘 수 없다", "icon_sword", true)
                    : id == "byeokjogung" ? UnlockWeapon("byeokjogung", "벽조궁", "벼락 맞은 대추나무로 만든 활. 벽조목은 예로부터 귀신이 꺼리는 나무라 했다. 시위를 당기면 그날의 벼락이 아직 나무 속에서 운다.\n활보다 피해가 5할 높다. 화살을 소비한다", "icon_bow", true)
+                   : id == "dokkaebi_club" ? UnlockWeapon("dokkaebi_club", "도깨비 방망이", "숲의 주인이 휘두르던 쇠징 박힌 방망이. 저주가 풀린 도깨비가 더는 쓸 일이 없다며 내려놓았다. 두드리면 금이 나온다는 옛말은 믿지 마라. 나오는 것은 혹뿐이다.\n무겁고 느리다. 기력을 많이 쓰는 대신 크게 내려친다", "icon_sword", true)
+                   : id == "blood_club" ? UnlockWeapon("blood_club", "피 묻은 도깨비 방망이", "쓰러진 도깨비의 손에서 빼낸 방망이. 주인의 피가 마르지 않고 나뭇결마다 배어 있다. 쥘 때마다 손바닥이 따끔한 것은, 방망이가 새 주인의 피도 맛보고 있기 때문이다.\n도깨비 방망이보다 세다. 다섯 번 휘두를 때마다 체력 1을 잃는다", "icon_sword", true)
                    : false;
         if (!added) return false;
         for (int i = 0; i < 2; i++) if (equippedWeapons[i] == null) { EquipWeapon(id, i); break; }
