@@ -128,19 +128,47 @@ public static partial class JinaPlayChecks
         Set(combat,"moveUntil",Time.time-.01f); Call(combat);
         Check(combat.Move==Combat.BossMove.None,"The charge ends");
         // Up on a ledge: a leap.
+        JinaFx.Clear();
         var ledge=WorldBuilder.ForestLedges[1];
         boss.transform.position=new Vector3(ledge.x+3,Combat.BossGround,0);
         player.position=new Vector3(ledge.x,ledge.y+.6f,0);
         Set(combat,"nextMoveAt",0f); Set(combat,"bossRecoveryUntil",0f); Call(combat);
         Check(combat.Move==Combat.BossMove.LeapWindup,"A seonbi on a ledge is leapt at");
+        Check(BossFxCount("ring")==0,"No shockwave during leap windup");
         Set(combat,"moveUntil",Time.time-.01f); Call(combat);
         Check(combat.Move==Combat.BossMove.Leaping,"It leaps");
         Set(combat,"moveUntil",Time.time+Combat.LeapLength/2); Call(combat); bossVisual.Refresh();
         Check(boss.transform.position.y>Combat.BossGround+2 && Picture(bossVisual).sprite.name.EndsWith("boss_attack_01"),"High in the air, club swinging");
         Capture("boss-leap",new Vector3(ledge.x+1.5f,2.5f,-10),3.5f);
+        Check(BossFxCount("ring")==0,"No shockwave in the air");
+        int takeoffDust=BossFxCount("dust");
         Set(combat,"moveUntil",Time.time-.01f); Call(combat); bossVisual.Refresh();
         Check(combat.Move==Combat.BossMove.Landed && Mathf.Abs(boss.transform.position.y-Combat.BossGround)<.01f && Picture(bossVisual).sprite.name.EndsWith("boss_attack_02"),"It slams down on the ground");
+        Call(combat);
+        Check(BossFxCount("ring")==1 && BossFxCount("dust")==takeoffDust+8,"Landing emits one ring and eight dust puffs, once");
         combat.Restart();
         Check(combat.Move==Combat.BossMove.None && combat.PlayerHealth==Combat.MaxPlayerHealth,"Restart calms the boss");
+
+        // A normal club strike still hits the ground if the seonbi moves out of range.
+        boss.transform.position=new Vector3(46,Combat.BossGround,0);
+        player.position=new Vector3(45,Combat.BossGround,0);
+        Set(combat,"alerted",true); Set(combat,"enemyReadyAt",0f);
+        Call(combat,"UpdateBoss");
+        Check(Field<float>(combat,"windupUntil")>Time.time && BossFxCount("ring")==0,"No shockwave during a normal windup");
+        player.position=new Vector3(40,Combat.BossGround,0);
+        Set(combat,"windupUntil",Time.time-.01f);
+        Call(combat,"UpdateBoss"); bossVisual.Refresh();
+        Check(Picture(bossVisual).sprite.name.EndsWith("boss_attack_02") && combat.PlayerHealth==Combat.MaxPlayerHealth,"The missed strike reaches its contact frame without dealing damage");
+        Call(combat,"UpdateBoss");
+        Check(BossFxCount("ring")==1 && BossFxCount("dust")==8,"A normal strike emits one ring and eight dust puffs, once");
+        combat.Restart();
+    }
+
+    static int BossFxCount(string name)
+    {
+        int count=0;
+        foreach(var art in UnityEngine.Object.FindObjectsOfType<SpriteRenderer>())
+            if(art.enabled && art.sprite!=null && art.sprite.name.StartsWith("20_Fx/"+name+"_")) count++;
+        return count;
     }
 }

@@ -355,20 +355,27 @@ public class FerryBoat : MonoBehaviour
     private Rigidbody2D body;
     private int heading = 1;
     private float waitUntil;
+    private float hullHalfWidth, wakeDistance;
 
     // 배를 `at`에 대 둔다.
     public void Moor(Vector2 at)
     {
         if (body == null) body = GetComponent<Rigidbody2D>();
+        hullHalfWidth = GetComponent<SpriteRenderer>().bounds.extents.x;
         transform.position = at; body.position = at;
         heading = 1; waitUntil = 0; Velocity = Vector2.zero;
+        wakeDistance = 0;
     }
 
     // 배를 둑 사이로 움직이고 탄 사람을 함께 옮긴다.
     void FixedUpdate()
     {
         Velocity = Vector2.zero;
-        if (ferry == null || !ferry.PlayerHere || ferry.combat.Paused || Time.time < waitUntil) return;
+        if (ferry == null || !ferry.PlayerHere || ferry.combat.Paused || Time.time < waitUntil)
+        {
+            wakeDistance = 0;
+            return;
+        }
         float x = body.position.x + heading * Ferry.BoatSpeed * Time.fixedDeltaTime;
         if (x >= Ferry.BoatRight || x <= Ferry.BoatLeft)
         {
@@ -377,6 +384,29 @@ public class FerryBoat : MonoBehaviour
         }
         Velocity = new Vector2((x - body.position.x) / Time.fixedDeltaTime, 0);
         body.MovePosition(new Vector2(x, body.position.y));
+        Wake(x, Velocity.x * Time.fixedDeltaTime, Mathf.Abs(Velocity.x));
+    }
+
+    // 실제 이동 거리와 방향으로 뱃머리와 선미에 물결을 남긴다.
+    void Wake(float x, float dx, float speed)
+    {
+        if (dx == 0) return;
+        float strength = Mathf.Lerp(.55f, 1, Mathf.Clamp01(speed / Ferry.BoatSpeed));
+        float spacing = Mathf.Lerp(.85f, .56f, strength);
+        wakeDistance += Mathf.Abs(dx);
+        if (wakeDistance < spacing) return;
+        wakeDistance %= spacing;
+        float direction = Mathf.Sign(dx);
+        float edge = direction * hullHalfWidth;
+        float bow = x + edge;
+        float surface = WorldBuilder.RiverSurface;
+        JinaFx.RiverRipple(bow + direction * .22f, surface - .15f, direction * .4f,
+            .37f * strength, .88f * strength, .66f, 1, direction * 8);
+        JinaFx.RiverRipple(bow - direction * .13f, surface - .39f, -direction * .34f,
+            .29f * strength, .76f * strength, .74f, 1.15f, -direction * 11);
+        JinaFx.RiverRipple(x - edge - direction * .38f, surface - .29f, -direction * .69f,
+            .44f * strength, .8f * strength, 1.13f, 1.52f);
+        JinaFx.RiverSpray(bow + direction * .2f, surface - .13f, direction, strength);
     }
 }
 

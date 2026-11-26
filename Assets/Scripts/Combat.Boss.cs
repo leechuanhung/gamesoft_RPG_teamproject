@@ -22,6 +22,8 @@ public partial class Combat
     public float BossHitAt { get; private set; } = -1;
     private float nextTrail;
     Vector3 BossFeet => new Vector3(enemy.transform.position.x, enemy.bounds.min.y, 0);
+    // 내려친 그림(boss_attack_02)에서 발부터 몽둥이가 땅에 닿는 곳까지.
+    Vector3 BossClubContact => BossFeet + Vector3.right * (BossFacing * 1.7f);
     // 돌진·도약할 때 뒤에 잔상을 남긴다.
     void Trail(Color colour)
     {
@@ -83,7 +85,7 @@ public partial class Combat
                 else if (!strikeElder && strikeBounds.Intersects(playerArt.bounds)) HurtPlayer(BossAttack);
                 // 몽둥이가 내려온다: 휩쓰는 빛과 땅에 닿은 곳의 먼지.
                 JinaFx.Arc((Vector3)lockedStrike + Vector3.up * .5f, BossFacing, -14, 1.45f, new Color(1, .74f, .6f), .18f);
-                JinaFx.Dust(new Vector3(lockedStrike.x, BossFeet.y, 0), BossFacing * .8f, 1.3f);
+                JinaFx.Shock(BossClubContact, .85f, clubImpact: true);
                 View.Shake(.05f, .12f);
                 windupUntil = -1;
                 bossRecoveryUntil = Time.time + (killedElder ? .7f : .24f);
@@ -174,7 +176,7 @@ public partial class Combat
         var position = enemy.transform.position; position.y = BossGround; enemy.transform.position = position;
         Move = BossMove.Landed; moveUntil = Time.time + LandedLength;
         View.Shake(.17f, .4f);
-        JinaFx.Shock(BossFeet, 1.2f);
+        JinaFx.Shock(BossClubContact, 1.2f, clubImpact: true);
         bool onGround = player.IsGrounded && playerArt.bounds.min.y < -.3f;
         if (!moveHit && (enemy.bounds.Intersects(playerArt.bounds) || onGround && Mathf.Abs(player.transform.position.x - position.x) < SlamRadius)) { moveHit = true; HurtPlayer(BossAttack); }
     }
@@ -206,6 +208,8 @@ public partial class Combat
         ClearArrows();
         var visual = enemy.GetComponent<JinaActorVisual>();
         if (visual != null) visual.Refresh();
+        if (visual is BossVisual)
+            JinaFx.Purification(new Vector3(enemy.transform.position.x, enemy.bounds.min.y, 0));
         return true;
     }
 

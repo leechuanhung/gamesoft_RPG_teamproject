@@ -9,7 +9,8 @@ public class MountainPass : MonoBehaviour
 {
     public Combat combat;
     public const float RockEvery = 3.2f, RollSpeed = 4.2f, Radius = .48f, Fall = 25f, ShrineRange = 1.8f;
-    public class Rock { public SpriteRenderer art; public float vy; }
+    public class Rock { public SpriteRenderer art; public float vy; internal float dustDistance; }
+    const float DustSpacing = .42f;
     public readonly List<Rock> rocks = new List<Rock>();
     public bool ShrineUsed { get; private set; }
     public float ShrineAt { get; private set; } = -1;
@@ -51,15 +52,48 @@ public class MountainPass : MonoBehaviour
         var body = combat.player.GetComponent<SpriteRenderer>().bounds;
         for (int i = rocks.Count - 1; i >= 0; i--)
         {
-            var r = rocks[i]; var p = r.art.transform.position;
+            var r = rocks[i]; var previous = r.art.transform.position;
+            var p = previous;
             p.x -= RollSpeed * dt;
             float floor = WorldBuilder.Top(p.x) + Radius;
             if (p.y > floor) { r.vy -= Fall * dt; p.y = Mathf.Max(floor, p.y + r.vy * dt); }
             else { p.y = floor; r.vy = 0; }
             r.art.transform.position = p;
             r.art.transform.Rotate(0, 0, RollSpeed * dt / Radius * Mathf.Rad2Deg);
+            TrailDust(r, previous, p);
             if (new Bounds(p, Vector3.one * Radius * 1.7f).Intersects(body)) combat.HurtPlayer();
             if (p.x < WorldBuilder.PassStart + 1) { Destroy(r.art.gameObject); rocks.RemoveAt(i); }
+        }
+    }
+
+    // 이동한 거리마다 바위 밑의 뒤쪽 지면에 먼지를 남긴다.
+    static void TrailDust(Rock rock, Vector3 previous, Vector3 current)
+    {
+        float dx = current.x - previous.x;
+        if (Mathf.Abs(dx) < .0001f) return;
+
+        const float contactTolerance = .04f;
+        if (current.y - Radius > WorldBuilder.Top(current.x) + contactTolerance)
+        {
+            rock.dustDistance = 0;
+            return;
+        }
+
+        float distance = Mathf.Abs(dx);
+        float total = rock.dustDistance + distance;
+        int count = Mathf.FloorToInt(total / DustSpacing);
+        rock.dustDistance = total - count * DustSpacing;
+        float behind = -Mathf.Sign(dx);
+        // 긴 프레임에서는 가장 최근의 먼지만 남겨 한꺼번에 너무 많이 생기지 않게 한다.
+        float last = distance - rock.dustDistance;
+        for (int i = Mathf.Min(count, 3) - 1; i >= 0; i--)
+        {
+            float at = last - i * DustSpacing;
+            var centre = Vector3.Lerp(previous, current, at / distance);
+            float x = centre.x + behind * Radius * .65f;
+            float ground = WorldBuilder.Top(x);
+            if (Mathf.Abs(centre.y - Radius - ground) <= contactTolerance)
+                JinaFx.RollingDust(new Vector3(x, ground, centre.z), behind, Radius);
         }
     }
 
