@@ -7,6 +7,7 @@ using System.Collections.Generic;
 public partial class Combat : MonoBehaviour
 {
     public bool InventoryPauseActive { get; set; }
+    public bool SettingsPauseActive { get; set; }
     public event System.Action Restarted;
     public Player player;
     public const int MaxPlayerHealth = 100;
@@ -70,6 +71,12 @@ public partial class Combat : MonoBehaviour
     // ── 무기: 1·2칸 장착(보따리 무기 탭), S로 전환. 수치는 Weapon.cs ──
     public readonly string[] EquippedWeapons = { "dagger", "bow" };
     public int ActiveWeaponSlot { get; private set; }
+    public void RestoreActiveWeaponSlot(int slot)
+    {
+        ActiveWeaponSlot = Mathf.Clamp(slot, 0, 1);
+        if (EquippedWeapons[ActiveWeaponSlot] == null && EquippedWeapons[1 - ActiveWeaponSlot] != null)
+            ActiveWeaponSlot = 1 - ActiveWeaponSlot;
+    }
     public string CurrentWeapon => EquippedWeapons[ActiveWeaponSlot] ?? EquippedWeapons[1 - ActiveWeaponSlot] ?? "dagger";
     public Weapon.Stats CurrentStats => Weapon.Get(CurrentWeapon);
     // 악행 = 선악 값이 음수일 때 그 크기 (선악 -25 → 악행 25)
@@ -113,6 +120,7 @@ public partial class Combat : MonoBehaviour
     public int Arrows { get; private set; } = ShopRules.MaxArrows;
     private float noArrowsUntil;
     public void AddArrows(int amount) { Arrows = Mathf.Clamp(Arrows + amount, 0, ShopRules.MaxArrows); }
+    public void SetArrowsFromSave(int amount) { Arrows = Mathf.Clamp(amount, 0, ShopRules.MaxArrows); noArrowsUntil = 0; ClearArrows(); }
     public IntroNarration Intro { get; private set; }
     public EndingNarration Ending { get; private set; }
     public GameOver GameOver { get; private set; }
@@ -182,10 +190,18 @@ public partial class Combat : MonoBehaviour
     // 추가 퀘스트 보상은 보따리처럼 체크포인트 재시도 때도 유지한다.
     public void PreserveQuestHonor(int delta)
     {
-        if (!RoadCheckpoint.HasValue) return;
-        var save = RoadCheckpoint.Value;
-        save.honor += delta;
-        RoadCheckpoint = save;
+        if (RoadCheckpoint.HasValue)
+        {
+            var save = RoadCheckpoint.Value;
+            save.honor += delta;
+            RoadCheckpoint = save;
+        }
+        else if (Checkpoint.HasValue)
+        {
+            var save = Checkpoint.Value;
+            save.honor += delta;
+            Checkpoint = save;
+        }
     }
     public void RestartOnRoad()
     {
@@ -210,7 +226,8 @@ public partial class Combat : MonoBehaviour
         if (Maps != null) Maps.Jump();
         RevivedOnRoadAt = Time.time;
     }
-    public bool Paused => (Puzzles != null && Puzzles.IsOpen) || (KongBoss != null && KongBoss.Cutscene) || (FinalBoss != null && FinalBoss.Cutscene) || (Town != null && Town.IsOpen) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || (Lore != null && Lore.WispAsking) || InventoryPauseActive || (Cheats != null && Cheats.Open);
+    public QuestSystem SideQuests { get; set; }
+    public bool Paused => (SideQuests != null && SideQuests.IsDialogOpen) || (Puzzles != null && Puzzles.IsOpen) || (KongBoss != null && KongBoss.Cutscene) || (FinalBoss != null && FinalBoss.Cutscene) || (Town != null && Town.IsOpen) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || (Lore != null && Lore.WispAsking) || InventoryPauseActive || (Cheats != null && Cheats.Open);
     public void SetPlayerHealthFromSave(int health)
     {
         PlayerHealth = Mathf.Clamp(health, 0, MaxPlayerHealth);
@@ -309,6 +326,11 @@ public partial class Combat : MonoBehaviour
         // 팀원이 만든 배경 음악과 효과음
         Audio = gameObject.AddComponent<GameAudio>();
         Audio.combat = this;
+        PlayerSave save = gameObject.GetComponent<PlayerSave>();
+        if (save == null) save = gameObject.AddComponent<PlayerSave>();
+        SettingsUI settings = gameObject.GetComponent<SettingsUI>();
+        if (settings == null) settings = gameObject.AddComponent<SettingsUI>();
+        settings.Initialize(this, save);
     }
 
     SpriteRenderer MakeSprite(string label, Vector2 size, Color color)
@@ -398,6 +420,7 @@ public partial class Combat : MonoBehaviour
         if (PlayerHealth <= 0) return;
         if (Paused)
         {
+            pausedFrame = Time.frameCount;
             playerImpactAt = -1;
             bossRecoveryUntil = 0;
             windupUntil = -1;
@@ -425,9 +448,9 @@ public partial class Combat : MonoBehaviour
             // State and appearance are updated together by TryPurifyBoss.
         }
 
-        if ((Input.GetKeyDown(KeyCode.J) || Input.GetMouseButtonDown(0)) && Time.time >= nextAttack && UsingBow && Arrows <= 0)
+        if (AttackPressed && Time.time >= nextAttack && UsingBow && Arrows <= 0)
             noArrowsUntil = Time.time + 1.5f;
-        else if ((Input.GetKeyDown(KeyCode.J) || Input.GetMouseButtonDown(0)) && Time.time >= nextAttack && !player.Dodging
+        else if (AttackPressed && Time.time >= nextAttack && !player.Dodging
             && player.UseStamina(CurrentStats.stamina))
         {
             var w = CurrentStats;
@@ -448,6 +471,7 @@ public partial class Combat : MonoBehaviour
             playerImpactAt = Time.time + w.HitAt(pendingStep);
             if (playerVisual != null) playerVisual.Attack(w.ranged, attackFacing, pendingAngle, pendingStep);
             if (!w.ranged) GameAudio.Swing(w.id);   // 활 소리는 시위를 놓을 때(Shoot)
+            if (w.bloodPrice > 0) PayBlood(w.bloodPrice);
         }
         if (playerImpactAt >= 0 && Time.time >= playerImpactAt)
         {
@@ -459,7 +483,7 @@ public partial class Combat : MonoBehaviour
                 var w = pendingWeapon ?? Weapon.Get("hwando");
                 bool heavy = w.combo && pendingStep == 2;
                 float reach = heavy ? 1.75f : w.reach;
-                var attackBounds = SwordBox(player.transform.position, attackFacing, pendingAngle, reach, heavy ? 1.15f : .9f);
+                var attackBounds = SwordBox(player.transform.position, attackFacing, pendingAngle, reach, heavy || w.heavy ? 1.2f : .9f);
                 int damage = w.Damage(pendingStep);
                 bool landed = false;
                 if (!EnemyDefeated && attackBounds.Intersects(enemy.bounds)) { DamageEnemy(damage); landed = true; }
@@ -495,6 +519,23 @@ public partial class Combat : MonoBehaviour
                             if (landed) { View.Shake(.16f, .25f); JinaFx.Stop(.12f); }
                         }
                     }
+                    else if (w.heavy)
+                    {
+                        // 도깨비 방망이: 위에서 크게 내려치는 굵은 나무빛(피 묻은 것은 핏빛) 반달, 땅을 울리는 흙먼지
+                        bool bloody = w.bloodPrice > 0;
+                        var center = feet + new Vector3(attackFacing * (.2f + w.carryScale * .32f), .8f, 0);
+                        JinaFx.Arc(Swung(center), attackFacing, -45 + pendingAngle, w.carryScale * .85f,
+                            bloody ? new Color(.55f, .06f, .08f) : new Color(.42f, .26f, .16f), .24f);
+                        var ground = feet + Vector3.right * attackFacing * .9f;
+                        JinaFx.Dust(ground, attackFacing * 1.2f, 1.3f);
+                        if (landed)
+                        {
+                            JinaFx.Shock(ground, .9f);
+                            View.Shake(.14f, .22f);
+                            JinaFx.Stop(.1f);
+                            if (bloody) JinaFx.Dots(Swung(center), 10, new Color(.6f, .05f, .08f), 3f, .5f);
+                        }
+                    }
                     else JinaFx.Arc(Swung(feet + new Vector3(attackFacing * .52f, .78f, 0)), attackFacing, -30 + pendingAngle, .48f, new Color(.95f, .97f, 1));
                 }
             }
@@ -509,6 +550,12 @@ public partial class Combat : MonoBehaviour
 
         UpdateBoss();
     }
+
+    // 공격 입력: J 또는 마우스 왼쪽 클릭. 클릭은 상호작용(JinaUI.Interact)과 같은 버튼이라, 이럴 때는 공격하지 않는다:
+    //   상호작용 안내가 떠 있을 때(곁의 사람에게 말을 걸음), 창의 버튼 위를 눌렀을 때, 방금 대화·상점이 닫혔을 때(닫는 클릭).
+    int pausedFrame = -10;
+    bool AttackPressed => Input.GetKeyDown(KeyCode.J)
+        || (Input.GetMouseButtonDown(0) && !JinaUI.Offering && !JinaUI.OverButton && Time.frameCount - pausedFrame > 1);
 
     // What each step of the sword looks like when it lands: where its crescent falls, how hard the world holds still.
     void SwordFeel(int step, bool landed)
@@ -618,6 +665,18 @@ public partial class Combat : MonoBehaviour
 
     // 개발자 치트(DevCheats): 도깨비를 바로 토벌한다.
     public void SlayBossForCheat() { if (!EnemyDefeated) DamageEnemy(EnemyHealth + BossDefense + 1); }
+
+    // 피 묻은 도깨비 방망이: 다섯 번(Weapon.bloodPrice) 휘두를 때마다 체력 1을 잃는다. 이것으로는 쓰러지지 않는다(1에서 멈춤).
+    public int BloodSwings { get; private set; }
+    void PayBlood(int every)
+    {
+        if (++BloodSwings % every != 0 || PlayerHealth <= 1) return;
+        if (Cheats != null && Cheats.God) return;   // 개발자 치트: 무적
+        PlayerHealth -= 1;
+        var chest = player.transform.position + Vector3.up * .25f;
+        JinaFx.Number(chest + Vector3.up * .5f, 1, new Color(.8f, .1f, .14f), 18);
+        JinaFx.Dots(chest, 6, new Color(.6f, .05f, .08f), 1.5f, .4f);
+    }
 
     // 무기 그림 (한 번 불러오면 저장해 두고 다시 씀)
     readonly Dictionary<string, Sprite> weaponIcons = new Dictionary<string, Sprite>();

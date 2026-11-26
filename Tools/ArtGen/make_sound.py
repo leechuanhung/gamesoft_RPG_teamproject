@@ -610,11 +610,245 @@ def sfx_w_dagger(seed=160, length=.2):
 def sfx_w_dagger_2(): return sfx_w_dagger(170, .18)
 
 
+# ══════════════════ 보스의 공격 ══════════════════
+# 공격마다 그 보스다운 소리: 도깨비는 몽둥이와 짐승 같은 몸, 콩쥐 요괴는 독에 낀 두꺼비의 축축한 소리,
+# 좌의정(어둑시니)은 뼈마디, 국새, 먹, 그림자, 엽전. 준비 동작이 긴 것은 준비할 때 한 번, 맞히는 순간 한 번 난다.
+
+def growl(length, f0, f1, seed, rough=31., bright=1200, harmonics=12):
+    """짐승의 으르렁: 톱니 같은 목소리가 f0→f1로 미끄러지고 거칠게 떤다."""
+    n = int(length * SR); t = seconds(n)
+    f = f0 * (f1 / f0) ** (t / length)
+    phase = 2 * np.pi * np.cumsum(f * (1 + .035 * np.sin(2 * np.pi * rough * t))) / SR
+    x = sum(np.sin(k * phase) / k for k in range(1, harmonics))
+    x *= .75 + .25 * np.sign(np.sin(2 * np.pi * rough * .5 * t))
+    x = lowpass(x, bright) + bandpass(noise(n, seed), 200, bright * 1.5) * .25
+    return x * smooth(t / .04) * smooth((length - t) / .15)
+
+
+def thump(length, f_hi, f_lo, tau, seed, grit=.6):
+    """땅이나 나무를 세게 치는 쿵: 음이 빠르게 내려앉고 흙 부서지는 잡음이 얹힌다."""
+    n = int(length * SR); t = seconds(n)
+    f = f_lo + (f_hi - f_lo) * np.exp(-t / .03)
+    x = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / tau)
+    x += lowpass(noise(n, seed), 900, 63) * np.exp(-t / (tau * .4)) * grit
+    return x
+
+
+def clicks(length, count, seed, lo, hi, tick=.004, start=0.):
+    """잘게 흩어지는 딸깍들(자갈, 콩알, 뼈마디)."""
+    n = int(length * SR); out = np.zeros(n); rng = np.random.default_rng(seed); k = int(tick * SR)
+    for i in range(count):
+        c = bandpass(noise(k, seed + 10 + i), lo, hi, 31) * np.exp(-seconds(k) / (tick / 3))
+        at = int(rng.uniform(start, length - tick) * SR)
+        out[at:at + k] += c * rng.uniform(.4, 1)
+    return out
+
+
+def sfx_dk_growl():
+    """도깨비가 몽둥이를 치켜든다: 낮게 그르렁."""
+    m = sfx(.8)
+    m.add(growl(.55, 85, 110, 200, 27, 1000), 0, .9)
+    m.add(swish(.45, 201, 300, 900, .6), .1, .25)
+    m.reverb(.12, .6, 30)
+    return m.render(1, .6)
+
+
+def sfx_dk_club():
+    """쇠 박힌 몽둥이가 내려친다: 짧은 바람 끝에 나무가 땅을 쿵, 흙이 튄다."""
+    m = sfx(1.)
+    m.add(blade(.12, 202, 160, 900, peak=.8, body=.9, whistle=.05, rustle=0), 0, .7)
+    m.add(thump(.6, 140, 52, .16, 203, .8), .09, 1)
+    m.add(deok(.6, 204), .09, .5)
+    m.add(clicks(.4, 14, 205, 900, 4000, start=.02), .1, .35)
+    m.reverb(.15, .7, 31)
+    return m.render(1, .85)
+
+
+def sfx_dk_charge():
+    """도깨비의 돌진: 울부짖으며 땅을 쿵쿵 박차고 달려든다."""
+    m = sfx(1.1)
+    m.add(growl(.8, 95, 150, 206, 33, 1500), 0, .8)
+    for i in range(5): m.add(buk(.75 - .07 * i, 207 + i, 1.4), .02 + i * .15, .5)
+    m.add(lowpass(noise(int(.8 * SR), 212), 700, 63) * np.sin(np.pi * seconds(int(.8 * SR)) / .8), 0, .25)
+    m.reverb(.15, .7, 32)
+    return m.render(1, .85)
+
+
+def sfx_dk_leap():
+    """도깨비가 뛰어오른다: 힘쓰는 소리와 솟구치는 바람."""
+    m = sfx(.9)
+    m.add(growl(.25, 120, 90, 213, 40, 1100), 0, .7)
+    m.add(swish(.6, 214, 250, 1400, .7), .05, .6)
+    m.reverb(.12, .6, 33)
+    return m.render(1, .7)
+
+
+def sfx_dk_land():
+    """도깨비가 내려찍는다: 땅이 울리는 큰 쿵, 낮은 울림이 남고 자갈이 흩어진다."""
+    m = sfx(1.8)
+    m.add(buk(1, 215, .8), 0, 1)
+    m.add(thump(1.2, 110, 38, .45, 216, .9), 0, .9)
+    m.add(lowpass(noise(int(1.2 * SR), 217), 260, 255) * np.exp(-seconds(int(1.2 * SR)) / .5) * smooth(seconds(int(1.2 * SR)) / .02), 0, .6)
+    m.add(clicks(.7, 26, 218, 700, 3500, start=.03), .02, .35)
+    m.reverb(.2, 1., 34)
+    return m.render(1, .9)
+
+
+def sfx_kong_spit():
+    """젓갈 침: 목구멍이 꾸르륵 하고 축축하게 퉤."""
+    m = sfx(.8)
+    m.add(toad(220)[:int(.25 * SR)], 0, .6)
+    n = int(.25 * SR); t = seconds(n)
+    m.add(bandpass(noise(n, 221), 500, 3200, 63) * np.exp(-t / .05) * smooth(t / .006), .2, .9)
+    m.add(drop(222, 500), .22, .4); m.add(drop(223, 700), .28, .3)
+    m.reverb(.12, .5, 35)
+    return m.render(1, .75)
+
+
+def sfx_kong_beans():
+    """콩알 산탄: 볼을 부풀려 푸 하고 마른 콩이 우르르 튄다."""
+    m = sfx(.8)
+    n = int(.18 * SR); t = seconds(n)
+    m.add(lowpass(noise(n, 224), 900, 63) * np.exp(-t / .05) * smooth(t / .01), 0, .8)
+    m.add(clicks(.4, 26, 225, 1800, 6000, .006, .02), .03, .7)
+    m.reverb(.1, .5, 36)
+    return m.render(1, .7)
+
+
+def sfx_kong_tongue():
+    """혀 채찍: 축축하게 쭉 뻗어 짝 때리고 후루룩 감겨 들어간다."""
+    m = sfx(.9)
+    m.add(swish(.12, 226, 500, 2600, .5), 0, .7)
+    k = int(.01 * SR)
+    m.add(highpass(noise(k, 227), 1500, 31) * np.exp(-seconds(k) / .002), .11, .45)
+    m.add(thump(.15, 300, 120, .04, 228, .3), .11, .4)
+    m.add(swish(.4, 229, 2200, 350, .45), .2, .35)
+    m.reverb(.1, .5, 37)
+    return m.render(1, .8)
+
+
+def sfx_kong_salt():
+    """소금 비: 두꺼비가 울고, 하늘에서 소금이 쏴아 하고 흩뿌려진다."""
+    m = sfx(1.6)
+    m.add(toad(230), 0, .5)
+    n = int(1.1 * SR); t = seconds(n)
+    m.add(highpass(noise(n, 231), 4000, 63) * smooth(t / .3) * np.exp(-t / .6), .3, .35)
+    m.add(clicks(1., 60, 232, 4000, 9000, .003, .1), .35, .45)
+    m.reverb(.18, .9, 38)
+    return m.render(1, .7)
+
+
+def sfx_kong_land():
+    """독째로 쿵 내려앉는다: 둔한 옹기 소리."""
+    m = sfx(.7)
+    n = int(.5 * SR); t = seconds(n)
+    clay = np.sin(2 * np.pi * np.cumsum(150 + 60 * np.exp(-t / .02)) / SR) * np.exp(-t / .09)
+    clay += .4 * np.sin(2 * np.pi * np.cumsum(410 + 90 * np.exp(-t / .02)) / SR) * np.exp(-t / .05)
+    m.add(clay, 0, .9)
+    m.add(thump(.4, 90, 45, .12, 233, .5), 0, .6)
+    return m.render(1, .65)
+
+
+def sfx_kong_cast():
+    """콩쥐 요괴가 소매를 들어 마을을 묶는다: 두꺼비 울음이 겹겹이 번지고 해금이 비틀려 올라간다."""
+    m = sfx(2.2)
+    for i in range(4): m.add(toad(234 + i), .12 * i, .45)
+    m.add(haegeum(hz(midi("E4")), 1.2, .7, bend=2, seed=238), .2, .4)
+    m.add(drone(55, 1.6, 1, 239), 0, .7)
+    m.reverb(.25, 1.2, 39)
+    return m.render(1, .8)
+
+
+def sfx_fb_sweep():
+    """어둑시니의 팔이 땅을 휩쓴다: 마디마다 우드득 꺾이며 길게 끌리는 낮은 바람."""
+    m = sfx(1.)
+    m.add(swish(.55, 240, 140, 700, .7), 0, .9)
+    m.add(clicks(.5, 16, 241, 300, 1500, .008), 0, .8)
+    m.add(lowpass(noise(int(.5 * SR), 242), 200, 255) * np.sin(np.pi * seconds(int(.5 * SR)) / .5), 0, .5)
+    m.reverb(.2, .8, 40)
+    return m.render(1, .8)
+
+
+def sfx_fb_raise():
+    """국새를 머리 위로 든다: 낮은 울림이 차오른다."""
+    m = sfx(1.2); n = int(.95 * SR); t = seconds(n)
+    m.add(drone(49, 1.1, 1, 243, fade=.2) * 2.5, 0, .8)
+    m.add(sweep_noise(n, 244, 200, 1800, .6) * (t / .95) ** 2, 0, .4)
+    m.reverb(.2, .8, 41)
+    return m.render(1, .5)
+
+
+def sfx_fb_slam():
+    """국새를 내려찍는다: 돌 같은 인장이 땅을 쾅, 북과 징이 함께 운다."""
+    m = sfx(3.)
+    m.add(buk(1, 245, .7), 0, 1); m.add(thump(.8, 160, 45, .3, 246, 1), 0, .8)
+    m.add(chime(330, 1, 247), 0, .35)
+    m.add(jing(.9, 248, 73), .02, .55)
+    m.add(clicks(.5, 20, 249, 600, 3000, start=.02), .01, .3)
+    m.reverb(.28, 1.4, 42)
+    return m.render(1, .9)
+
+
+def sfx_fb_ink():
+    """붓을 휘둘러 먹물을 뿌린다: 붓털이 쉭, 먹물이 촤악 흩날린다."""
+    m = sfx(.8)
+    m.add(swish(.25, 250, 600, 2600, .6), 0, .7)
+    n = int(.35 * SR); t = seconds(n)
+    m.add(bandpass(noise(n, 251), 700, 4000, 63) * np.exp(-t / .1) * smooth(t / .02), .15, .5)
+    m.reverb(.12, .5, 43)
+    return m.render(1, .7)
+
+
+def sfx_fb_ink_drop():
+    """먹물 덩이가 떨어져 철퍽."""
+    n = int(.3 * SR); t = seconds(n)
+    x = bandpass(noise(n, 252), 250, 2000, 63) * np.exp(-t / .045) * smooth(t / .003)
+    x += np.sin(2 * np.pi * np.cumsum(220 * np.exp(-t / .05) + 90) / SR) * np.exp(-t / .07) * .6
+    return x / np.abs(x).max() * .6
+
+
+def sfx_fb_hands():
+    """그림자 웅덩이가 번진다: 여럿이 숨죽여 속삭인다."""
+    m = sfx(1.4); n = int(1.1 * SR); t = seconds(n)
+    for i, (lo, hi) in enumerate(((600, 1400), (900, 2300), (1500, 3500))):
+        voice = bandpass(noise(n, 253 + i), lo, hi, 127) * (.5 + .5 * np.sin(2 * np.pi * (5 + 2 * i) * t + i)) ** 2
+        m.add(voice * np.sin(np.pi * t / 1.1), .08 * i, .5)
+    m.add(drone(44, 1.2, 1, 256, fade=.3), 0, .6)
+    m.reverb(.3, 1.2, 44)
+    return m.render(1, .6)
+
+
+def sfx_fb_hand():
+    """땅속에서 손이 쑥 솟아 움켜쥔다."""
+    m = sfx(.6)
+    m.add(thump(.3, 120, 50, .08, 257, .7), 0, .8)
+    m.add(swish(.18, 258, 300, 1500, .6), 0, .5)
+    m.add(clicks(.15, 5, 259, 400, 1800, .006), .1, .5)
+    return m.render(1, .6)
+
+
+def sfx_fb_coins():
+    """갈라진 얼굴이 엽전을 토해 낸다: 우웩 하는 신음과 놋쇠 엽전이 와르르."""
+    m = sfx(1.2)
+    m.add(growl(.4, 140, 80, 260, 19, 900), 0, .6)
+    rng = np.random.default_rng(261)
+    for i in range(14):
+        f = rng.uniform(2800, 3900)
+        m.add(metal(f, [1, 1.52, 2.33, 3.1], [1, .6, .4, .2], [.1, .07, .05, .03], .35, 1, 262 + i, .5), .1 + rng.uniform(0, .45), rng.uniform(.3, .7))
+    m.reverb(.15, .7, 45)
+    return m.render(1, .8)
+
+
+BOSS_ATTACKS = [sfx_dk_growl, sfx_dk_club, sfx_dk_charge, sfx_dk_leap, sfx_dk_land, sfx_kong_spit, sfx_kong_beans,
+                sfx_kong_tongue, sfx_kong_salt, sfx_kong_land, sfx_kong_cast, sfx_fb_sweep, sfx_fb_raise, sfx_fb_slam,
+                sfx_fb_ink, sfx_fb_ink_drop, sfx_fb_hands, sfx_fb_hand, sfx_fb_coins]
+
 JOBS = [bgm_pass, bgm_hill, bgm_kong_fight, bgm_fort, bgm_station, bgm_grave, bgm_city, bgm_hall, bgm_manor,
         bgm_final_fight, bgm_ending, sfx_charm, sfx_keepsake, sfx_beacon, sfx_beacon_wrong, sfx_gate, sfx_purify,
         sfx_boss_die, sfx_transform, sfx_dark, sfx_hit, sfx_hurt, sfx_coin, sfx_heal, sfx_ghost_die, sfx_mob_die,
         sfx_alarm, sfx_splash, sfx_squad, sfx_gameover, sfx_levelup, sfx_rare, sfx_w_myeonggeom, sfx_w_myeonggeom_2,
         sfx_w_saingeom, sfx_w_saingeom_2, sfx_w_byeokjo, sfx_w_dagger, sfx_w_dagger_2]
+JOBS += BOSS_ATTACKS
 
 for job in JOBS:
     if ONLY and ONLY != job.__name__: continue

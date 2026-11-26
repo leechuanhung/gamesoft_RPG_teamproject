@@ -283,7 +283,7 @@ public partial class FinalBoss : MonoBehaviour
         {
             DrawBars(Mathf.Clamp01((Time.time - MetAt) / .4f));
             var line = lines[page];
-            JinaUI.TalkWindow(line.who, null, line.said, "Enter 다음 (" + (page + 1) + "/" + lines.Length + ")   ·   Esc 넘기기", line.thought && line.who == Official);
+            JinaUI.TalkWindow(line.who, null, line.said, "F·클릭 다음 (" + (page + 1) + "/" + lines.Length + ")   ·   Esc 넘기기", line.thought && line.who == Official);
             return;
         }
         if (Now == Phase.Changing) { DrawChangeCard(Time.time - ChangedAt); return; }

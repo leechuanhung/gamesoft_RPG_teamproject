@@ -84,6 +84,7 @@ public partial class Combat
                 }
                 else if (!strikeElder && strikeBounds.Intersects(playerArt.bounds)) HurtPlayer(BossAttack);
                 // 몽둥이가 내려온다: 휩쓰는 빛과 땅에 닿은 곳의 먼지.
+                GameAudio.PlayAt(GameAudio.Sfx.DkClub, enemy.transform.position);
                 JinaFx.Arc((Vector3)lockedStrike + Vector3.up * .5f, BossFacing, -14, 1.45f, new Color(1, .74f, .6f), .18f);
                 JinaFx.Shock(BossClubContact, .85f, clubImpact: true);
                 View.Shake(.05f, .12f);
@@ -97,6 +98,7 @@ public partial class Combat
             lockedStrike = (Vector2)enemy.transform.position + Vector2.right * (delta.x >= 0 ? .8f : -.8f);
             strikeElder = targetElder;
             windupUntil = Time.time + .6f;
+            GameAudio.PlayAt(GameAudio.Sfx.DkGrowl, enemy.transform.position);
             JinaFx.Glint(enemy.transform.position + new Vector3(BossFacing * .7f, 1.4f, 0), new Color(1, .7f, .3f));
         }
         else if (alerted && Mathf.Abs(delta.x) > 1.25f && Time.time >= bossRecoveryUntil)
@@ -143,7 +145,7 @@ public partial class Combat
         switch (Move)
         {
             case BossMove.ChargeWindup:
-                if (Time.time >= moveUntil) { Move = BossMove.Charging; moveUntil = Time.time + ChargeLength; JinaFx.Dust(BossFeet, -moveDir * 2, 1.5f); }
+                if (Time.time >= moveUntil) { Move = BossMove.Charging; moveUntil = Time.time + ChargeLength; JinaFx.Dust(BossFeet, -moveDir * 2, 1.5f); GameAudio.PlayAt(GameAudio.Sfx.DkCharge, BossFeet); }
                 break;
             case BossMove.Charging:
                 Trail(new Color(1, .45f, .35f, .55f));
@@ -153,7 +155,7 @@ public partial class Combat
                 if (Time.time >= moveUntil || position.x <= WorldBuilder.EnemyMin || position.x >= WorldBuilder.EnemyMax) EndMove(.5f);
                 break;
             case BossMove.LeapWindup:
-                if (Time.time >= moveUntil) { Move = BossMove.Leaping; moveUntil = Time.time + LeapLength; JinaFx.Dust(BossFeet, -1, 1.5f); JinaFx.Dust(BossFeet, 1, 1.5f); }
+                if (Time.time >= moveUntil) { Move = BossMove.Leaping; moveUntil = Time.time + LeapLength; JinaFx.Dust(BossFeet, -1, 1.5f); JinaFx.Dust(BossFeet, 1, 1.5f); GameAudio.PlayAt(GameAudio.Sfx.DkLeap, BossFeet); }
                 break;
             case BossMove.Leaping:
                 float k = 1 - Mathf.Clamp01((moveUntil - Time.time) / LeapLength);
@@ -175,6 +177,7 @@ public partial class Combat
     {
         var position = enemy.transform.position; position.y = BossGround; enemy.transform.position = position;
         Move = BossMove.Landed; moveUntil = Time.time + LandedLength;
+        GameAudio.PlayAt(GameAudio.Sfx.DkLand, BossFeet);
         View.Shake(.17f, .4f);
         JinaFx.Shock(BossClubContact, 1.2f, clubImpact: true);
         bool onGround = player.IsGrounded && playerArt.bounds.min.y < -.3f;
@@ -210,6 +213,8 @@ public partial class Combat
         if (visual != null) visual.Refresh();
         if (visual is BossVisual)
             JinaFx.Purification(new Vector3(enemy.transform.position.x, enemy.bounds.min.y, 0));
+        // 저주가 풀린 도깨비는 방망이를 내려놓는다
+        WeaponPickup.Drop(this, "dokkaebi_club", ClubDropAt());
         return true;
     }
 
@@ -240,5 +245,14 @@ public partial class Combat
         if (Move != BossMove.None) EndMove(0);
         if (Quest != null) Quest.progress.Resolve(false);
         GainExp(DokkaebiExp);
+        // 쓰러진 도깨비의 손에서 피 묻은 방망이가 떨어진다
+        WeaponPickup.Drop(this, "blood_club", ClubDropAt());
+    }
+
+    // 방망이가 떨어지는 자리: 도깨비와 선비 사이, 허리 높이에서 땅으로
+    Vector3 ClubDropAt()
+    {
+        int toward = player.transform.position.x < enemy.transform.position.x ? -1 : 1;
+        return enemy.transform.position + new Vector3(toward * .6f, .6f, 0);
     }
 }

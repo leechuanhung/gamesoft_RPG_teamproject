@@ -3,7 +3,7 @@ using UnityEngine;
 // ===== 봉화 산성 (BeaconFort) =====
 // 뒷산 너머 산성(WorldBuilder.FortStart~FortEnd)은 문이 닫혀 있다. 성문 앞 봉수 군령판이 봉화를 올리는 순서를
 // 말해 준다: 마른 우물 곁 → 무너진 성가퀴 위 → 늙은 소나무 아래 → 가장 높은 곳 → 성문 앞.
-// 다섯 봉수대는 산성 여기저기, 높이가 다른 곳에 있다. 엔터로 하나씩 불을 올리고, 순서가 틀리면 모두 꺼진다.
+// 다섯 봉수대는 산성 여기저기, 높이가 다른 곳에 있다. F·클릭으로 하나씩 불을 올리고, 순서가 틀리면 모두 꺼진다.
 // 다섯이 바르게 오르면 성문이 열린다. 몬스터는 없다(퍼즐 맵).
 public class BeaconFort : MonoBehaviour
 {
@@ -148,11 +148,11 @@ public class BeaconFort : MonoBehaviour
         if (WrongAt >= 0 && Time.time - WrongAt < 3f) JinaUI.Toast("봉화가 엉뚱한 차례로 올라 모두 꺼졌습니다. 군령판의 차례를 다시 떠올려 보세요.");
         if (LitAt >= 0 && Time.time - LitAt < 1.6f && !Open) JinaUI.Toast("봉화가 올랐습니다. (" + Step + "/" + Order.Length + ")");
         if (OpenedAt >= 0 && Time.time - OpenedAt < 4f) JinaUI.Toast("다섯 봉화가 한양 쪽으로 이어 올랐습니다. 무거운 산성 문이 열립니다.");
-        if (NearBoard) JinaUI.Prompt("Enter: 봉수 군령판 읽기");
+        if (NearBoard) JinaUI.Prompt("F·클릭: 봉수 군령판 읽기");
         else
         {
             int i = Near();
-            if (i >= 0 && !lit[i] && !Open) JinaUI.Prompt("Enter: 봉화 올리기 (" + All[i].place + ")");
+            if (i >= 0 && !lit[i] && !Open) JinaUI.Prompt("F·클릭: 봉화 올리기 (" + All[i].place + ")");
         }
     }
 }

@@ -434,7 +434,7 @@ public partial class KongBoss : MonoBehaviour
             DrawBars(Mathf.Clamp01((Time.time - MetAt) / .4f));
             bool revealed = combat.Kong != null && combat.Kong.Revealed;
             KongVillage.TalkWindow(KongVillage.Who.Kongjwi, MeetingPortrait(page, revealed || Retries > 0), lines[page],
-                "Enter 다음 (" + (page + 1) + "/" + lines.Length + ")   ·   Esc 넘기기", page > 0 || revealed);
+                "F·클릭 다음 (" + (page + 1) + "/" + lines.Length + ")   ·   Esc 넘기기", page > 0 || revealed);
             return;
         }
         if (Now == Phase.Changing) { DrawChangeCard(Time.time - ChangedAt); return; }

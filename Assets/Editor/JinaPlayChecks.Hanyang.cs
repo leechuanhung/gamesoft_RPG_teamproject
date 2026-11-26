@@ -267,6 +267,12 @@ public static partial class JinaPlayChecks
         RoadMobs.Mob soldier=null; foreach(var m in mobs.mobs) if(m.soldier) { soldier=m; break; }
         while(soldier.Alive) mobs.Hit(soldier,Combat.SwordDamage);
         Check(string.Format(combat.CoinsNote,combat.CoinsFound)=="관군 칼병이 죽었습니다. 품에서 엽전 3문이 나왔습니다.","A soldier dies, and the note says so");
+        // 유령처럼 쓰러지는 모습이 끝나면 맵 안 다른 자리(선비와 3칸 이상)에서 다시 나타난다.
+        Goto(wisp.home); wisp.downAt=Time.time-RoadMobs.DownLength-.7f; Call(mobs);
+        Check(wisp.Alive && wisp.hp==wisp.max && mobs.mobs.Contains(wisp) && Maps.Index(wisp.pos.x)==wisp.map && Mathf.Abs(wisp.pos.x-combat.player.transform.position.x)>=3f,"A felled wisp comes back elsewhere on its map, like the ghosts");
+        while(brute.Alive) mobs.Hit(brute,Combat.SwordDamage);
+        brute.downAt=Time.time-RoadMobs.DownLength-.7f; Call(mobs);
+        Check(brute.Alive && brute.hp==brute.max && Mathf.Abs(brute.pos.y-WorldBuilder.Top(brute.pos.x))<.01f,"So does a dueoksini, on the ground");
         combat.Restart();
     }
 

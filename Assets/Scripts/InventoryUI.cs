@@ -96,6 +96,46 @@ public class InventoryUI : MonoBehaviour
         return true;
     }
 
+    // PlayerSave에서 보유 스킬과 Q/W/E 배정을 복원한다.
+    public void RestoreSkills(SkillEntrySaveData[] savedOwned, string[] savedEquipped)
+    {
+        // 이전 버전 저장 파일에는 스킬 필드가 없으므로 시작 시 기본 배정을 유지한다.
+        if (savedOwned == null) return;
+        ownedSkills.Clear();
+        skillReadyAt.Clear();
+        if (savedOwned != null)
+        {
+            foreach (SkillEntrySaveData saved in savedOwned)
+            {
+                if (saved == null || string.IsNullOrEmpty(saved.id) || ownedSkills.Count >= MaxOwnedSkills ||
+                    ownedSkills.Exists(s => s.id == saved.id)) continue;
+                ownedSkills.Add(new SkillEntry { id = saved.id, name = saved.name, description = saved.description,
+                    cooldown = Mathf.Max(.01f, saved.cooldown), implemented = saved.implemented });
+            }
+        }
+
+        var slots = combat != null && combat.Skills != null ? combat.Skills.slots : null;
+        if (slots == null) return;
+        for (int i = 0; i < slots.Length; i++)
+        {
+            slots[i].skillId = null;
+            slots[i].name = "";
+            slots[i].readyAt = 0;
+            slots[i].empty = true;
+        }
+        if (savedEquipped == null) return;
+        for (int i = 0; i < Mathf.Min(slots.Length, savedEquipped.Length); i++)
+        {
+            string id = savedEquipped[i];
+            SkillEntry skill = ownedSkills.Find(s => s.id == id);
+            if (skill == null || !skill.implemented) continue;
+            slots[i].skillId = skill.id;
+            slots[i].name = skill.name;
+            slots[i].cooldown = skill.cooldown;
+            slots[i].empty = false;
+        }
+    }
+
     // 후속 무기 제작 때 UnlockWeapon으로 등록한다. 실제 공격 연동은 전투 쪽 구현이 필요.
     public class WeaponEntry
     {
@@ -117,6 +157,34 @@ public class InventoryUI : MonoBehaviour
 
     public bool HasWeapon(string id) => weapons.Exists(w => w.id == id);
 
+    // PlayerSave에서 JSON으로 복원한다. 드랍 무기의 소유 목록과 두 장착 칸을 각각 복구한다.
+    public void RestoreWeapons(string[] ownedIds, string[] equippedIds)
+    {
+        weapons.RemoveAll(w => w.id != "dagger" && w.id != "bow");
+        if (ownedIds != null)
+        {
+            foreach (string id in ownedIds)
+            {
+                if (string.IsNullOrEmpty(id) || HasWeapon(id)) continue;
+                GiveWeapon(id);
+            }
+        }
+
+        if (combat == null) ConnectCombat();
+        if (combat == null) return;
+        for (int i = 0; i < 2; i++) combat.EquippedWeapons[i] = null;
+        if (equippedIds != null)
+        {
+            for (int i = 0; i < Mathf.Min(2, equippedIds.Length); i++)
+            {
+                string id = equippedIds[i];
+                if (HasWeapon(id) && combat.CanEquip(Weapon.Get(id))) combat.EquippedWeapons[i] = id;
+            }
+        }
+        if (combat.EquippedWeapons[0] == null && combat.EquippedWeapons[1] == null)
+            combat.EquippedWeapons[0] = "dagger";
+    }
+
     // 땅에서 주운 무기를 보따리에 넣고, 빈 무기 칸이 있으면 바로 장착
     public bool GiveWeapon(string id)
     {
@@ -125,6 +193,8 @@ public class InventoryUI : MonoBehaviour
                    : id == "myeonggeom" ? UnlockWeapon("myeonggeom", "명검", "이름을 잃은 장수의 칼. 망한 나라가 무너지던 날, 성문 앞에서 끝까지 버텼다고 한다. 칼은 주인보다 오래 살아남아 지금도 들판의 망령들 사이를 떠돈다.\n환도보다 무겁고 길다. 세 번 이어 벤다", "icon_sword", true)
                    : id == "saingeom" ? UnlockWeapon("saingeom", "사인검", "범의 해, 범의 달, 범의 날, 범의 시에만 벼린다는 칼. 칼날에 새긴 별자리가 사귀를 벤다. 마음이 더럽혀진 자의 손에서는 그저 쇠붙이일 뿐이다.\n세 번 이어 벤다. 악행 20 이상이면 쥘 수 없다", "icon_sword", true)
                    : id == "byeokjogung" ? UnlockWeapon("byeokjogung", "벽조궁", "벼락 맞은 대추나무로 만든 활. 벽조목은 예로부터 귀신이 꺼리는 나무라 했다. 시위를 당기면 그날의 벼락이 아직 나무 속에서 운다.\n활보다 피해가 5할 높다. 화살을 소비한다", "icon_bow", true)
+                   : id == "dokkaebi_club" ? UnlockWeapon("dokkaebi_club", "도깨비 방망이", "숲의 주인이 휘두르던 쇠징 박힌 방망이. 저주가 풀린 도깨비가 더는 쓸 일이 없다며 내려놓았다. 두드리면 금이 나온다는 옛말은 믿지 마라. 나오는 것은 혹뿐이다.\n무겁고 느리다. 기력을 많이 쓰는 대신 크게 내려친다", "icon_sword", true)
+                   : id == "blood_club" ? UnlockWeapon("blood_club", "피 묻은 도깨비 방망이", "쓰러진 도깨비의 손에서 빼낸 방망이. 주인의 피가 마르지 않고 나뭇결마다 배어 있다. 쥘 때마다 손바닥이 따끔한 것은, 방망이가 새 주인의 피도 맛보고 있기 때문이다.\n도깨비 방망이보다 세다. 다섯 번 휘두를 때마다 체력 1을 잃는다", "icon_sword", true)
                    : false;
         if (!added) return false;
         for (int i = 0; i < 2; i++) if (equippedWeapons[i] == null) { EquipWeapon(id, i); break; }
@@ -188,7 +258,7 @@ public class InventoryUI : MonoBehaviour
         var result = new List<InventorySlot>();
         if (inventory == null) return result;
         foreach (var slot in inventory.Slots)
-            if (!(slot.Item is JinaItem item && (item.effect == JinaItem.Effect.Keepsake || item.effect == JinaItem.Effect.QuestWisp))) result.Add(slot);
+            if (!(slot.Item is JinaItem item && (item.effect == JinaItem.Effect.Keepsake || item.effect == JinaItem.Effect.QuestWisp || item.effect == JinaItem.Effect.QuestOrb))) result.Add(slot);
         return result;
     }
 
@@ -356,6 +426,9 @@ public class InventoryUI : MonoBehaviour
             items.Add(("정화 부적", description, JinaArt.Prop("charm")));
         }
 
+        if (inventory.GetQuantity(JinaItems.SuspiciousOrb) > 0)
+            items.Add((JinaItems.SuspiciousOrb.ItemName, JinaItems.SuspiciousOrb.Description, JinaItems.SuspiciousOrb.Icon));
+
         float width = content.width;
         float totalHeight = 0;
         foreach (var item in items) totalHeight += KeyItemHeight(item.description, width) + 8;
@@ -378,22 +451,37 @@ public class InventoryUI : MonoBehaviour
         if (scroll) GUI.EndScrollView();
     }
 
+    // 스크롤 내부에서는 JinaUI.Text처럼 GUI.matrix를 초기화하지 않는다.
+    GUIStyle KeyItemStyle(int size, bool bold = false)
+    {
+        var style = new GUIStyle(GUI.skin.label)
+        {
+            font = KoreanUI.Font, fontSize = size,
+            fontStyle = bold ? FontStyle.Bold : FontStyle.Normal,
+            alignment = bold ? TextAnchor.MiddleLeft : TextAnchor.UpperLeft,
+            wordWrap = !bold, richText = false, clipping = TextClipping.Clip,
+            padding = new RectOffset(0, 0, 0, 0)
+        };
+        style.normal.textColor = TextDark;
+        return style;
+    }
+
     float KeyItemHeight(string description, float width)
     {
-        return Mathf.Max(68, Height(description, 12, width - 62) + 42);
+        float bodyHeight = Mathf.Ceil(KeyItemStyle(12).CalcHeight(new GUIContent(description), width - 62));
+        return Mathf.Max(68, bodyHeight + 42);
     }
 
     float DrawKeyItemRecord(Rect place, string name, string description, Sprite sprite)
     {
         const float pad = 8;
         float textWidth = place.width - 62;
-        float bodyHeight = Height(description, 12, textWidth);
         float rowHeight = KeyItemHeight(description, place.width);
         var r = new Rect(place.x, place.y, place.width, rowHeight);
         Box(r, PaperLight, SlotEdge, 1);
         if (sprite != null) DrawIcon(sprite, new Rect(r.x + 6, r.y + 7, 43, 43));
-        Text(new Rect(r.x + 55, r.y + 5, textWidth, 22), name, 15, TextDark, TextAnchor.MiddleLeft, true);
-        Text(new Rect(r.x + 55, r.y + 29, textWidth, bodyHeight), description, 12, TextDark);
+        GUI.Label(new Rect(r.x + 55, r.y + 5, textWidth, 22), name, KeyItemStyle(15, true));
+        GUI.Label(new Rect(r.x + 55, r.y + 29, textWidth, rowHeight - 37), description, KeyItemStyle(12));
         return rowHeight + pad;
     }
 
