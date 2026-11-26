@@ -12,6 +12,30 @@ public class PlayerSaveData
     public bool hasStamina;
     public BossSaveData[] bosses;
     public SkillCooldownSaveData[] skillCooldowns;
+    public InventoryItemSaveData[] inventoryItems;
+    public string[] ownedWeaponIds;
+    public string[] equippedWeaponIds;
+    public int activeWeaponSlot;
+    public int coins;
+    public int arrows;
+    public SkillEntrySaveData[] ownedSkills;
+    public string[] equippedSkillIds;
+    public int keepsakeCount, wispCount;
+}
+
+[Serializable]
+public class SkillEntrySaveData
+{
+    public string id, name, description;
+    public float cooldown;
+    public bool implemented;
+}
+
+[Serializable]
+public class InventoryItemSaveData
+{
+    public string itemId;
+    public int quantity;
 }
 
 [Serializable]
@@ -47,13 +71,13 @@ public class PlayerSave : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.F1)) Save();
-        if (Input.GetKeyDown(KeyCode.F2)) Load();
+        if (Input.GetKeyDown(KeyCode.F1)) SaveGame();
+        if (Input.GetKeyDown(KeyCode.F2)) LoadGame();
     }
 
-    private void Save()
+    public bool SaveGame()
     {
-        if (!CanAccessPlayer()) return;
+        if (!CanAccessPlayer()) return false;
 
         PlayerSaveData data = new PlayerSaveData
         {
@@ -64,27 +88,41 @@ public class PlayerSave : MonoBehaviour
             stamina = combat.player != null ? combat.player.Stamina : 0,
             hasStamina = combat.player != null,
             bosses = CaptureBosses(),
-            skillCooldowns = CaptureSkillCooldowns()
+            skillCooldowns = CaptureSkillCooldowns(),
+            ownedSkills = CaptureOwnedSkills(),
+            equippedSkillIds = CaptureEquippedSkills(),
+            keepsakeCount = CaptureSpecialItemCount(JinaItems.Keepsake),
+            wispCount = CaptureSpecialItemCount(JinaItems.Wisp),
+            inventoryItems = CaptureInventory(),
+            ownedWeaponIds = CaptureOwnedWeapons(),
+            equippedWeaponIds = combat.EquippedWeapons,
+            activeWeaponSlot = combat.ActiveWeaponSlot,
+            coins = CaptureCoins(),
+            arrows = combat.Arrows
         };
 
-        File.WriteAllText(SavePath, JsonUtility.ToJson(data, true));
+        try { File.WriteAllText(SavePath, JsonUtility.ToJson(data, true)); }
+        catch (Exception e) { Debug.LogError($"저장하지 못했습니다: {e.Message}"); return false; }
         Debug.Log($"저장했습니다: {SavePath} (보스 {data.bosses.Length}마리)");
+        return true;
     }
 
-    private void Load()
+    public bool LoadGame()
     {
         if (!File.Exists(SavePath))
         {
             Debug.Log("저장 파일이 없습니다.");
-            return;
+            return false;
         }
-        if (!CanAccessPlayer()) return;
+        if (!CanAccessPlayer()) return false;
 
-        PlayerSaveData data = JsonUtility.FromJson<PlayerSaveData>(File.ReadAllText(SavePath));
+        PlayerSaveData data;
+        try { data = JsonUtility.FromJson<PlayerSaveData>(File.ReadAllText(SavePath)); }
+        catch (Exception e) { Debug.LogError($"저장 파일을 읽지 못했습니다: {e.Message}"); return false; }
         if (data == null)
         {
             Debug.LogError("저장 파일을 읽을 수 없습니다.");
-            return;
+            return false;
         }
 
         player.position = new Vector3(data.x, data.y, data.z);
@@ -96,8 +134,118 @@ public class PlayerSave : MonoBehaviour
             combat.player.RestoreStamina(savedStamina);
         }
         int bossCount = RestoreBosses(data.bosses);
+        RestoreSkills(data.ownedSkills, data.equippedSkillIds);
         int skillCount = RestoreSkillCooldowns(data.skillCooldowns);
-        Debug.Log($"불러왔습니다. 보스 {bossCount}마리 위치/HP, 스킬 쿨타임 {skillCount}개와 스테미나 복원");
+        int itemCount = RestoreInventory(data.inventoryItems);
+        EnsureSpecialItem(JinaItems.Keepsake, data.keepsakeCount);
+        EnsureSpecialItem(JinaItems.Wisp, data.wispCount);
+        RestoreWeapons(data.ownedWeaponIds, data.equippedWeaponIds, data.activeWeaponSlot);
+        RestoreCoins(data.coins);
+        combat.SetArrowsFromSave(data.arrows);
+        Debug.Log($"불러왔습니다. 보스 {bossCount}마리, 스킬 쿨타임 {skillCount}개, 아이템 종류 {itemCount}개와 무기를 복원했습니다.");
+        return true;
+    }
+
+    private InventoryItemSaveData[] CaptureInventory()
+    {
+        InventoryManager inventory = FindObjectOfType<InventoryManager>();
+        var totals = new Dictionary<string, int>();
+        if (inventory != null)
+        {
+            foreach (InventorySlot slot in inventory.Slots)
+            {
+                JinaItem item = slot.Item as JinaItem;
+                if (item == null || string.IsNullOrEmpty(item.id)) continue;
+                totals[item.id] = totals.TryGetValue(item.id, out int count) ? count + slot.Quantity : slot.Quantity;
+            }
+        }
+        var result = new List<InventoryItemSaveData>();
+        foreach (var pair in totals)
+            result.Add(new InventoryItemSaveData { itemId = pair.Key, quantity = pair.Value });
+        return result.ToArray();
+    }
+
+    private int RestoreInventory(InventoryItemSaveData[] saved)
+    {
+        InventoryManager inventory = FindObjectOfType<InventoryManager>();
+        if (inventory == null) return 0;
+        inventory.Clear();
+        if (saved == null) return 0;
+        int restored = 0;
+        foreach (InventoryItemSaveData entry in saved)
+        {
+            if (entry == null || entry.quantity <= 0) continue;
+            JinaItem item = entry.itemId == JinaItems.Keepsake.id ? JinaItems.Keepsake
+                          : entry.itemId == JinaItems.Wisp.id ? JinaItems.Wisp
+                          : JinaItems.Get(entry.itemId);
+            if (item != null && inventory.TryAdd(item, entry.quantity)) restored++;
+        }
+        return restored;
+    }
+
+    private int CaptureSpecialItemCount(JinaItem item)
+    {
+        InventoryManager inventory = FindObjectOfType<InventoryManager>();
+        return inventory != null ? inventory.GetQuantity(item) : 0;
+    }
+
+    private void EnsureSpecialItem(JinaItem item, int savedCount)
+    {
+        InventoryManager inventory = FindObjectOfType<InventoryManager>();
+        if (inventory == null || savedCount <= inventory.GetQuantity(item)) return;
+        inventory.TryAdd(item, savedCount - inventory.GetQuantity(item));
+    }
+
+    private string[] CaptureOwnedWeapons()
+    {
+        InventoryUI ui = FindObjectOfType<InventoryUI>();
+        if (ui == null) return Array.Empty<string>();
+        var ids = new List<string>();
+        foreach (InventoryUI.WeaponEntry weapon in ui.OwnedWeapons) ids.Add(weapon.id);
+        return ids.ToArray();
+    }
+
+    private void RestoreWeapons(string[] owned, string[] equipped, int activeSlot)
+    {
+        InventoryUI ui = FindObjectOfType<InventoryUI>();
+        if (ui != null) ui.RestoreWeapons(owned, equipped);
+        if (combat != null) combat.RestoreActiveWeaponSlot(activeSlot);
+    }
+
+    private SkillEntrySaveData[] CaptureOwnedSkills()
+    {
+        InventoryUI ui = FindObjectOfType<InventoryUI>();
+        if (ui == null) return Array.Empty<SkillEntrySaveData>();
+        var result = new List<SkillEntrySaveData>();
+        foreach (InventoryUI.SkillEntry skill in ui.OwnedSkills)
+            result.Add(new SkillEntrySaveData { id = skill.id, name = skill.name, description = skill.description,
+                cooldown = skill.cooldown, implemented = skill.implemented });
+        return result.ToArray();
+    }
+
+    private string[] CaptureEquippedSkills()
+    {
+        InventoryUI ui = FindObjectOfType<InventoryUI>();
+        if (ui == null) return Array.Empty<string>();
+        return new[] { ui.EquippedSkillId(0), ui.EquippedSkillId(1), ui.EquippedSkillId(2) };
+    }
+
+    private void RestoreSkills(SkillEntrySaveData[] owned, string[] equipped)
+    {
+        InventoryUI ui = FindObjectOfType<InventoryUI>();
+        if (ui != null) ui.RestoreSkills(owned, equipped);
+    }
+
+    private int CaptureCoins()
+    {
+        TavernShop tavern = combat != null && combat.Tavern != null ? combat.Tavern : FindObjectOfType<TavernShop>();
+        return tavern != null ? tavern.wallet.Coins : 0;
+    }
+
+    private void RestoreCoins(int coins)
+    {
+        TavernShop tavern = combat != null && combat.Tavern != null ? combat.Tavern : FindObjectOfType<TavernShop>();
+        if (tavern != null) tavern.wallet.SetCoins(coins);
     }
 
     private BossSaveData[] CaptureBosses()

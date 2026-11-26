@@ -96,6 +96,46 @@ public class InventoryUI : MonoBehaviour
         return true;
     }
 
+    // PlayerSave에서 보유 스킬과 Q/W/E 배정을 복원한다.
+    public void RestoreSkills(SkillEntrySaveData[] savedOwned, string[] savedEquipped)
+    {
+        // 이전 버전 저장 파일에는 스킬 필드가 없으므로 시작 시 기본 배정을 유지한다.
+        if (savedOwned == null) return;
+        ownedSkills.Clear();
+        skillReadyAt.Clear();
+        if (savedOwned != null)
+        {
+            foreach (SkillEntrySaveData saved in savedOwned)
+            {
+                if (saved == null || string.IsNullOrEmpty(saved.id) || ownedSkills.Count >= MaxOwnedSkills ||
+                    ownedSkills.Exists(s => s.id == saved.id)) continue;
+                ownedSkills.Add(new SkillEntry { id = saved.id, name = saved.name, description = saved.description,
+                    cooldown = Mathf.Max(.01f, saved.cooldown), implemented = saved.implemented });
+            }
+        }
+
+        var slots = combat != null && combat.Skills != null ? combat.Skills.slots : null;
+        if (slots == null) return;
+        for (int i = 0; i < slots.Length; i++)
+        {
+            slots[i].skillId = null;
+            slots[i].name = "";
+            slots[i].readyAt = 0;
+            slots[i].empty = true;
+        }
+        if (savedEquipped == null) return;
+        for (int i = 0; i < Mathf.Min(slots.Length, savedEquipped.Length); i++)
+        {
+            string id = savedEquipped[i];
+            SkillEntry skill = ownedSkills.Find(s => s.id == id);
+            if (skill == null || !skill.implemented) continue;
+            slots[i].skillId = skill.id;
+            slots[i].name = skill.name;
+            slots[i].cooldown = skill.cooldown;
+            slots[i].empty = false;
+        }
+    }
+
     // 후속 무기 제작 때 UnlockWeapon으로 등록한다. 실제 공격 연동은 전투 쪽 구현이 필요.
     public class WeaponEntry
     {
@@ -116,6 +156,34 @@ public class InventoryUI : MonoBehaviour
     }
 
     public bool HasWeapon(string id) => weapons.Exists(w => w.id == id);
+
+    // PlayerSave에서 JSON으로 복원한다. 드랍 무기의 소유 목록과 두 장착 칸을 각각 복구한다.
+    public void RestoreWeapons(string[] ownedIds, string[] equippedIds)
+    {
+        weapons.RemoveAll(w => w.id != "dagger" && w.id != "bow");
+        if (ownedIds != null)
+        {
+            foreach (string id in ownedIds)
+            {
+                if (string.IsNullOrEmpty(id) || HasWeapon(id)) continue;
+                GiveWeapon(id);
+            }
+        }
+
+        if (combat == null) ConnectCombat();
+        if (combat == null) return;
+        for (int i = 0; i < 2; i++) combat.EquippedWeapons[i] = null;
+        if (equippedIds != null)
+        {
+            for (int i = 0; i < Mathf.Min(2, equippedIds.Length); i++)
+            {
+                string id = equippedIds[i];
+                if (HasWeapon(id) && combat.CanEquip(Weapon.Get(id))) combat.EquippedWeapons[i] = id;
+            }
+        }
+        if (combat.EquippedWeapons[0] == null && combat.EquippedWeapons[1] == null)
+            combat.EquippedWeapons[0] = "dagger";
+    }
 
     // 땅에서 주운 무기를 보따리에 넣고, 빈 무기 칸이 있으면 바로 장착
     public bool GiveWeapon(string id)
