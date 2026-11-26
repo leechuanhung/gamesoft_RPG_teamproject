@@ -137,7 +137,6 @@ public partial class Combat : MonoBehaviour
     // The Kongjwi demon on the back hill, and the scenes after her fight.
     public KongBoss KongBoss { get; private set; }
     public KongAftermath Aftermath { get; private set; }
-    public DevCheats Cheats { get; private set; }
     // The checkpoint at the foot of the back hill (뒷산 입구), saved when Kongjwi starts speaking. Until she is dealt
     // with, R after a death starts him there with what he had then (honour, arrows, everyone in Kongbat alive) and her
     // waiting on the hill again, instead of from the very beginning. The bag and the story so far are kept as they are.
@@ -228,7 +227,7 @@ public partial class Combat : MonoBehaviour
     }
     public QuestSystem SideQuests { get; set; }
     // Esc 설정 메뉴(SettingsUI)가 열린 동안도 멈춤: 메뉴 위의 클릭이 뒤의 대화·상점을 열거나 공격하지 않는다.
-    public bool Paused => SettingsPauseActive || (SideQuests != null && SideQuests.IsDialogOpen) || (Puzzles != null && Puzzles.IsOpen) || (KongBoss != null && KongBoss.Cutscene) || (FinalBoss != null && FinalBoss.Cutscene) || (Town != null && Town.IsOpen) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || (Lore != null && Lore.WispAsking) || InventoryPauseActive || (Cheats != null && Cheats.Open);
+    public bool Paused => SettingsPauseActive || (SideQuests != null && SideQuests.IsDialogOpen) || (Puzzles != null && Puzzles.IsOpen) || (KongBoss != null && KongBoss.Cutscene) || (FinalBoss != null && FinalBoss.Cutscene) || (Town != null && Town.IsOpen) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || (Lore != null && Lore.WispAsking) || InventoryPauseActive;
     public void SetPlayerHealthFromSave(int health)
     {
         PlayerHealth = Mathf.Clamp(health, 0, MaxPlayerHealth);
@@ -312,8 +311,6 @@ public partial class Combat : MonoBehaviour
         Town.combat = this;
         FinalBoss = new GameObject("좌의정").AddComponent<FinalBoss>();
         FinalBoss.combat = this;
-        Cheats = gameObject.AddComponent<DevCheats>();
-        Cheats.combat = this;
         Restart();
         Intro = gameObject.AddComponent<IntroNarration>();
         Intro.combat = this;
@@ -430,8 +427,6 @@ public partial class Combat : MonoBehaviour
             if (Move != BossMove.None) EndMove(0);
             return;
         }
-        // 테스트용 치트: F4를 누르면 경험치 +100
-        if (Input.GetKeyDown(KeyCode.F4)) GainExp(100);
         // 무기 스왑: Q → S (Q는 스킬로 사용)
         if (Input.GetKeyDown(KeyCode.S) && EquippedWeapons[1 - ActiveWeaponSlot] != null) ActiveWeaponSlot = 1 - ActiveWeaponSlot;
         // 장착 조건을 못 채우게 된 무기(악행이 쌓인 사인검)는 손에서 빠져나감
@@ -612,17 +607,6 @@ public partial class Combat : MonoBehaviour
         var pivot = player.transform.position; pivot.z = at.z;
         return pivot + Quaternion.Euler(0, 0, pendingAngle * attackFacing) * (at - pivot);
     }
-    // 테스트용: 무기 표(Weapon.cs)의 모든 무기를 보따리에 넣음(개발자 치트 F7이 모든 아이템과 함께 부른다)
-    public int GiveAllWeapons()
-    {
-        var ui = FindObjectOfType<InventoryUI>();
-        if (ui == null) return 0;
-        int given = 0;
-        foreach (var id in Weapon.All.Keys) if (ui.GiveWeapon(id)) given++;
-        WeaponPickup.ClearAll();   // 땅에 떨어져 있던 무기는 치움
-        JinaFx.Word(player.transform.position + Vector3.up * 1.5f, "모든 무기 획득!", new Color(1f, .9f, .5f), 22);
-        return given;
-    }
     // 스킬 공격: area 안의 보스와 일반 몬스터에게 damage만큼 피해
     public void SkillHit(Bounds area, int damage)
     {
@@ -637,7 +621,6 @@ public partial class Combat : MonoBehaviour
     {
         // 스킬 무적 중에는 맞지 않음
         if (PlayerHealth <= 0 || Time.time < invulnerableUntil || player.Dodging || SkillInvulnerable) return;
-        if (Cheats != null && Cheats.God) return;   // 개발자 치트: 무적
         var chest = player.transform.position + Vector3.up * .25f;
         if (Warded)
         {
@@ -664,15 +647,12 @@ public partial class Combat : MonoBehaviour
         ClearArrows();
     }
 
-    // 개발자 치트(DevCheats): 도깨비를 바로 토벌한다.
-    public void SlayBossForCheat() { if (!EnemyDefeated) DamageEnemy(EnemyHealth + BossDefense + 1); }
 
     // 피 묻은 도깨비 방망이: 다섯 번(Weapon.bloodPrice) 휘두를 때마다 체력 1을 잃는다. 이것으로는 쓰러지지 않는다(1에서 멈춤).
     public int BloodSwings { get; private set; }
     void PayBlood(int every)
     {
         if (++BloodSwings % every != 0 || PlayerHealth <= 1) return;
-        if (Cheats != null && Cheats.God) return;   // 개발자 치트: 무적
         PlayerHealth -= 1;
         var chest = player.transform.position + Vector3.up * .25f;
         JinaFx.Number(chest + Vector3.up * .5f, 1, new Color(.8f, .1f, .14f), 18);

@@ -244,7 +244,6 @@ public partial class KongBoss : MonoBehaviour
     public bool Damage(int amount, bool sword)
     {
         if (!Fighting) return false;
-        if (combat.Cheats != null) amount = combat.Cheats.Power(amount);   // 개발자 치트: 한 방
         int before = Health;
         Health -= Combat.CalcDamage(amount + combat.BonusAttack, Defense);
         HitAt = Time.time;
@@ -265,17 +264,6 @@ public partial class KongBoss : MonoBehaviour
         return true;
     }
 
-    // 개발자 치트(DevCheats): 싸우지 않고 해결된 것으로 둔다(`purify`: 정화).
-    public void SkipFight(bool purify)
-    {
-        if (Resolved || body == null) return;
-        Now = purify ? Phase.Purified : Phase.Slain; DownAt = PurifiedAt = Time.time - 10; HandedBack = true; PurifiedX = WorldBuilder.Kongjwi.x;
-        body.simulated = false; EndFight(); View.Focus(0, 0);
-        // 기본 카메라 배율 복구
-        View.Zoom(1f, 0f);
-        if (combat.Quest != null) combat.Quest.progress.ResolveKong(purify);
-        if (combat.Kong != null) { combat.Kong.Release(); if (purify) combat.Kong.Place(KongVillage.Who.Kongjwi, WorldBuilder.Kongjwi.x); }
-    }
     public bool Near => Fighting && Mathf.Abs(PlayerX - Feet.x) < PurifyRange && Mathf.Abs(combat.player.transform.position.y - (Feet.y + 1)) < 2.6f;
     // 은비녀: F로(`take`: 여기서 보따리에서 뺀다) 또는 보따리에서 사용(보따리가 직접 뺀다).
     public bool TryPurify(bool take, out string why)

@@ -71,7 +71,6 @@ public static partial class JinaPlayChecks
                 CheckKongBoss();
                 Polish();
                 Hanyang();
-                CheatPanel();
                 RoadShops();
                 PlayerFall();
                 Endings();

@@ -23,12 +23,6 @@ public static partial class JinaPlayChecks
         }
         Check(KongVillage.TownLines(Who.Halmi,false,false)[1].Contains("두꺼비"),"The grandmother remembers the toad of the old tale");
 
-        // The developer's F9: the dokkaebi purified as if played through, and the seonbi at the ferry.
-        Check(combat.Cheats.SkipToFerry() && q.Outcome==EncounterOutcome.Purified && q.Honor==30 && combat.Camp.Remaining==0 && combat.BossPurified
-            && combat.Maps.Current==Maps.Index(WorldBuilder.Ferryman.x) && Mathf.Abs(player.position.x-DevCheats.FerrySpot.x)<.01f,"F9 finishes the purification route and moves him to the ferry");
-        Check(combat.Cheats.SkipToFerry() && q.Honor==30,"Pressed again it only moves him");
-        combat.Restart();
-
         // The back hill: a map of its own past the pass, ground at several heights, ledges stacked high, crocks for cover.
         Check(Maps.Index(WorldBuilder.KongLair)==7 && WorldBuilder.GoalX>WorldBuilder.ManorStart && WorldBuilder.Top(WorldBuilder.GoalX)==-.5f,"The back hill past the pass, the road to the examination far beyond it");
         float highest=0; foreach(var l in WorldBuilder.HillLedges) highest=Mathf.Max(highest,l.top);
