@@ -421,5 +421,6 @@ public class TavernWallet
     }
     public void Refund(int basePrice, QuestProgress quest = null) { Coins += ShopRules.Price(basePrice, quest); }
     public void Earn(int amount) { Coins += amount; }
+    public void SetCoins(int amount) { Coins = Mathf.Max(0, amount); }
     public void Reset() { Coins = 30; }
 }

@@ -70,6 +70,12 @@ public partial class Combat : MonoBehaviour
     // ── 무기: 1·2칸 장착(보따리 무기 탭), S로 전환. 수치는 Weapon.cs ──
     public readonly string[] EquippedWeapons = { "dagger", "bow" };
     public int ActiveWeaponSlot { get; private set; }
+    public void RestoreActiveWeaponSlot(int slot)
+    {
+        ActiveWeaponSlot = Mathf.Clamp(slot, 0, 1);
+        if (EquippedWeapons[ActiveWeaponSlot] == null && EquippedWeapons[1 - ActiveWeaponSlot] != null)
+            ActiveWeaponSlot = 1 - ActiveWeaponSlot;
+    }
     public string CurrentWeapon => EquippedWeapons[ActiveWeaponSlot] ?? EquippedWeapons[1 - ActiveWeaponSlot] ?? "dagger";
     public Weapon.Stats CurrentStats => Weapon.Get(CurrentWeapon);
     // 악행 = 선악 값이 음수일 때 그 크기 (선악 -25 → 악행 25)
@@ -113,6 +119,7 @@ public partial class Combat : MonoBehaviour
     public int Arrows { get; private set; } = ShopRules.MaxArrows;
     private float noArrowsUntil;
     public void AddArrows(int amount) { Arrows = Mathf.Clamp(Arrows + amount, 0, ShopRules.MaxArrows); }
+    public void SetArrowsFromSave(int amount) { Arrows = Mathf.Clamp(amount, 0, ShopRules.MaxArrows); noArrowsUntil = 0; ClearArrows(); }
     public IntroNarration Intro { get; private set; }
     public EndingNarration Ending { get; private set; }
     public GameOver GameOver { get; private set; }
