@@ -86,7 +86,8 @@ public class Player : MonoBehaviour
         if (horizontal != 0) Facing = horizontal > 0 ? 1 : -1;
         IsRunning = horizontal != 0 && (Input.GetKey(runKey) || Input.GetKey(KeyCode.RightShift));
         if (Input.GetKeyDown(KeyCode.Space)) jumpRequestedUntil = Time.time + 0.12f;
-        if (Input.GetKeyDown(KeyCode.R) || transform.position.y < -8f)
+        // 세상 밖으로 떨어지면 처음부터(R로 다시 시작하는 것은 게임 오버·결말 화면에서만, Combat)
+        if (transform.position.y < -8f)
         {
             var combat = FindObjectOfType<Combat>();
             if (combat != null) combat.Restart();

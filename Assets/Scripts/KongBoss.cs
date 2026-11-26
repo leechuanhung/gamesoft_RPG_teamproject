@@ -155,6 +155,20 @@ public partial class KongBoss : MonoBehaviour
         View.Zoom(1f, 0f);
     }
 
+    // 불러온 진행(KongOutcome)에 요괴를 맞춘다: 해결됐으면 싸움 없이 그 결과로(연출은 끝난 것으로), 아니면 뒷산에서 기다림.
+    public void MatchProgress(EncounterOutcome outcome)
+    {
+        if (body == null) return;
+        if (outcome == EncounterOutcome.Unresolved) { if (Now != Phase.Waiting) ResetBoss(); return; }
+        bool purify = outcome == EncounterOutcome.Purified;
+        if (Now == (purify ? Phase.Purified : Phase.Slain)) return;
+        Now = purify ? Phase.Purified : Phase.Slain; Health = 0;
+        DownAt = PurifiedAt = Time.time - 10; HandedBack = true; PurifiedX = WorldBuilder.Kongjwi.x;
+        body.simulated = false; EndFight(); View.Focus(0, 0);
+        View.Zoom(1f, 0f);
+        if (combat.Kong != null) { combat.Kong.Release(); if (purify) combat.Kong.Place(KongVillage.Who.Kongjwi, WorldBuilder.Kongjwi.x); }
+    }
+
     float PlayerX => combat.player.transform.position.x;
     bool HasKeepsake => JinaItems.Inventory != null && JinaItems.Inventory.GetQuantity(JinaItems.Keepsake) > 0;
     // 콩쥐가 (뒷산이 아니라) 마을에 있음: 싸우기 전 선비가 뒷산을 볼 수 없을 때,

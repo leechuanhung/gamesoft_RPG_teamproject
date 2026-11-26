@@ -414,7 +414,9 @@ public partial class Combat : MonoBehaviour
         JinaItems.UpdateEffects(this);
         // The intro plays once per launch; R does not replay or interrupt it.
         if (Intro != null && Intro.IsPlaying) return;
-        if (Input.GetKeyDown(KeyCode.R)) { if (PlayerHealth <= 0 && CanRetryOnRoad) RestartOnRoad(); else if (PlayerHealth <= 0 && CanRetryAtHill) RestartAtHill(); else Restart(); }
+        // R은 쓰러졌을 때(게임 오버)와 결말 뒤에만: 플레이 중에 눌러 처음부터 초기화되지 않는다.
+        bool canRestart = PlayerHealth <= 0 || (Ending != null && Ending.Active);
+        if (canRestart && Input.GetKeyDown(KeyCode.R)) { if (PlayerHealth <= 0 && CanRetryOnRoad) RestartOnRoad(); else if (PlayerHealth <= 0 && CanRetryAtHill) RestartAtHill(); else Restart(); }
         if (PlayerHealth <= 0) return;
         if (Paused)
         {

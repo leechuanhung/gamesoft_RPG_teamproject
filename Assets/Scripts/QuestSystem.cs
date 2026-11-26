@@ -332,6 +332,33 @@ public class QuestSystem : MonoBehaviour
         }
     }
 
+    // 저장(PlayerSave): 퀘스트마다 상태, 아이의 부탁에서 잡은 수, 뱃사공에게 이미 들었는지.
+    public SideQuestSaveData Capture()
+    {
+        var data = new SideQuestSaveData { saved = true, ferrymanTold = ferrymanTold,
+            childKills = IsActive(ChildQuest) && combat.GraveGhosts != null ? ChildKills : 0 };
+        var ids = new List<string>(); var states = new List<int>();
+        foreach (var pair in quests) { ids.Add(pair.Key); states.Add((int)pair.Value.state); }
+        data.ids = ids.ToArray(); data.states = states.ToArray();
+        return data;
+    }
+
+    // 불러오기: 상태를 되살리고, 아이의 부탁은 잡은 수가 그대로 보이도록 기준을 다시 잡는다.
+    public void Restore(SideQuestSaveData data)
+    {
+        if (data == null || !data.saved || data.ids == null || data.states == null) return;
+        if (hutOpen && combat.player != null) combat.player.CanMove = combat.PlayerHealth > 0;   // 열려 있던 초가 대화는 닫는다
+        hutOpen = hutAsking = hutClosing = false;
+        ferrymanTold = data.ferrymanTold;
+        for (int i = 0; i < data.ids.Length && i < data.states.Length; i++)
+            if (quests.TryGetValue(data.ids[i], out var q)) q.state = (State)data.states[i];
+        if (IsActive(ChildQuest) && combat.GraveGhosts != null && combat.Mobs != null)
+        {
+            graveKillsAtAccept = combat.GraveGhosts.Kills - data.childKills;
+            roadAliveAtAccept = GraveRoadAlive();
+        }
+    }
+
     void ResetQuests()
     {
         expanded = true;
