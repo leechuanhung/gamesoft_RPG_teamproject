@@ -73,6 +73,14 @@ public class QuestProgress
         if (purify) HasCharm = false;
         return true;
     }
+    // 저장 파일에서 진행을 그대로 되살린다(PlayerSave).
+    public void Restore(bool heardClue, bool hasCharm, int puzzleStep, EncounterOutcome outcome, int honor, bool elderDead,
+        EncounterOutcome kongOutcome, int villagersLost, EncounterOutcome finalOutcome)
+    {
+        HeardClue = heardClue; HasCharm = hasCharm; PuzzleStep = System.Math.Max(0, System.Math.Min(puzzleStep, sequence.Length));
+        Outcome = outcome; Honor = honor; ElderDead = elderDead;
+        KongOutcome = kongOutcome; VillagersLost = villagersLost; FinalOutcome = finalOutcome;
+    }
     // 재시작: 진행 상태를 모두 처음으로.
     public void Reset()
     {

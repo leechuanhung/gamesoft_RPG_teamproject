@@ -21,7 +21,7 @@
 
 | 파일 | 맡은 일 |
 |---|---|
-| `Combat.cs` | 능력치 상수(선비 체력 100·공격력 10, 도깨비 200·20, 일반 몬스터 30·10, 피해=공격력−방어력, 최소 1), 선비 체력·공격·피격(`PlayerHurtAt`), 재시작(`Restart`, 콩쥐를 만난 뒤 죽으면 뒷산 입구 체크포인트 `RestartAtHill`·`Checkpoint`), `Paused`, 아래 관리 컴포넌트를 붙인다 (모두 같은 오브젝트) |
+| `Combat.cs` | 능력치 상수(선비 체력 100·공격력 10, 도깨비 200·20, 일반 몬스터 30·10, 피해=공격력−방어력, 최소 1), 선비 체력·공격·피격(`PlayerHurtAt`), 재시작(`Restart`, R은 게임 오버·결말 뒤에만, 콩쥐를 만난 뒤 죽으면 뒷산 입구 체크포인트 `RestartAtHill`·`Checkpoint`), `Paused`, 아래 관리 컴포넌트를 붙인다 (모두 같은 오브젝트) |
 | `Combat.Boss.cs` | 보스 상태·추격·근접 공격·돌진·도약(`BossMove`), 토벌(`DamageEnemy`)·정화(`TryPurifyBoss`) |
 | `Skills.cs`, `DashSlashAttack.cs`, `Combat.DashSlash.cs` (팀원) | 스킬 칸 Q 물러서기(무적만, `StartDash(..., slash: false)`)·W 돌진베기. 돌진베기 피해는 돌진하는 동안 `ApplyDashSlash` 한 곳에서만 하나마다 한 번(도깨비·콩쥐 요괴·유령·뒷산의 독) |
 | `Combat.Arrows.cs` | 마우스 조준(`pendingAngle`: 바라보는 쪽 기준 −90~90°, `AimDirection`, 겨눈 그림 고르기 `AimBucket`: 활 15°·칼 30°마다, 몸 기울기 `AimLean`, 그려진 시위 자리 `ArrowLaunch`), 발사(`Shoot`, 커서 각도 그대로), 비행·명중, 발판 통과(`Wall`) |

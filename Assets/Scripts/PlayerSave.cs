@@ -21,6 +21,31 @@ public class PlayerSaveData
     public SkillEntrySaveData[] ownedSkills;
     public string[] equippedSkillIds;
     public int keepsakeCount, wispCount;
+    public StorySaveData story;
+    public SideQuestSaveData sideQuests;
+}
+
+// 서브 퀘스트(QuestSystem): 퀘스트 id와 상태(State), 아이의 부탁에서 잡은 수, 뱃사공에게 이미 들었는지.
+[Serializable]
+public class SideQuestSaveData
+{
+    public bool saved;
+    public string[] ids;
+    public int[] states;
+    public int childKills;
+    public bool ferrymanTold;
+}
+
+// 이야기 진행(QuestProgress): 도깨비·콩쥐 요괴·좌의정을 어떻게 해결했는지, 선악, 노인, 부적, 잃은 마을 사람.
+//   이게 없으면 불러온 뒤 앞의 보스가 "해결 안 됨"이 되어 좌의정을 쓰러뜨려도 결말이 열리지 않았다.
+//   JsonUtility는 없는 칸도 빈 객체로 채우므로, 옛 저장 파일인지는 `saved`로 가린다.
+[Serializable]
+public class StorySaveData
+{
+    public bool saved;
+    public bool heardClue, hasCharm, elderDead;
+    public int puzzleStep, honor, villagersLost;
+    public int outcome, kongOutcome, finalOutcome;   // EncounterOutcome
 }
 
 [Serializable]
@@ -98,7 +123,9 @@ public class PlayerSave : MonoBehaviour
             equippedWeaponIds = combat.EquippedWeapons,
             activeWeaponSlot = combat.ActiveWeaponSlot,
             coins = CaptureCoins(),
-            arrows = combat.Arrows
+            arrows = combat.Arrows,
+            story = CaptureStory(),
+            sideQuests = combat.SideQuests != null ? combat.SideQuests.Capture() : null
         };
 
         try { File.WriteAllText(SavePath, JsonUtility.ToJson(data, true)); }
@@ -134,6 +161,8 @@ public class PlayerSave : MonoBehaviour
             combat.player.RestoreStamina(savedStamina);
         }
         int bossCount = RestoreBosses(data.bosses);
+        RestoreStory(data.story);   // 보스 체력 뒤에: 진행에 맞춰 보스 상태를 다시 맞춘다
+        if (combat.SideQuests != null) combat.SideQuests.Restore(data.sideQuests);
         RestoreSkills(data.ownedSkills, data.equippedSkillIds);
         int skillCount = RestoreSkillCooldowns(data.skillCooldowns);
         int itemCount = RestoreInventory(data.inventoryItems);
@@ -144,6 +173,31 @@ public class PlayerSave : MonoBehaviour
         combat.SetArrowsFromSave(data.arrows);
         Debug.Log($"불러왔습니다. 보스 {bossCount}마리, 스킬 쿨타임 {skillCount}개, 아이템 종류 {itemCount}개와 무기를 복원했습니다.");
         return true;
+    }
+
+    private StorySaveData CaptureStory()
+    {
+        if (combat == null || combat.Quest == null) return null;
+        var q = combat.Quest.progress;
+        return new StorySaveData
+        {
+            saved = true,
+            heardClue = q.HeardClue, hasCharm = q.HasCharm, elderDead = q.ElderDead,
+            puzzleStep = q.PuzzleStep, honor = q.Honor, villagersLost = q.VillagersLost,
+            outcome = (int)q.Outcome, kongOutcome = (int)q.KongOutcome, finalOutcome = (int)q.FinalOutcome
+        };
+    }
+
+    // 진행을 되살리고, 세 보스(도깨비·콩쥐 요괴·좌의정)를 그 진행에 맞춘다.
+    private void RestoreStory(StorySaveData story)
+    {
+        if (story == null || !story.saved || combat == null || combat.Quest == null) return;
+        var q = combat.Quest.progress;
+        q.Restore(story.heardClue, story.hasCharm, story.puzzleStep, (EncounterOutcome)story.outcome, story.honor, story.elderDead,
+            (EncounterOutcome)story.kongOutcome, story.villagersLost, (EncounterOutcome)story.finalOutcome);
+        combat.MatchBossToProgress();
+        if (combat.KongBoss != null) combat.KongBoss.MatchProgress(q.KongOutcome);
+        if (combat.FinalBoss != null) combat.FinalBoss.MatchProgress(q.FinalOutcome);
     }
 
     private InventoryItemSaveData[] CaptureInventory()

@@ -89,6 +89,17 @@ public partial class FinalBoss : MonoBehaviour
         return art;
     }
 
+    // 불러온 진행(FinalOutcome)에 좌의정을 맞춘다: 쓰러뜨렸으면 시신으로(연출은 끝난 것으로), 아니면 누각에서 기다림.
+    public void MatchProgress(EncounterOutcome outcome)
+    {
+        if (picture == null) return;
+        if (outcome == EncounterOutcome.Unresolved) { if (Now != Phase.Waiting) ResetBoss(); return; }
+        if (Now == Phase.Slain) return;
+        Now = Phase.Slain; Health = 0; DownAt = Time.time - 10;
+        EndFight(); View.Focus(0, 0); View.Zoom(1f, 0f);
+        if (combat.Mobs != null) combat.Mobs.Disband(Maps.Index(Home));
+    }
+
     // 재시작: 좌의정이 누각에서 기다리는 상태로.
     public void ResetBoss()
     {

@@ -218,6 +218,39 @@ public partial class Combat
         return true;
     }
 
+    // 불러온 진행(Quest.progress.Outcome)에 도깨비를 맞춘다: 토벌이면 쓰러진 채, 정화면 정화된 채, 아니면 숲에서 기다림.
+    //   연출은 이미 끝난 것으로 둔다(10초 전). 방망이는 떨어뜨리지 않는다(무기는 저장 파일이 따로 되살림).
+    public void MatchBossToProgress()
+    {
+        if (Quest == null || enemy == null) return;
+        var outcome = Quest.progress.Outcome;
+        windupUntil = -1; bossRecoveryUntil = 0; playerImpactAt = -1;
+        if (Move != BossMove.None) EndMove(0);
+        if (outcome == EncounterOutcome.Slain)
+        {
+            EnemyHealth = 0;
+            if (BossDownAt < 0) BossDownAt = Time.time - 10;
+            PurifiedAt = -1;
+        }
+        else if (outcome == EncounterOutcome.Purified)
+        {
+            if (PurifiedAt < 0) PurifiedAt = Time.time - 10;
+            BossDownAt = -1;
+            enemy.enabled = true;
+            enemy.color = new Color(.8f, .2f, .25f);
+            alerted = false; strikeElder = false;
+        }
+        else
+        {
+            if (EnemyHealth <= 0) EnemyHealth = EnemyMaxHealth;
+            BossDownAt = PurifiedAt = -1;
+            enemy.enabled = true;
+            enemyReadyAt = Time.time + 1;
+        }
+        var visual = enemy.GetComponent<JinaActorVisual>();
+        if (visual != null) visual.Refresh();
+    }
+
     // 도깨비에게 피해를 준다. 체력이 다하면 토벌.
     void DamageEnemy(int amount = ArrowDamage)
     {
