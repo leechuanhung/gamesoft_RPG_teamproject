@@ -7,6 +7,7 @@ using System.Collections.Generic;
 public partial class Combat : MonoBehaviour
 {
     public bool InventoryPauseActive { get; set; }
+    public bool SettingsPauseActive { get; set; }
     public event System.Action Restarted;
     public Player player;
     public const int MaxPlayerHealth = 100;
@@ -208,7 +209,7 @@ public partial class Combat : MonoBehaviour
         if (Maps != null) Maps.Jump();
         RevivedOnRoadAt = Time.time;
     }
-    public bool Paused => (KongBoss != null && KongBoss.Cutscene) || (FinalBoss != null && FinalBoss.Cutscene) || (Town != null && Town.IsOpen) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || (Lore != null && Lore.WispAsking) || InventoryPauseActive || (Cheats != null && Cheats.Open);
+    public bool Paused => (KongBoss != null && KongBoss.Cutscene) || (FinalBoss != null && FinalBoss.Cutscene) || (Town != null && Town.IsOpen) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || (Lore != null && Lore.WispAsking) || InventoryPauseActive || SettingsPauseActive || (Cheats != null && Cheats.Open);
     public void SetPlayerHealthFromSave(int health)
     {
         PlayerHealth = Mathf.Clamp(health, 0, MaxPlayerHealth);
@@ -304,6 +305,11 @@ public partial class Combat : MonoBehaviour
         // 팀원이 만든 배경 음악과 효과음
         Audio = gameObject.AddComponent<GameAudio>();
         Audio.combat = this;
+        PlayerSave save = gameObject.GetComponent<PlayerSave>();
+        if (save == null) save = gameObject.AddComponent<PlayerSave>();
+        SettingsUI settings = gameObject.GetComponent<SettingsUI>();
+        if (settings == null) settings = gameObject.AddComponent<SettingsUI>();
+        settings.Initialize(this, save);
     }
 
     SpriteRenderer MakeSprite(string label, Vector2 size, Color color)

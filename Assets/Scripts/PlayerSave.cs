@@ -71,13 +71,13 @@ public class PlayerSave : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.F1)) Save();
-        if (Input.GetKeyDown(KeyCode.F2)) Load();
+        if (Input.GetKeyDown(KeyCode.F1)) SaveGame();
+        if (Input.GetKeyDown(KeyCode.F2)) LoadGame();
     }
 
-    private void Save()
+    public bool SaveGame()
     {
-        if (!CanAccessPlayer()) return;
+        if (!CanAccessPlayer()) return false;
 
         PlayerSaveData data = new PlayerSaveData
         {
@@ -101,24 +101,28 @@ public class PlayerSave : MonoBehaviour
             arrows = combat.Arrows
         };
 
-        File.WriteAllText(SavePath, JsonUtility.ToJson(data, true));
+        try { File.WriteAllText(SavePath, JsonUtility.ToJson(data, true)); }
+        catch (Exception e) { Debug.LogError($"저장하지 못했습니다: {e.Message}"); return false; }
         Debug.Log($"저장했습니다: {SavePath} (보스 {data.bosses.Length}마리)");
+        return true;
     }
 
-    private void Load()
+    public bool LoadGame()
     {
         if (!File.Exists(SavePath))
         {
             Debug.Log("저장 파일이 없습니다.");
-            return;
+            return false;
         }
-        if (!CanAccessPlayer()) return;
+        if (!CanAccessPlayer()) return false;
 
-        PlayerSaveData data = JsonUtility.FromJson<PlayerSaveData>(File.ReadAllText(SavePath));
+        PlayerSaveData data;
+        try { data = JsonUtility.FromJson<PlayerSaveData>(File.ReadAllText(SavePath)); }
+        catch (Exception e) { Debug.LogError($"저장 파일을 읽지 못했습니다: {e.Message}"); return false; }
         if (data == null)
         {
             Debug.LogError("저장 파일을 읽을 수 없습니다.");
-            return;
+            return false;
         }
 
         player.position = new Vector3(data.x, data.y, data.z);
@@ -139,6 +143,7 @@ public class PlayerSave : MonoBehaviour
         RestoreCoins(data.coins);
         combat.SetArrowsFromSave(data.arrows);
         Debug.Log($"불러왔습니다. 보스 {bossCount}마리, 스킬 쿨타임 {skillCount}개, 아이템 종류 {itemCount}개와 무기를 복원했습니다.");
+        return true;
     }
 
     private InventoryItemSaveData[] CaptureInventory()
