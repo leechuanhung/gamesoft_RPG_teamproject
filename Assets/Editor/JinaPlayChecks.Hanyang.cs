@@ -205,12 +205,11 @@ public static partial class JinaPlayChecks
         combat.RestartOnRoad();
         Check(combat.PlayerHealth==Combat.MaxPlayerHealth && Mathf.Abs(player.position.x-(WorldBuilder.FortStart+1.5f))<.01f && combat.Maps.Current==8,"He rises at the fortress");
 
-        // The developer's F10 and F11.
+        // The wicked road: honour −60 brings the third rank to the station.
         combat.Restart();
-        Check(combat.Cheats.SkipToRoad(false) && q.Honor==80 && combat.KongBoss.Resolved && combat.BossPurified && combat.Maps.Current==8,"F10: the good road to the fortress");
-        combat.Restart();
-        Check(combat.Cheats.SkipToRoad(true) && q.Honor==-60 && RoadMobs.Rank(q.Honor)==3 && combat.KongBoss.Resolved && combat.EnemyDefeated && combat.Maps.Current==9,"F11: the wicked road to the station");
-        Call(mobs);
+        Set(combat.KongBoss,"<Now>k__BackingField",KongBoss.Phase.Slain); q.AddHonor(-60);
+        Goto(WorldBuilder.FortEnd+1.5f); Call(mobs);
+        Check(RoadMobs.Rank(q.Honor)==3 && combat.Maps.Current==9,"Honour −60 on the road to the station");
         Check(mobs.SoldiersAlive(9)==RoadMobs.Squad(3).blades+RoadMobs.Squad(3).bows,"…where the third rank waits");
         Capture("road-soldiers-rank3",new Vector3(player.position.x+6,1.6f,-10),4.5f);
 
@@ -273,53 +272,6 @@ public static partial class JinaPlayChecks
         while(brute.Alive) mobs.Hit(brute,Combat.SwordDamage);
         brute.downAt=Time.time-RoadMobs.DownLength-.7f; Call(mobs);
         Check(brute.Alive && brute.hp==brute.max && Mathf.Abs(brute.pos.y-WorldBuilder.Top(brute.pos.x))<.01f,"So does a dueoksini, on the ground");
-        combat.Restart();
-    }
-
-    // The developer's cheat window (F8): it holds the game while open, and each number does its one thing.
-    static void CheatPanel()
-    {
-        combat.Restart();
-        var cheats=combat.Cheats; var q=combat.Quest.progress; var mobs=combat.Mobs;
-        cheats.Show();
-        Check(cheats.Open && combat.Paused && !combat.player.CanMove && cheats.Lines().Length>=12,"F8 opens the cheat window and holds the game");
-        cheats.Close();
-        Check(!cheats.Open && !combat.Paused && combat.player.CanMove,"Closing it lets him move");
-        // 1: nothing hurts him.
-        cheats.Use(1); Set(combat,"invulnerableUntil",0f); combat.HurtPlayer(50);
-        Check(cheats.God && combat.PlayerHealth==Combat.MaxPlayerHealth,"God mode: no blow lands");
-        cheats.Use(1); combat.HurtPlayer(50);
-        Check(!cheats.God && combat.PlayerHealth==Combat.MaxPlayerHealth-50,"Turned off, blows land again");
-        // 3: full health, stamina and arrows.
-        combat.player.UseStamina(40); combat.AddArrows(-10); cheats.Use(3);
-        Check(combat.PlayerHealth==Combat.MaxPlayerHealth && combat.player.Stamina==combat.player.MaxStamina && combat.Arrows==ShopRules.MaxArrows,"Refilled");
-        // 4: coins. 5, 6: honour, which moves the soldiers' rank.
-        int coins=combat.Tavern.wallet.Coins; cheats.Use(4);
-        Check(combat.Tavern.wallet.Coins==coins+DevCheats.CoinGift,"Coins given");
-        cheats.Use(6); cheats.Use(6); cheats.Use(6);
-        Check(q.Honor==-30 && RoadMobs.Rank(q.Honor)==2,"Honour down: soldiers of the second rank");
-        cheats.Use(5); cheats.Use(5); cheats.Use(5);
-        Check(q.Honor==0,"Honour back up");
-        // 7, 8: one map left or right.
-        int here=combat.Maps.Current; cheats.Use(8);
-        Check(combat.Maps.Current==here+1 && !combat.Maps.Travelling,"Next map");
-        cheats.Use(7);
-        Check(combat.Maps.Current==here,"Previous map");
-        // 2: one hit fells anything.
-        cheats.GoMap(9);
-        RoadMobs.Mob brute=null; foreach(var m in mobs.mobs) if(m.kind==RoadMobs.Kind.Brute && m.map==9) { brute=m; break; }
-        cheats.Use(2); mobs.Hit(brute,1);
-        Check(cheats.OneHit && !brute.Alive,"One hit fells a dueoksini");
-        cheats.Use(2);
-        // 9: everything on this map.
-        cheats.Use(9);
-        Check(mobs.Alive(9)==0 && combat.StationGhosts.Remaining==0,"The station's monsters and ghosts all fall");
-        // 0: the fortress opens.
-        cheats.Use(0);
-        Check(combat.Fort.Open,"The beacon fortress is solved");
-        // F12: straight to the councillor's house.
-        Check(cheats.SkipToManor() && combat.Maps.Current==13 && combat.FinalBoss.Now==FinalBoss.Phase.Waiting,"F12: to the councillor's gate");
-        Check(!cheats.God && !cheats.OneHit,"Toggles left off for the checks after");
         combat.Restart();
     }
 

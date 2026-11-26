@@ -217,13 +217,6 @@ public class UiShots : MonoBehaviour
         yield return new WaitForSecondsRealtime(2.5f);
         foreach (var m in combat.Mobs.mobs) if (m.soldier) { combat.Mobs.Hit(m, 999); break; }
         yield return Shot("names_and_soldier_death");
-        // 개발자 치트 창(F8)과 켜진 치트 표시.
-        Fresh(0);
-        combat.Cheats.Show(); combat.Cheats.Use(1); combat.Cheats.Use(2);
-        yield return Shot("cheat_panel");
-        combat.Cheats.Close();
-        yield return Shot("cheat_on");
-        combat.Cheats.Use(1); combat.Cheats.Use(2);
     }
     // 콩쥐 요괴 장면들을 찍는다.
     IEnumerator ShootKongBoss()

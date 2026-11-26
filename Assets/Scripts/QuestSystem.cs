@@ -113,7 +113,7 @@ public class QuestSystem : MonoBehaviour
             if (!JinaItems.Grant("yakgwa", ChildYakgwa))
                 return new[] { "선비님께 드릴 약과가 있어요! 보따리에 자리가 나면 다시 와 주세요." };
             Complete(ChildQuest);
-            combat.Quest.progress.CheatHonor(ChildHonor);
+            combat.Quest.progress.AddHonor(ChildHonor);
             combat.PreserveQuestHonor(ChildHonor);
             return new[] { "와아! 이제 친구들이랑 놀러 갈 수 있겠어요. 고마워요, 선비님!",
                 "엄마가 저 먹으라고 주신 약과인데, 선비님 드릴래요. 꼭 받아 주세요!" };
@@ -177,7 +177,7 @@ public class QuestSystem : MonoBehaviour
         if (AtOrb)
         {
             if (JinaItems.Inventory == null || !JinaItems.Inventory.TryAdd(JinaItems.SuspiciousOrb)) return;
-            combat.Quest.progress.CheatHonor(OrbHonor);
+            combat.Quest.progress.AddHonor(OrbHonor);
             combat.PreserveQuestHonor(OrbHonor);
             OpenHut("오두막 안쪽에 놓인 구슬을 챙겼다.");
         }

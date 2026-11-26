@@ -11,7 +11,7 @@ using UnityEngine;
 public class GameAudio : MonoBehaviour
 {
     public const float MusicVolume = .5f, SfxVolume = .8f, CrossFade = 1.2f;
-    // 지켜보던 시각이 이만큼 넘게 지난 뒤에야 알았으면(검사·치트로 옮겨 놓은 시각) 울리지 않는다.
+    // 지켜보던 시각이 이만큼 넘게 지난 뒤에야 알았으면(검사로 옮겨 놓은 시각) 울리지 않는다.
     public const float Stale = .5f;
     public enum Sfx
     {

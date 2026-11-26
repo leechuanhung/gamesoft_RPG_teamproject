@@ -181,7 +181,6 @@ public partial class FinalBoss : MonoBehaviour
     public bool Damage(int amount)
     {
         if (!Fighting) return false;
-        if (combat.Cheats != null) amount = combat.Cheats.Power(amount);   // 개발자 치트: 한 방
         int before = Health;
         Health = Mathf.Max(0, Health - Combat.CalcDamage(amount + combat.BonusAttack, Defense));
         HitAt = Time.time;

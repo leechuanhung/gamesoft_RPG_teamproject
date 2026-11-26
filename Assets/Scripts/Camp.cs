@@ -63,13 +63,6 @@ public class Camp : MonoBehaviour
     private GameObject gate;
     public int Remaining { get { int n = 0; foreach (var m in mobs) if (m.hp > 0) n++; return n; } }
 
-    // 치트: 처치 수를 채워 봉인을 바로 푼다.
-    public void Unseal()
-    {
-        Kills = Mathf.Max(Kills, SealKills);
-        if (gate != null) gate.SetActive(false);
-    }
-
     // 들판의 수호 유령들을 만든다.
     public void Initialize(Combat owner, Sprite sprite)
     {
@@ -172,7 +165,6 @@ public class Camp : MonoBehaviour
     public void Hit(Mob m, int damage = Combat.ArrowDamage)
     {
         if (m == null || m.hp <= 0) return;
-        if (combat != null && combat.Cheats != null) damage = combat.Cheats.Power(damage);   // 개발자 치트: 한 방
         int before = m.hp;
         m.hp -= Combat.CalcDamage(damage + (combat != null ? combat.BonusAttack : 0), JinaItems.RopeDefense(m, m.defense, combat));
         var at = m.art.transform.position;

@@ -170,7 +170,6 @@ public class RoadMobs : MonoBehaviour
     public void Hit(Mob m, int damage)
     {
         if (m == null || !m.Alive) return;
-        if (combat != null && combat.Cheats != null) damage = combat.Cheats.Power(damage);   // 개발자 치트: 한 방
         int before = m.hp;
         m.hp = Mathf.Max(0, m.hp - Combat.CalcDamage(damage + (combat != null ? combat.BonusAttack : 0), JinaItems.RopeDefense(m, m.defense, combat)));
         m.hurtAt = Time.time;
