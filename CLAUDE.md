@@ -62,7 +62,7 @@
 | `SeonbiVisual.cs` | 선비 프레임(걷기·달리기·점프·공격·조준·쓰러짐) |
 | `ActorVisuals.cs` (`JinaActorVisual` ← `BossVisual`, `ElderVisual`, `PeddlerVisual`, `KeeperVisual`, `FerrymanVisual`, `VillagerVisual`, `GhostVisual`, 그리고 `MonsterVisual`) | 원래 사각형 위에 그림을 얹는 공통 바탕. 하위 클래스가 `Pose`에서 이번 `Frame`을 고친다 |
 
-- `Paused`는 인트로·결말·조우·대화·상점·콩밭 하룻밤 연출·콩쥐 요괴와 좌의정의 대화와 변신·한양 사람과의 대화 중에 true다. 그동안 보스와 몬스터가 멈추고 `SeonbiVisual`이 자세를 초기화한다.
+- `Paused`는 Esc 설정 메뉴(`SettingsUI`, 창을 닫는 Esc로는 열리지 않음)·인트로·결말·조우·대화·상점·콩밭 하룻밤 연출·콩쥐 요괴와 좌의정의 대화와 변신·한양 사람과의 대화 중에 true다. 그동안 보스와 몬스터가 멈추고 `SeonbiVisual`이 자세를 초기화한다.
 - 연출은 시작 시각으로 재생한다: `BossDownAt`, `PurifiedAt`, `PlayerDownAt`, `Quest.ElderStruckAt`, `Village.AlarmAt`·`ClearAt`, `GhostVisual.DownAt`.
 - 쓰러져 기우는 그림(노인, 선비)은 부모 없이 둔다. 크기가 비균일한 사각형 아래에서 돌리면 찌그러진다. `JinaArt.Place`는 그림의 실제 부모 크기를 되돌린다.
 - 대화 중인 인물은 선비 쪽을 본다(`JinaActorVisual.native`: 보부상 −1, 나머지 +1). 노인 시체는 맞은 순간의 방향으로 고정된다.

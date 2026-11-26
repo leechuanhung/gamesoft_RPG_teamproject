@@ -25,9 +25,14 @@ public class SettingsUI : MonoBehaviour
             return;
         }
 
-        if (Input.GetKeyDown(KeyCode.Escape) && !combat.Paused && combat.PlayerHealth > 0)
+        // 대화·상점·보따리 같은 창을 닫는 Esc는 메뉴를 열지 않는다. 그 창이 이 스크립트보다 먼저 닫혔을 수 있어서
+        // (상점은 실행 순서가 앞선다) 지난 프레임에 멈춰 있었는지도 본다.
+        bool pausedNow = combat.Paused;
+        if (Input.GetKeyDown(KeyCode.Escape) && !pausedNow && !wasPaused && combat.PlayerHealth > 0)
             Open();
+        wasPaused = pausedNow;
     }
+    private bool wasPaused;
 
     private void Open()
     {

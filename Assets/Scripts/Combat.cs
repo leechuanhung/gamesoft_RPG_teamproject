@@ -227,7 +227,8 @@ public partial class Combat : MonoBehaviour
         RevivedOnRoadAt = Time.time;
     }
     public QuestSystem SideQuests { get; set; }
-    public bool Paused => (SideQuests != null && SideQuests.IsDialogOpen) || (Puzzles != null && Puzzles.IsOpen) || (KongBoss != null && KongBoss.Cutscene) || (FinalBoss != null && FinalBoss.Cutscene) || (Town != null && Town.IsOpen) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || (Lore != null && Lore.WispAsking) || InventoryPauseActive || (Cheats != null && Cheats.Open);
+    // Esc 설정 메뉴(SettingsUI)가 열린 동안도 멈춤: 메뉴 위의 클릭이 뒤의 대화·상점을 열거나 공격하지 않는다.
+    public bool Paused => SettingsPauseActive || (SideQuests != null && SideQuests.IsDialogOpen) || (Puzzles != null && Puzzles.IsOpen) || (KongBoss != null && KongBoss.Cutscene) || (FinalBoss != null && FinalBoss.Cutscene) || (Town != null && Town.IsOpen) || (Intro != null && Intro.IsPlaying) || (Ending != null && Ending.Active) || (Encounter != null && Encounter.Playing) || (BossTalk != null && BossTalk.IsOpen) || (Quest != null && Quest.IsDialogOpen) || (Tavern != null && Tavern.IsOpen) || (Peddler != null && Peddler.IsOpen) || (Ferry != null && Ferry.IsOpen) || (Kong != null && Kong.IsOpen) || (Stay != null && Stay.Playing) || (Lore != null && Lore.WispAsking) || InventoryPauseActive || (Cheats != null && Cheats.Open);
     public void SetPlayerHealthFromSave(int health)
     {
         PlayerHealth = Mathf.Clamp(health, 0, MaxPlayerHealth);
