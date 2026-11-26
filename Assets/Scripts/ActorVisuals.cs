@@ -109,9 +109,9 @@ public class BossVisual : JinaActorVisual
     public const float DeathLength=1.7f, PurifyLength=1.6f;
     private Sprite[] attacks,walks,deaths,grieves;
     private SpriteRenderer charm;
-    private SpriteRenderer[] dots;
+    private readonly SpriteRenderer[] dots=new SpriteRenderer[2];
 
-    // 도깨비 프레임과 부적·불티 렌더러를 준비한다.
+    // 도깨비 프레임과 부적·눈물 렌더러를 준비한다.
     protected override void Build()
     {
         attacks=JinaArt.Frames("05_Boss_Brainwashed/boss_attack_");
@@ -119,8 +119,7 @@ public class BossVisual : JinaActorVisual
         deaths=JinaArt.Frames("05_Boss_Brainwashed/boss_death_",5);
         grieves=JinaArt.Frames("06_Boss_Purified/boss_grieve_",2);
         charm=Child("정화 부적",JinaArt.Prop("charm"));
-        dots=new SpriteRenderer[16];
-        for(int i=0;i<dots.Length;i++) dots[i]=Child("정화 빛",JinaArt.Dot());
+        for(int i=0;i<dots.Length;i++) dots[i]=Child("도깨비 눈물",JinaArt.Dot());
     }
     // 그림을 얹은 자식 렌더러를 만든다.
     SpriteRenderer Child(string name,Sprite sprite)
@@ -128,11 +127,11 @@ public class BossVisual : JinaActorVisual
         var art=new GameObject(name).AddComponent<SpriteRenderer>(); art.sortingOrder=5;
         art.sprite=sprite; art.transform.SetParent(transform,false); return art;
     }
-    // 부적·불티 렌더러를 끈다.
+    // 부적·눈물 렌더러를 끈다.
     protected override void HideExtras()
     {
         charm.enabled=false;
-        foreach(var d in dots) d.enabled=false;
+        foreach(var tear in dots) tear.enabled=false;
     }
     // 도깨비 상태(걷기·공격·포효·쓰러짐·정화·애도)에 맞는 프레임을 고른다.
     protected override void Pose(ref Frame f,float dx)
@@ -171,7 +170,7 @@ public class BossVisual : JinaActorVisual
         if((t%.6f)<.12f) f.feet.x+=((int)(t/.04f)%2==0 ? 1 : -1)*ArtPixel;
         // boss_grieve_01의 감은 눈 위치: 발에서 앞으로 .465, 위로 1.61.
         var eye=f.feet+new Vector3(facing*.465f,1.61f,0);
-        for(int i=0;i<2;i++)
+        for(int i=0;i<dots.Length;i++)
         {
             float life=((t+i*.5f)%1)/.8f;
             if(life>=1) continue;
@@ -207,19 +206,6 @@ public class BossVisual : JinaActorVisual
             Unscale(charm.transform);
             charm.transform.position=Snap(f.feet+new Vector3(combat.BossFacing*.5f,.5f+.4f*rise,0));
             charm.color=new Color(1,1,1,Mathf.Clamp01(t/.2f)*(t>.6f ? 1-(t-.6f)/.3f : 1));
-        }
-        for(int i=0;i<dots.Length;i++)
-        {
-            bool wisp=i<8;
-            float start=wisp ? 0 : .6f, end=wisp ? .9f : PurifyLength;
-            if(t<start || t>=end) continue;
-            float life=((t-start)*(wisp ? 1.6f : 1.1f)+i*.137f)%1;
-            float x=Mathf.Sin(i*2.3f)*.75f, y=.5f+life*(wisp ? 2.4f : 2.8f);
-            var d=dots[i]; d.enabled=true;
-            Unscale(d.transform);
-            d.transform.position=Snap(f.feet+new Vector3(x,y,0));
-            float fade=(1-life)*Mathf.Clamp01((end-t)/.3f);
-            d.color=wisp ? new Color(11/255f,9/255f,11/255f,fade) : new Color(1,.84f,.4f,fade);
         }
     }
 }

@@ -25,6 +25,7 @@ public class WorldBuilder : MonoBehaviour
             if (w.BakedLayout != Layout)
                 Debug.LogWarning("씬에 구운 세계가 지금 코드의 배치보다 오래됐습니다. 메뉴 '지나가던 선비 > 세계를 씬에 굽기'로 다시 구우세요(씬에서 옮긴 기물은 그대로 남습니다).");
             HidePlaceholders();
+            w.ApplyRiverSorting();
             return w;
         }
         var world = new GameObject("네 구역 지도").AddComponent<WorldBuilder>();
@@ -108,6 +109,9 @@ public class WorldBuilder : MonoBehaviour
     public static readonly Vector2 Ferryman = new Vector2(77f, .2f);
     // 물 띠의 바닥. 수면은 둑과 배 갑판보다 조금 아래.
     public const float WaterBottom = -1.5f;
+    public const float RiverSurface = WaterBottom + 19f / JinaArt.PropPixelsPerUnit;
+    public const int RiverDeepOrder = 2, RiverSurfaceOrder = 3;
+    public const int RiverFxOrder = 4;
     public const float DetectionRange = 18f;
     public static readonly Vector2 Spawn = new Vector2(0, .3f);
     // 보부상 동쪽, 그래서 마을에 들어온 도깨비가 노인에게 먼저 닿는다.
@@ -189,7 +193,7 @@ public class WorldBuilder : MonoBehaviour
         Prop("서낭당 돌무더기", "cairn", ShrineX, -4).transform.position = new Vector3(ShrineX, Top(ShrineX), 0);
         foreach (var x in new[] { 66.5f, 79.2f, 100.8f, 109f }) Prop("갈대", "reeds", x, -4, x > 90);
         // 강: 둑 사이, 둑 바로 아래의 물 띠(바닥이 없다. Ferry 참고).
-        for (float x = RiverLeft + 2; x < RiverRight; x += 4) Prop("강물", "water", x, 6, false, Group(GroundGroup)).transform.position = new Vector3(x, WaterBottom, 0);
+        for (float x = RiverLeft + 2; x < RiverRight; x += 4) Prop("강물", "water", x, RiverSurfaceOrder, false, Group(GroundGroup)).transform.position = new Vector3(x, WaterBottom, 0);
         RoadProps();
         foreach (var (art, x) in Backdrops)
         {
@@ -279,8 +283,19 @@ public class WorldBuilder : MonoBehaviour
         deep.drawMode = SpriteDrawMode.Tiled;
         deep.size = new Vector2(RiverRight - RiverLeft, deep.sprite.bounds.size.y);
         deep.transform.position = new Vector3((RiverLeft + RiverRight) / 2, WaterBottom + .1f, 0);
-        deep.sortingOrder = 5;
+        deep.sortingOrder = RiverDeepOrder;
         WorldArt.Mark(deep, WorldArt.Kind.Strip, "river_deep");
+    }
+
+    // 이미 구운 씬에서는 Build를 건너뛰므로 저장된 강물의 그리기 순서만 맞춘다.
+    void ApplyRiverSorting()
+    {
+        foreach (var mark in GetComponentsInChildren<WorldArt>(true))
+        {
+            if (mark.art != "water" && mark.art != "river_deep") continue;
+            if (mark.TryGetComponent<SpriteRenderer>(out var renderer))
+                renderer.sortingOrder = mark.art == "water" ? RiverSurfaceOrder : RiverDeepOrder;
+        }
     }
 
     // 한 방향 발판: 아래에서 뚫고 뛰어올라 윗면에 선다.
@@ -447,6 +462,8 @@ public class MapAmbience : MonoBehaviour
     readonly Cloud[] clouds = new Cloud[MaxClouds];
     readonly SpriteRenderer[] smoke = new SpriteRenderer[SmokeBits];
     readonly SpriteRenderer[] shimmer = new SpriteRenderer[14];
+    readonly System.Random riverRandom = new System.Random();
+    float nextRiverRipple;
     int shownMap = -1;
 
     // 구름, 티끌, 연기, 물빛, 비네트 렌더러를 만든다.
@@ -466,7 +483,18 @@ public class MapAmbience : MonoBehaviour
             art.enabled = false;
         }
         for (int i = 0; i < SmokeBits; i++) { smoke[i] = Dot("주막 연기 " + i, -7); smoke[i].enabled = false; }
-        for (int i = 0; i < shimmer.Length; i++) { shimmer[i] = Dot("강 물빛 " + i, 3); shimmer[i].enabled = false; }
+        for (int i = 0; i < shimmer.Length; i++)
+        {
+            shimmer[i] = Dot("강 물빛 " + i, WorldBuilder.RiverFxOrder);
+            shimmer[i].transform.SetParent(null);
+            shimmer[i].enabled = false;
+        }
+    }
+
+    void OnDestroy()
+    {
+        foreach (var art in shimmer)
+            if (art != null) Destroy(art.gameObject);
     }
     // 티끌 하나용 렌더러를 만든다.
     SpriteRenderer Dot(string label, int order)
@@ -508,7 +536,7 @@ public class MapAmbience : MonoBehaviour
             c.art.color = air.cloud;
         }
         StepSmoke(t, !away && map == 2);
-        StepRiver(t, !away && map == 4, cx);
+        StepRiver(t, !away && map == Maps.Index(WorldBuilder.RiverLeft));
     }
 
     // 티끌 하나를 맵 종류에 맞게 움직인다.
@@ -570,19 +598,37 @@ public class MapAmbience : MonoBehaviour
     }
 
     // 강 수면에서 움직이는 반짝임.
-    void StepRiver(float t, bool show, float cx)
+    void StepRiver(float t, bool show)
     {
+        const float margin = .7f;
+        const float span = WorldBuilder.RiverRight - WorldBuilder.RiverLeft - 2 * margin;
         for (int i = 0; i < shimmer.Length; i++)
         {
             shimmer[i].enabled = show;
             if (!show) continue;
-            float x = WorldBuilder.RiverLeft + Mathf.Repeat(i * 1.9f + t * .24f * (i % 2 == 0 ? 1 : -1), WorldBuilder.RiverRight - WorldBuilder.RiverLeft);
-            float y = -1.1f - (i % 4) * .5f;
-            float pulse = Mathf.Clamp01(Mathf.Sin(t * 1.4f + i * 1.7f) * 1.5f);
-            shimmer[i].transform.position = new Vector3(x, y, 0);
-            shimmer[i].transform.localScale = new Vector3(1.8f + i % 3, .5f, 1);
-            shimmer[i].color = new Color(.84f, .94f, 1, .6f * pulse);
+            bool glint = i % 3 == 0;
+            float travel = Mathf.Repeat(i * 1.71f + t * (.42f + i % 5 * .085f), span);
+            float x = WorldBuilder.RiverLeft + margin + travel;
+            float y = WorldBuilder.RiverSurface - .14f - Mathf.Repeat(i * .193f, .92f);
+            float edge = Mathf.Clamp01(Mathf.Min(travel, span - travel));
+            float pulse = .8f + .2f * Mathf.Sin(t * (.8f + i % 4 * .18f) + i * 1.7f);
+            float pixel = 1 / JinaArt.PropPixelsPerUnit;
+            shimmer[i].transform.position = new Vector3(Mathf.Round(x / pixel) * pixel, y, 0);
+            shimmer[i].transform.localScale = new Vector3(glint ? 4 + i % 3 : 7 + i % 5, glint ? 1 : 1.5f, 1);
+            shimmer[i].color = glint ? new Color(.82f, .98f, 1, .74f * edge * pulse)
+                : new Color(.48f, .93f, .97f, .69f * edge * pulse);
         }
+        if (!show) { nextRiverRipple = t + .5f; return; }
+        if (t < nextRiverRipple) return;
+        float Range(float min, float max) => Mathf.Lerp(min, max, (float)riverRandom.NextDouble());
+        nextRiverRipple = t + Range(.65f, 1.15f);
+        float at = Range(WorldBuilder.RiverLeft + 1.4f, WorldBuilder.RiverRight - 1.4f);
+        if (Range(0, 1) < .3f) at = Range(0, 1) < .5f ? WorldBuilder.RiverLeft + 1.4f : WorldBuilder.RiverRight - 1.4f;
+        float rippleY = WorldBuilder.RiverSurface - Range(.32f, .65f);
+        float size = Range(.39f, .49f);
+        float life = Range(.85f, 1.12f);
+        JinaFx.RiverRipple(at, rippleY, .18f, size, .78f, life);
+        JinaFx.RiverRipple(at, rippleY - .09f, .18f, size * .65f, .55f, life * .88f);
     }
 
     // 화면 비네트를 그린다.

@@ -125,6 +125,7 @@ public static partial class JinaPlayChecks
         Call(boat,"FixedUpdate");
         Check(ferry.PlayerHere && boat.Velocity.x>0,"With him here it sets out for the far bank");
         Capture("ferry-river",new Vector3(90,1,-10),5.5f);
+        CheckRiverFx(boat);
 
         // Falling into the river hurts and puts him back on the nearer bank.
         player.position=new Vector3(WorldBuilder.RiverLeft+4,-2,0);
@@ -151,12 +152,88 @@ public static partial class JinaPlayChecks
         Check(!ferry.IsOpen && ferry.SplashAt<0 && Mathf.Abs(boat.transform.position.x-Ferry.BoatLeft)<.01f,"Restart brings the boat back to the near bank");
     }
 
+    static void CheckRiverFx(FerryBoat boat)
+    {
+        var ambience=combat.Ambience;
+        var flags=System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+        var waters=new System.Collections.Generic.List<SpriteRenderer>();
+        int surfaceCount=0, deepCount=0;
+        foreach(var mark in Object.FindObjectsOfType<WorldArt>())
+        {
+            bool surface=mark.art=="water";
+            if(!surface && mark.art!="river_deep") continue;
+            var art=mark.GetComponent<SpriteRenderer>();
+            Check(art.sortingLayerID==0 && art.sortingOrder==(surface ? WorldBuilder.RiverSurfaceOrder : WorldBuilder.RiverDeepOrder),
+                "The baked river uses the updated sorting order");
+            waters.Add(art);
+            if(surface) surfaceCount++; else deepCount++;
+        }
+        Check(surfaceCount==5 && deepCount==1,"The scene has five surface tiles and one deep river strip");
+        var river=typeof(MapAmbience).GetMethod("StepRiver",flags);
+        var shimmer=Field<SpriteRenderer[]>(ambience,"shimmer");
+        float t=Time.time;
+        JinaFx.Clear();
+        foreach(var art in shimmer)
+            Check(!art.transform.IsChildOf(Camera.main.transform),"River reflections are anchored in world space");
+        river.Invoke(ambience,new object[]{t,false});
+        Check(!shimmer[0].enabled && BossFxCount("ring")==0,"River ambience is scoped to the ferry map");
+        river.Invoke(ambience,new object[]{t,true});
+        var start=shimmer[0].transform.position;
+        river.Invoke(ambience,new object[]{t+1,true});
+        var end=shimmer[0].transform.position;
+        Check(end.x!=start.x && end.y==start.y && end.y<WorldBuilder.RiverSurface,"Water reflections move horizontally below the surface");
+        Check(BossFxCount("ring")==2,"River ambience emits two overlapping ripples");
+        river.Invoke(ambience,new object[]{t+1.1f,true});
+        Check(BossFxCount("ring")==2,"River ripples are throttled");
+
+        var wake=typeof(FerryBoat).GetMethod("Wake",flags);
+        float centre=(WorldBuilder.RiverLeft+WorldBuilder.RiverRight)/2;
+        var original=(Vector2)boat.transform.position;
+        var boatArt=boat.GetComponent<SpriteRenderer>();
+        var playerArt=Field<SpriteRenderer>(combat.player.GetComponent<SeonbiVisual>(),"body");
+        foreach(float direction in new[]{1f,-1f})
+        {
+            boat.Moor(new Vector2(centre,original.y));
+            JinaFx.Clear();
+            wake.Invoke(boat,new object[]{centre,0f,0f});
+            Check(BossFxCount("ring")==0,"The moored boat emits no wake");
+            wake.Invoke(boat,new object[]{centre,direction*.61f,Ferry.BoatSpeed});
+            Check(BossFxCount("ring")==3,"A moving ferry creates two bow ripples and a trailing wake");
+            foreach(var art in Object.FindObjectsOfType<SpriteRenderer>())
+            {
+                if(!art.enabled || art.sprite==null || !art.sprite.name.StartsWith("20_Fx/ring_")) continue;
+                bool bow=Mathf.Abs(art.transform.position.y-(WorldBuilder.RiverSurface-.29f))>.04f;
+                float side=Mathf.Sign(art.transform.position.x-centre);
+                Check(side==(bow ? direction : -direction),"The wake reverses with the ferry");
+                Check(art.sortingOrder<boatArt.sortingOrder && art.sortingOrder<playerArt.sortingOrder,"Ripples are below the hull and the player");
+            }
+            wake.Invoke(boat,new object[]{centre,0f,0f});
+            Check(BossFxCount("ring")==3,"Stopping allows the current wake to fade without adding ripples");
+        }
+        Capture("ferry-wake",new Vector3(centre,1,-10),5.5f);
+        try
+        {
+            foreach(var art in waters) art.sortingOrder=art.sortingOrder==WorldBuilder.RiverSurfaceOrder ? 6 : 5;
+            Capture("ferry-wake-old-order",new Vector3(centre,1,-10),5.5f);
+        }
+        finally
+        {
+            foreach(var art in waters) art.sortingOrder=art.sortingOrder==6 ? WorldBuilder.RiverSurfaceOrder : WorldBuilder.RiverDeepOrder;
+        }
+        JinaFx.Clear();
+        JinaFx.RiverRipple(WorldBuilder.RiverRight-.05f,WorldBuilder.RiverSurface-.14f,.2f,.3f,.5f,1);
+        Check(BossFxCount("ring")==0,"A ripple cannot grow across the river bank");
+        boat.Moor(original);
+    }
+
     static void Pass()
     {
         combat.Restart();
         var pass=combat.Pass; var player=combat.player.transform;
         float s0=WorldBuilder.PassStart;
         Check(WorldBuilder.Top(s0+5)==-.5f && WorldBuilder.Top(s0+15)==1f && WorldBuilder.Top(WorldBuilder.ShrineX)==2.5f && WorldBuilder.Top(WorldBuilder.GoalX)==-.5f && WorldBuilder.Top(130)==-.5f,"The pass climbs to the shrine and comes down to the road");
+
+        CheckRollingDust(pass, s0+5);
 
         // A boulder rolls down toward him, drops off a step, and hits him unless he backsteps.
         var rock=pass.Spawn(WorldBuilder.RockStart);
@@ -186,6 +263,45 @@ public static partial class JinaPlayChecks
         Capture("pass-road",new Vector3(s0+40,2,-10),5.5f);
         combat.Restart();
         Check(!pass.ShrineUsed && pass.rocks.Count==0,"Restart clears the boulders and the shrine");
+    }
+
+    static void CheckRollingDust(MountainPass pass, float x)
+    {
+        JinaFx.Clear();
+        var rock=pass.Spawn(x);
+        var start=rock.art.transform.position;
+        pass.Step(0);
+        Check(BossFxCount("dust")==0,"A stopped boulder emits no dust");
+        pass.Step(.12f);
+        var current=rock.art.transform.position;
+        Check(BossFxCount("dust")==1 && RollingDustX()>current.x,"A leftward boulder emits dust to its right");
+        pass.Step(.12f);
+        Check(BossFxCount("dust")==2,"The boulder continues to emit as it rolls");
+        pass.Step(0);
+        Check(BossFxCount("dust")==2,"Stopping keeps existing dust without adding more");
+        pass.ClearRocks();
+
+        // The course runs leftward. Drive the same dust sampler with rightward travel.
+        var trail=typeof(MountainPass).GetMethod("TrailDust",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        JinaFx.Clear();
+        trail.Invoke(null,new object[]{new MountainPass.Rock(),start,start+Vector3.right*.5f});
+        int slow=BossFxCount("dust");
+        Check(slow==1 && RollingDustX()<start.x+.5f,"A rightward boulder emits dust to its left");
+        JinaFx.Clear();
+        trail.Invoke(null,new object[]{new MountainPass.Rock(),start,start+Vector3.right*1.1f});
+        Check(BossFxCount("dust")>slow,"More travel in a step emits dust more frequently");
+        JinaFx.Clear();
+        trail.Invoke(null,new object[]{new MountainPass.Rock(),start,start+new Vector3(1.1f,1,0)});
+        Check(BossFxCount("dust")==0,"An airborne boulder does not emit ground dust");
+    }
+
+    static float RollingDustX()
+    {
+        foreach(var art in Object.FindObjectsOfType<SpriteRenderer>())
+            if(art.enabled && art.sprite!=null && art.sprite.name.StartsWith("20_Fx/dust_"))
+                return art.transform.position.x;
+        throw new System.InvalidOperationException("Expected one rolling dust sprite");
     }
 
     static void CheckKongVillage()
