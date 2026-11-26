@@ -88,7 +88,7 @@ public partial class FinalBoss
                     var reach = new Bounds(Feet + new Vector3(Facing * 3.4f * Size, .25f, 0), new Vector3(5.6f * Size, .9f, 1));
                     if (reach.Intersects(PlayerBox)) { combat.HurtPlayer(SweepAttack); struck = true; }
                 }
-                if (was < w && t >= w) { JinaFx.Dust(Feet + Vector3.right * Facing * 2, Facing * 2, 1.4f); JinaFx.Dust(Feet + Vector3.right * Facing * 4.5f, Facing * 2, 1.2f); View.Shake(.06f, .3f); }
+                if (was < w && t >= w) { GameAudio.PlayAt(GameAudio.Sfx.FbSweep, Feet); JinaFx.Dust(Feet + Vector3.right * Facing * 2, Facing * 2, 1.4f); JinaFx.Dust(Feet + Vector3.right * Facing * 4.5f, Facing * 2, 1.2f); View.Shake(.06f, .3f); }
                 break;
             case Move.Slam:
                 if (t < w)
@@ -100,6 +100,7 @@ public partial class FinalBoss
                 if (was < w && t >= w)
                 {
                     var at = Feet + Vector3.right * Facing * 1.6f;
+                    GameAudio.PlayAt(GameAudio.Sfx.FbSlam, at);
                     JinaFx.Shock(at, 2.4f); JinaFx.Dust(at, -1.6f, 1.6f); JinaFx.Dust(at, 1.6f, 1.6f);
                     View.Shake(.2f, .5f); JinaFx.Stop(.05f);
                     sealMark.transform.position = new Vector3(at.x, WorldBuilder.Top(at.x) + .02f, 0); sealMarkUntil = Time.time + 2f;
@@ -110,6 +111,7 @@ public partial class FinalBoss
             case Move.Ink:
                 if (was < w && t >= w)
                 {
+                    GameAudio.PlayAt(GameAudio.Sfx.FbInk, Feet);
                     int n = Dark ? 8 : 5;
                     for (int i = 0; i < n; i++)
                     {
@@ -121,6 +123,7 @@ public partial class FinalBoss
             case Move.Hands:
                 if (was < w && t >= w)
                 {
+                    GameAudio.PlayAt(GameAudio.Sfx.FbHands, Feet);
                     int n = Dark ? 5 : 3;
                     for (int i = 0; i < n; i++) Hand(Mathf.Clamp(PlayerX + (i - n / 2) * 1.8f, WorldBuilder.ManorStart + .5f, WorldBuilder.ManorEnd - .5f), .75f + Mathf.Abs(i - n / 2) * .1f);
                 }
@@ -129,6 +132,7 @@ public partial class FinalBoss
                 if (was < w && t >= w)
                 {
                     var mouth = Feet + new Vector3(Facing * 1.3f, 3.2f * Size, 0);
+                    GameAudio.PlayAt(GameAudio.Sfx.FbCoins, mouth);
                     var aim = ((Vector2)(Player + Vector3.up * .4f - mouth)).normalized;
                     int n = Dark ? 11 : 7;
                     for (int i = 0; i < n; i++)
@@ -158,6 +162,7 @@ public partial class FinalBoss
     {
         Doing = m; lastMove = m; MoveAt = Time.time; moveCount++; struck = false;
         Facing = PlayerX >= Feet.x ? 1 : -1;
+        if (m == Move.Slam) GameAudio.PlayAt(GameAudio.Sfx.FbRaise, Feet);   // 국새를 머리 위로 든다
     }
 
     // ── 던지는 것 ──
@@ -211,7 +216,7 @@ public partial class FinalBoss
                     s.pos += s.vel * dt;
                     if (!s.hit && Mathf.Abs(s.pos.x - box.center.x) < .55f && s.pos.y < box.max.y && s.pos.y > box.min.y) { combat.HurtPlayer(InkAttack); s.hit = true; done = true; }
                     float ground = WorldBuilder.Top(s.pos.x);
-                    if (s.pos.y <= ground + .1f) { done = true; JinaFx.Dots(new Vector3(s.pos.x, ground + .1f, 0), 8, new Color(.14f, .1f, .18f), 2.4f, .35f); }
+                    if (s.pos.y <= ground + .1f) { done = true; GameAudio.PlayAt(GameAudio.Sfx.FbInkDrop, s.pos); JinaFx.Dots(new Vector3(s.pos.x, ground + .1f, 0), 8, new Color(.14f, .1f, .18f), 2.4f, .35f); }
                 }
             }
             else if (s.kind == Move.Hands)
@@ -221,6 +226,7 @@ public partial class FinalBoss
                 if (Time.time >= s.at)
                 {
                     float rise = Mathf.Clamp01((Time.time - s.at) / .12f) * Mathf.Clamp01((s.until - Time.time) / .15f);
+                    if (!s.art.enabled) GameAudio.PlayAt(GameAudio.Sfx.FbHand, s.pos);
                     s.art.enabled = true;
                     s.art.transform.position = new Vector3(s.pos.x, s.pos.y - 1.2f * (1 - rise), 0);
                     var hand = new Bounds(new Vector3(s.pos.x, s.pos.y + .65f, 0), new Vector3(.7f, 1.3f, 1));

@@ -5,7 +5,8 @@ using UnityEngine;
 // 배경 음악과 효과음(Resources/JinaSound). 팀원이 만든 소리가 먼저이고, 비어 있던 곳은 Tools/ArtGen/make_sound.py로
 // 합성한 소리(bgm_pass, sfx_charm, sfx_w_… 등)로 채웠다.
 // 배경 음악은 지금 선 맵과 연출·보스전에 따라 고르고 바뀔 때 천천히 엇갈려 바꾼다.
-// 효과음은 `Play`로 어디서든 울리고(Combat이 붙인 것이 없으면 조용히 넘어간다), 시각이 기록되는 일(봉화, 정화,
+// 효과음은 `Play`로 어디서든 울리고(Combat이 붙인 것이 없으면 조용히 넘어간다), 보스의 공격처럼 세상 한 자리에서
+// 나는 소리는 `PlayAt`으로 선비가 있는 맵에서만 울린다. 시각이 기록되는 일(봉화, 정화,
 // 변신 …)은 여기서 그 시각이 바뀌는 것을 지켜보다 울린다. 고개의 바위 소리는 굴러가는 동안 계속 되풀이한다.
 public class GameAudio : MonoBehaviour
 {
@@ -18,6 +19,11 @@ public class GameAudio : MonoBehaviour
         Charm, Keepsake, Beacon, BeaconWrong, Gate, Purify, BossDie, Transform, Dark,
         Hit, Hurt, Coin, Heal, GhostDie, MobDie, Alarm, Splash, Squad, GameOver, LevelUp, Rare,
         Myeonggeom, Saingeom, Byeokjo, Dagger,                                  // 귀한 무기마다 다른 소리
+        // 보스의 공격: 도깨비(몽둥이를 듦·내려침, 돌진, 도약, 내려찍기), 콩쥐 요괴(젓갈, 콩알, 혀, 소금 비, 독째 착지,
+        // 마을을 묶는 저주), 좌의정(휩쓸기, 국새를 듦·찍음, 먹물과 떨어지는 먹물, 그림자 웅덩이와 솟는 손, 엽전)
+        DkGrowl, DkClub, DkCharge, DkLeap, DkLand,
+        KongSpit, KongBeans, KongTongue, KongSalt, KongLand, KongCast,
+        FbSweep, FbRaise, FbSlam, FbInk, FbInkDrop, FbHands, FbHand, FbCoins,
     }
     static readonly Dictionary<Sfx, string> Files = new Dictionary<Sfx, string>
     {
@@ -29,9 +35,16 @@ public class GameAudio : MonoBehaviour
         [Sfx.Alarm] = "sfx_alarm", [Sfx.Splash] = "sfx_splash", [Sfx.Squad] = "sfx_squad", [Sfx.GameOver] = "sfx_gameover",
         [Sfx.LevelUp] = "sfx_levelup", [Sfx.Rare] = "sfx_rare", [Sfx.Myeonggeom] = "sfx_w_myeonggeom",
         [Sfx.Saingeom] = "sfx_w_saingeom", [Sfx.Byeokjo] = "sfx_w_byeokjo", [Sfx.Dagger] = "sfx_w_dagger",
+        [Sfx.DkGrowl] = "sfx_dk_growl", [Sfx.DkClub] = "sfx_dk_club", [Sfx.DkCharge] = "sfx_dk_charge", [Sfx.DkLeap] = "sfx_dk_leap",
+        [Sfx.DkLand] = "sfx_dk_land", [Sfx.KongSpit] = "sfx_kong_spit", [Sfx.KongBeans] = "sfx_kong_beans",
+        [Sfx.KongTongue] = "sfx_kong_tongue", [Sfx.KongSalt] = "sfx_kong_salt", [Sfx.KongLand] = "sfx_kong_land",
+        [Sfx.KongCast] = "sfx_kong_cast", [Sfx.FbSweep] = "sfx_fb_sweep", [Sfx.FbRaise] = "sfx_fb_raise", [Sfx.FbSlam] = "sfx_fb_slam",
+        [Sfx.FbInk] = "sfx_fb_ink", [Sfx.FbInkDrop] = "sfx_fb_ink_drop", [Sfx.FbHands] = "sfx_fb_hands", [Sfx.FbHand] = "sfx_fb_hand",
+        [Sfx.FbCoins] = "sfx_fb_coins",
     };
     // 자주 나는 소리는 조금 작게.
-    static float Loudness(Sfx sfx) => sfx == Sfx.Hit ? .55f : sfx == Sfx.Coin ? .45f : sfx == Sfx.Dagger ? .7f : 1f;
+    static float Loudness(Sfx sfx) => sfx == Sfx.Hit ? .55f : sfx == Sfx.Coin ? .45f : sfx == Sfx.Dagger ? .7f
+        : sfx == Sfx.KongLand ? .6f : sfx == Sfx.FbInkDrop ? .5f : sfx == Sfx.FbHand ? .7f : sfx == Sfx.DkGrowl ? .8f : 1f;
 
     public Combat combat;
     static GameAudio instance;
@@ -106,6 +119,15 @@ public class GameAudio : MonoBehaviour
         var clip = Clip(Files[sfx] + (TwoTakes.Contains(sfx) && take++ % 2 == 1 ? "_2" : ""));
         if (clip != null) instance.effects.PlayOneShot(clip, SfxVolume * volume * Loudness(sfx));
         if (sfx == Sfx.Keepsake || sfx == Sfx.Charm || sfx == Sfx.Rare) instance.special = true;
+    }
+
+    // 세상의 `at`에서 나는 소리: 선비가 있는 맵(Maps.Current)에서만 들린다(강 건너 마을에서 콩쥐가 날뛰는 소리 같은 것은 안 들림).
+    public static void PlayAt(Sfx sfx, Vector3 at, float volume = 1)
+    {
+        if (instance == null) return;
+        var maps = instance.combat != null ? instance.combat.Maps : null;
+        if (maps != null && (maps.Travelling || Maps.Index(at.x) != maps.Current)) return;
+        Play(sfx, volume);
     }
 
     // 무기를 휘두른다: 귀한 칼은 저마다 소리가 다르다(환도는 팀원의 칼 소리).

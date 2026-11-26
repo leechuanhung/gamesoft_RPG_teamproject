@@ -76,7 +76,7 @@ python Tools/ArtGen/sheet.py <scratchpad>/out.png 01_Player/player_idle 13_Props
 | `make_hanyang.py` | `24_Hanyang/sangin·yusaeng·cheongji·ai·mudang·jumo·bangmul`(콩밭 마을과 같은 격자, 발 x=138. 방물장수 `bangmul`은 콩밭 마을 입구에 선다), `13_Props/beacon_off·beacon_on·fort_gate_shut·fort_gate_open·fort_wall·station_house·cart·grave·dead_tree·shop·lantern·hongsal·exam_board·pavilion·drink_table` | 블록 격자, pixlib |
 | `make_final_boss.py` | `25_Final/official_<idle·cup·blank>`(좌의정, 선비 도트), `final_<idle_00·idle_01·open·reach·raise·cast·death_00~02>`(어둑시니 좌의정, 100×112칸, 발은 맨 아래 가운데), `13_Props/final_ink·coin·hand·seal·mark` | pixlib, `framelib.scatter` |
 | `make_elder.py` | `08_Village_Elder/elder_cane·startle·draw_00~01·hit_00~01·down·corpse` | 지팡이 잘라 내기, bend, 갓 내리기, rot90 |
-| `make_sound.py` (+ `soundlib.py`) | `Resources/JinaSound`의 `bgm_<pass·hill·kong_fight·fort·station·grave·city·hall·manor·final_fight·ending>`, `sfx_<charm·keepsake·beacon·…>`, 무기 `sfx_w_<myeonggeom·saingeom·byeokjo·dagger>` | 그림이 아니라 소리. 가야금·대금·해금·피리·나발·장구·북·징·꽹과리·종을 numpy로 흉내 내 합성(고정 시드). 배경 음악은 끝 여운과 메아리를 앞에 접어 이음매 없이 되풀이. 팀원 wav는 건드리지 않음. 다른 컴퓨터의 소수점 오차(2 이하)로는 다시 쓰지 않음. `--only 이름`으로 하나만 |
+| `make_sound.py` (+ `soundlib.py`) | `Resources/JinaSound`의 `bgm_<pass·hill·kong_fight·fort·station·grave·city·hall·manor·final_fight·ending>`, `sfx_<charm·keepsake·beacon·…>`, 무기 `sfx_w_<myeonggeom·saingeom·byeokjo·dagger>`, 보스 공격 `sfx_dk_*`(도깨비)·`sfx_kong_*`(콩쥐 요괴)·`sfx_fb_*`(좌의정). 새 wav의 .meta는 `sfx_hit.wav.meta`를 본떠 normalize를 끈다 | 그림이 아니라 소리. 가야금·대금·해금·피리·나발·장구·북·징·꽹과리·종을 numpy로 흉내 내 합성(고정 시드). 배경 음악은 끝 여운과 메아리를 앞에 접어 이음매 없이 되풀이. 팀원 wav는 건드리지 않음. 다른 컴퓨터의 소수점 오차(2 이하)로는 다시 쓰지 않음. `--only 이름`으로 하나만 |
 
 ## 새 그림을 게임에 넣을 때
 

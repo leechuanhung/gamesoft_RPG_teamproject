@@ -9,6 +9,7 @@ using UnityEngine;
 // 공격한다. 음수가 클수록 무장이 높아지고 수가 는다(Rank 1~3). 칼병(Blade)은 다가와 칼을 뒤로 당겼다가 찌르듯 베고,
 // 활병(Bow)은 거리를 두고 활을 당겼다가 쏜다. 좌의정 댁 싸움에도 같은 규칙으로 들이닥친다(FinalBoss).
 // 모두 물리 없이 땅 높이(WorldBuilder.Top)를 따라 걷고, 자기 구역 밖으로는 나가지 않는다.
+// 도깨비불과 두억시니는 유령처럼 쓰러지는 모습이 끝나면(쓰러지고 2초) 맵 안 다른 자리에서 다시 나타난다. 관군은 사라진다.
 public class RoadMobs : MonoBehaviour
 {
     public Combat combat;
@@ -226,7 +227,11 @@ public class RoadMobs : MonoBehaviour
             var m = mobs[i];
             if (!m.Alive)
             {
-                if (Time.time - m.downAt > DownLength + .6f) { Destroy(m.art.gameObject); mobs.RemoveAt(i); continue; }
+                if (Time.time - m.downAt > DownLength + .6f)
+                {
+                    if (!m.soldier) { Respawn(m, p); Draw(m); continue; }
+                    Destroy(m.art.gameObject); mobs.RemoveAt(i); continue;
+                }
                 Draw(m); continue;
             }
             if (m.leaving) { Leave(m, dt); if (m.art == null) { mobs.RemoveAt(i); continue; } Draw(m); continue; }
@@ -242,6 +247,18 @@ public class RoadMobs : MonoBehaviour
             Draw(m);
         }
         StepArrows(dt);
+    }
+
+    // 쓰러진 도깨비불·두억시니를 맵 안 무작위 자리(선비와 3칸 이상 떨어진 곳)에서 되살린다. 유령(Camp.RespawnRandom)과 같은 규칙.
+    void Respawn(Mob m, Vector3 player)
+    {
+        float x = Random.Range(m.left, m.right);
+        for (int i = 0; i < 10 && Mathf.Abs(x - player.x) < 3f; i++) x = Random.Range(m.left, m.right);
+        m.hp = m.max; m.downAt = m.hurtAt = m.windup = m.strikeUntil = -1; m.struck = false;
+        m.pos = new Vector3(x, m.Flying ? 1.6f : Ground(x), 0);
+        m.ready = Time.time + 1;
+        JinaItems.ForgetMob(m);
+        JinaFx.Rise(m.pos + Vector3.up * .5f, 8, m.Flying ? new Color(.6f, .85f, 1) : new Color(.86f, .72f, 1), .3f, 1.2f, .6f);
     }
 
     // 맵에 들어서면 선악에 따라 관군을 부른다. 콩쥐 요괴를 해결한 뒤 산성과 한양 거리에 들어서면 체크포인트.
