@@ -4,6 +4,7 @@
 #   19_UI/corner                                 8 x 8, top-left (flipped for the other corners)
 #   19_UI/icon_<sword,bow,arrow,coin,charm,ward,sandal,goal>   16 x 16 with outlines (pixlib rules)
 #   19_UI/vignette                               160 x 90, black with alpha
+#   19_UI/puzzle_gem_0·1, puzzle_socket, puzzle_seonbi   16 x 16, the stele puzzle's gems (red, blue), socket and seonbi
 # Usage: python make_ui.py Assets/Resources/JinaV4/19_UI
 import sys, os, math; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
@@ -119,6 +120,46 @@ def icons():
     c.layer(c.poly([(6, 8), (8, 10), (4, 14), (2, 14), (2, 12)]), (34, 28, 34))
     save(c, "icon_goal")
 
+def puzzle():
+    # 비석 퍼즐(SeonbiGridPuzzle)의 밀어 옮기는 돌: 팔각으로 깎은 보석. 0은 홍옥, 1은 청옥.
+    #   가운데 판은 밝고, 왼쪽 위 면은 더 밝고, 오른쪽 아래 면은 어둡고, 반짝이는 점 둘.
+    gems = [((206, 54, 62), (240, 112, 110), (255, 196, 186), (128, 24, 40)),
+            ((52, 128, 196), (104, 182, 232), (196, 236, 255), (26, 66, 124))]
+    outline = [(5, 1), (10, 1), (14, 5), (14, 10), (10, 14), (5, 14), (1, 10), (1, 5)]
+    for i, (base, light, shine, dark) in enumerate(gems):
+        c = Canvas(16, 16)
+        gem = c.poly(outline)
+        c.layer(gem, base)
+        c.paint(gem & c.poly([(1, 5), (5, 1), (10, 1), (8, 5), (5, 8), (1, 10)]), light)
+        c.paint(gem & c.poly([(14, 5), (14, 10), (10, 14), (5, 14), (8, 11), (11, 8)]), dark)
+        c.paint(c.rect(5, 5, 10, 10), base)
+        c.paint(c.rect(5, 5, 9, 6) | c.rect(5, 7, 6, 9), light)
+        c.paint(c.rect(4, 3, 5, 3) | c.rect(3, 4, 3, 5) | c.rect(7, 6, 7, 6), shine)
+        save(c, f"puzzle_gem_{i}")
+    # 보석을 놓을 문양 칸: 바닥에 판 팔각 홈과 금테
+    c = Canvas(16, 16)
+    hole = c.poly(outline)
+    c.paint(hole, (214, 170, 84), inside=False)
+    inner = c.poly([(5, 2), (10, 2), (13, 5), (13, 10), (10, 13), (5, 13), (2, 10), (2, 5)])
+    c.paint(inner, (92, 70, 48), inside=False)
+    c.paint(inner & c.poly([(2, 10), (2, 5), (5, 2), (10, 2), (9, 4), (4, 9)]), (62, 46, 32), inside=False)
+    c.paint(c.rect(7, 5, 8, 10) | c.rect(5, 7, 10, 8), (150, 112, 58), inside=False)   # 홈 바닥의 십자 문양
+    save(c, "puzzle_socket")
+    # 퍼즐 판 위의 선비: 앞을 보는 작은 선비(검은 갓, 흰 도포, 남색 세조대). 색은 선비 그림(player_idle)에서 땄다.
+    HAT, HAT2, SKIN, ROBE, ROBE2, SASH = (44, 44, 58), (72, 72, 90), (248, 196, 132), (250, 248, 228), (214, 208, 184), (44, 44, 66)
+    c = Canvas(16, 16)
+    c.layer(c.poly([(3, 9), (12, 9), (13, 14), (2, 14)]), ROBE)          # 도포
+    c.paint(c.rect(9, 10, 12, 14) & c.a, ROBE2)
+    c.paint(c.rect(7, 9, 8, 14), SASH)                                   # 세조대
+    c.layer(c.rect(1, 11, 2, 12) | c.rect(13, 11, 14, 12), SKIN)          # 두 손
+    c.layer(c.rect(5, 5, 10, 8), SKIN)                                   # 얼굴
+    c.paint(c.rect(5, 5, 10, 5) | c.rect(5, 6, 5, 6) | c.rect(10, 6, 10, 6), HAT)   # 머리카락
+    c.paint(c.rect(6, 7, 6, 7) | c.rect(9, 7, 9, 7), K)                  # 눈
+    c.layer(c.rect(1, 4, 14, 4), HAT)                                    # 갓 양태
+    c.layer(c.rect(5, 1, 10, 3), HAT)                                    # 갓 모자
+    c.paint(c.rect(6, 1, 7, 2), HAT2)
+    save(c, "puzzle_seonbi")
+
 def vignette():
     w, h = 160, 90
     Y, X = np.mgrid[:h, :w]
@@ -186,5 +227,5 @@ def brush():
     img = np.zeros((h, w, 4), np.uint8); img[..., :3] = K; img[..., 3] = np.where(a, 255, 0)
     Image.fromarray(img).save(f"{OUT}/brush.png")
 
-paper(); wood(); night(); corner(); icons(); vignette()
+paper(); wood(); night(); corner(); icons(); vignette(); puzzle()
 seal(); dancheong(); roller(); brush()

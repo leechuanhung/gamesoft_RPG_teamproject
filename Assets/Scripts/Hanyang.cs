@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // ===== 한양 거리와 과거장 앞 사람들 (HanyangTown) =====
-// 기획서.md 1-3. 어린 임금의 도성은 좌의정 엄탁의 세상이다. 사람들은 엔터로 말을 걸면 말풍선으로 몇 마디 한다.
+// 기획서.md 1-3. 어린 임금의 도성은 좌의정 엄탁의 세상이다. 사람들은 F·클릭으로 말을 걸면 말풍선으로 몇 마디 한다.
 // 선악이 음수면 사람들이 선비를 꺼리고 포졸이 노려본다(이 맵에서는 덤비지 않는다).
 // 무당은 몇 해 전 좌의정 댁 굿에서 내린 공수("업 많은 선비가 네 목을 치리라")를 들려준다.
 // 거리 끝의 청지기가 과거 전날 밤 좌의정 댁 술자리에 선비를 청한다(Invited).
@@ -182,6 +182,6 @@ public class HanyangTown : NpcTalk
         }
         if (combat.Paused) return;
         int n = Near();
-        if (n >= 0) JinaUI.Prompt("Enter: 말 걸기 (" + People[n].name + ")");
+        if (n >= 0) JinaUI.Prompt("F·클릭: 말 걸기 (" + People[n].name + ")");
     }
 }

@@ -325,7 +325,7 @@ public class Ferry : NpcTalk
     {
         if (combat == null || combat.PlayerHealth <= 0) return;
         KoreanUI.Apply();
-        if (Near && !IsOpen && !combat.Paused) JinaUI.Prompt("Enter: 뱃사공과 이야기하기");
+        if (Near && !IsOpen && !combat.Paused) JinaUI.Prompt("F·클릭: 뱃사공과 이야기하기");
         if (AtThorns && !combat.Paused) JinaUI.Prompt("가시덤불이 길을 막았습니다. 숲의 도깨비를 해결해야 지나갈 수 있습니다.");
         if (ClearedAt >= 0 && Time.time - ClearedAt < ClearedNotice && !combat.Paused && combat.Encounter != null && !combat.Encounter.Playing)
             JinaUI.Toast("숲 끝을 막던 가시덤불이 시들었습니다. 나루터로 가는 길이 열렸습니다.");

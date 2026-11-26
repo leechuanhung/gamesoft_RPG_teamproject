@@ -177,6 +177,7 @@ public class QuestSystem : MonoBehaviour
         const float header = 28, pad = 10;
         float inner = w - pad * 2;
         var heading = new Rect(x, y, w, header);
+        JinaUI.MarkButton(heading);   // 이 위의 클릭은 공격·상호작용이 아니다
         if (GUI.Button(heading, GUIContent.none, GUIStyle.none)) expanded = !expanded;
         float height = header;
         if (expanded)

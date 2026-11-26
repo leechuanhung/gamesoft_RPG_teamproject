@@ -130,9 +130,10 @@ public class GameAudio : MonoBehaviour
         Play(sfx, volume);
     }
 
-    // 무기를 휘두른다: 귀한 칼은 저마다 소리가 다르다(환도는 팀원의 칼 소리).
+    // 무기를 휘두른다: 귀한 칼은 저마다 소리가 다르다(환도는 팀원의 칼 소리). 도깨비 방망이는 도깨비가 내려치던 소리.
     public static void Swing(string weapon) =>
-        Play(weapon == "myeonggeom" ? Sfx.Myeonggeom : weapon == "saingeom" ? Sfx.Saingeom : weapon == "dagger" ? Sfx.Dagger : Sfx.Sword);
+        Play(weapon == "myeonggeom" ? Sfx.Myeonggeom : weapon == "saingeom" ? Sfx.Saingeom : weapon == "dagger" ? Sfx.Dagger
+            : weapon == "dokkaebi_club" || weapon == "blood_club" ? Sfx.DkClub : Sfx.Sword);
 
     // 시위를 놓는다: 벽조궁은 번개가 튄다.
     public static void Shot(string bow) { Play(Sfx.Bow); if (bow == "byeokjogung") Play(Sfx.Byeokjo); }

@@ -209,6 +209,8 @@ public partial class Combat
         ClearArrows();
         var visual = enemy.GetComponent<JinaActorVisual>();
         if (visual != null) visual.Refresh();
+        // 저주가 풀린 도깨비는 방망이를 내려놓는다
+        WeaponPickup.Drop(this, "dokkaebi_club", ClubDropAt());
         return true;
     }
 
@@ -239,5 +241,14 @@ public partial class Combat
         if (Move != BossMove.None) EndMove(0);
         if (Quest != null) Quest.progress.Resolve(false);
         GainExp(DokkaebiExp);
+        // 쓰러진 도깨비의 손에서 피 묻은 방망이가 떨어진다
+        WeaponPickup.Drop(this, "blood_club", ClubDropAt());
+    }
+
+    // 방망이가 떨어지는 자리: 도깨비와 선비 사이, 허리 높이에서 땅으로
+    Vector3 ClubDropAt()
+    {
+        int toward = player.transform.position.x < enemy.transform.position.x ? -1 : 1;
+        return enemy.transform.position + new Vector3(toward * .6f, .6f, 0);
     }
 }
