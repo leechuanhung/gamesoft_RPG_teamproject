@@ -188,7 +188,7 @@ public class InventoryUI : MonoBehaviour
         var result = new List<InventorySlot>();
         if (inventory == null) return result;
         foreach (var slot in inventory.Slots)
-            if (!(slot.Item is JinaItem item && (item.effect == JinaItem.Effect.Keepsake || item.effect == JinaItem.Effect.QuestWisp))) result.Add(slot);
+            if (!(slot.Item is JinaItem item && (item.effect == JinaItem.Effect.Keepsake || item.effect == JinaItem.Effect.QuestWisp || item.effect == JinaItem.Effect.QuestOrb))) result.Add(slot);
         return result;
     }
 
@@ -356,6 +356,9 @@ public class InventoryUI : MonoBehaviour
             items.Add(("정화 부적", description, JinaArt.Prop("charm")));
         }
 
+        if (inventory.GetQuantity(JinaItems.SuspiciousOrb) > 0)
+            items.Add((JinaItems.SuspiciousOrb.ItemName, JinaItems.SuspiciousOrb.Description, JinaItems.SuspiciousOrb.Icon));
+
         float width = content.width;
         float totalHeight = 0;
         foreach (var item in items) totalHeight += KeyItemHeight(item.description, width) + 8;
@@ -378,22 +381,37 @@ public class InventoryUI : MonoBehaviour
         if (scroll) GUI.EndScrollView();
     }
 
+    // 스크롤 내부에서는 JinaUI.Text처럼 GUI.matrix를 초기화하지 않는다.
+    GUIStyle KeyItemStyle(int size, bool bold = false)
+    {
+        var style = new GUIStyle(GUI.skin.label)
+        {
+            font = KoreanUI.Font, fontSize = size,
+            fontStyle = bold ? FontStyle.Bold : FontStyle.Normal,
+            alignment = bold ? TextAnchor.MiddleLeft : TextAnchor.UpperLeft,
+            wordWrap = !bold, richText = false, clipping = TextClipping.Clip,
+            padding = new RectOffset(0, 0, 0, 0)
+        };
+        style.normal.textColor = TextDark;
+        return style;
+    }
+
     float KeyItemHeight(string description, float width)
     {
-        return Mathf.Max(68, Height(description, 12, width - 62) + 42);
+        float bodyHeight = Mathf.Ceil(KeyItemStyle(12).CalcHeight(new GUIContent(description), width - 62));
+        return Mathf.Max(68, bodyHeight + 42);
     }
 
     float DrawKeyItemRecord(Rect place, string name, string description, Sprite sprite)
     {
         const float pad = 8;
         float textWidth = place.width - 62;
-        float bodyHeight = Height(description, 12, textWidth);
         float rowHeight = KeyItemHeight(description, place.width);
         var r = new Rect(place.x, place.y, place.width, rowHeight);
         Box(r, PaperLight, SlotEdge, 1);
         if (sprite != null) DrawIcon(sprite, new Rect(r.x + 6, r.y + 7, 43, 43));
-        Text(new Rect(r.x + 55, r.y + 5, textWidth, 22), name, 15, TextDark, TextAnchor.MiddleLeft, true);
-        Text(new Rect(r.x + 55, r.y + 29, textWidth, bodyHeight), description, 12, TextDark);
+        GUI.Label(new Rect(r.x + 55, r.y + 5, textWidth, 22), name, KeyItemStyle(15, true));
+        GUI.Label(new Rect(r.x + 55, r.y + 29, textWidth, rowHeight - 37), description, KeyItemStyle(12));
         return rowHeight + pad;
     }
 
