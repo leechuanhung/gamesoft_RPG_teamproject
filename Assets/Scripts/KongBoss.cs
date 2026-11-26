@@ -16,6 +16,8 @@ public partial class KongBoss : MonoBehaviour
     public enum Phase { Waiting, Meeting, Changing, Fighting, Slain, Purified }
     public Phase Now { get; private set; }
     public const int MaxHealth = 260;
+    // 방어력: 선비의 피해에서 이만큼 덜 들어간다(최소 1). 도깨비(5)와 같고, 대신 더 세게 때린다(KongBoss.Fight).
+    public const int Defense = 5;
     public int Health { get; private set; } = MaxHealth;
     // 절반 아래면 은비녀가 안의 콩쥐에게 닿는다.
     public bool Weakened => Health <= MaxHealth / 2;
@@ -244,7 +246,7 @@ public partial class KongBoss : MonoBehaviour
         if (!Fighting) return false;
         if (combat.Cheats != null) amount = combat.Cheats.Power(amount);   // 개발자 치트: 한 방
         int before = Health;
-        Health -= Combat.CalcDamage(amount + JinaItems.AttackBonus(combat), 0);
+        Health -= Combat.CalcDamage(amount + combat.BonusAttack, Defense);
         HitAt = Time.time;
         if (sword) Stagger(amount);
         var at = Feet + new Vector3(0, 1.4f, 0);
@@ -259,6 +261,7 @@ public partial class KongBoss : MonoBehaviour
         EndFight();
         if (combat.Quest != null) combat.Quest.progress.ResolveKong(false);
         if (combat.Kong != null) combat.Kong.Release();
+        combat.GainExp(Combat.KongExp);
         return true;
     }
 
@@ -289,6 +292,7 @@ public partial class KongBoss : MonoBehaviour
         EndFight();
         if (combat.Quest != null) combat.Quest.progress.ResolveKong(true);
         if (combat.Kong != null) combat.Kong.Release();
+        combat.GainExp(Combat.KongExp);
         return true;
     }
 
@@ -430,7 +434,7 @@ public partial class KongBoss : MonoBehaviour
             DrawBars(Mathf.Clamp01((Time.time - MetAt) / .4f));
             bool revealed = combat.Kong != null && combat.Kong.Revealed;
             KongVillage.TalkWindow(KongVillage.Who.Kongjwi, MeetingPortrait(page, revealed || Retries > 0), lines[page],
-                "Enter 다음 (" + (page + 1) + "/" + lines.Length + ")   ·   Esc 넘기기", page > 0 || revealed);
+                "F·클릭 다음 (" + (page + 1) + "/" + lines.Length + ")   ·   Esc 넘기기", page > 0 || revealed);
             return;
         }
         if (Now == Phase.Changing) { DrawChangeCard(Time.time - ChangedAt); return; }
@@ -455,12 +459,7 @@ public partial class KongBoss : MonoBehaviour
         float bar = JinaUI.H * .11f * Mathf.Clamp01((ChangeLength - t) / .4f);
         if (t >= FlashAt && t < RoarUntil + .4f) SpeechBubble.Draw(Feet + Vector3.up * 3.2f, "콩쥐", Roar);
         float card = Mathf.Clamp01((t - CardAt) / .5f) * Mathf.Clamp01((ChangeLength - .3f - t) / .4f);
-        if (card <= 0) return;
-        const float size = 33;
-        float x = 60 - (1 - card) * 80, y = JinaUI.H - bar - size * 3.4f;
-        JinaUI.Text(new Rect(x, y, JinaUI.W, size), Epithet, 18, new Color(.92f, .9f, .85f, card), TextAnchor.MiddleLeft);
-        JinaUI.Fill(new Rect(x, y + size * 1.05f, size * 7 * card, 3), new Color(.62f, .8f, .45f, card));
-        JinaUI.Text(new Rect(x, y + size * 1.15f, JinaUI.W, size * 1.8f), Name, 43, new Color(.7f, .86f, .5f, card), TextAnchor.MiddleLeft, true);
+        JinaUI.NameCard(Epithet, Name, new Color(.7f, .86f, .5f), card, JinaUI.H - bar, "妖");
     }
 
     void OnDestroy() { ClearShots(); foreach (var h in honey) if (h.art != null) Destroy(h.art.gameObject); if (miasma != null) Destroy(miasma); }

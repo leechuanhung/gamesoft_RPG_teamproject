@@ -121,14 +121,7 @@ public class BossEncounter : MonoBehaviour
         JinaUI.Fill(new Rect(0, JinaUI.H - bar, JinaUI.W, bar), Color.black);
         // 이름 카드는 왼쪽 아래, 아래 띠 위로 왼쪽에서 밀려 들어온다.
         float card = Mathf.Clamp01((t - CardAt) / .5f) * Mathf.Clamp01((Length - .4f - t) / .4f);
-        if (card > 0)
-        {
-            const float size = 33;
-            float x = 60 - (1 - card) * 80, y = JinaUI.H - bar - size * 3.4f;
-            JinaUI.Text(new Rect(x, y, JinaUI.W, size), Epithet, 18, new Color(.92f, .9f, .85f, card), TextAnchor.MiddleLeft);
-            JinaUI.Fill(new Rect(x, y + size * 1.05f, size * 7 * card, 3), new Color(.95f, .45f, .35f, card));
-            JinaUI.Text(new Rect(x, y + size * 1.15f, JinaUI.W, size * 1.8f), Name, 43, new Color(.95f, .45f, .35f, card), TextAnchor.MiddleLeft, true);
-        }
+        JinaUI.NameCard(Epithet, Name, new Color(.95f, .45f, .35f), card, JinaUI.H - bar, "鬼");
         if (WispResonating)
         {
             SpeechBubble.Draw(new Vector3(combat.BossPosition.x, 2.9f, 0), "도깨비", "…으윽, 이 빛은… 내가… 누구였지…?");
@@ -138,8 +131,8 @@ public class BossEncounter : MonoBehaviour
 }
 
 // ===== 정화된 도깨비의 사연 (BossTalk) =====
-// 정화된 도깨비에게 말을 걸 수 있다(엔터): 망한 나라의 망령들이 어떻게 저주했는지 이야기한다.
-// 노인을 죽였다면 그 곁에 있게 해 달라고만 한다. 엔터로 넘기고 Esc로 닫는다.
+// 정화된 도깨비에게 말을 걸 수 있다(F·클릭): 망한 나라의 망령들이 어떻게 저주했는지 이야기한다.
+// 노인을 죽였다면 그 곁에 있게 해 달라고만 한다. F·클릭으로 넘기고 Esc로 닫는다.
 public class BossTalk : NpcTalk
 {
     static readonly string[] Story =
@@ -168,12 +161,12 @@ public class BossTalk : NpcTalk
         else Next();
     }
 
-    // 정화된 도깨비 곁에서 엔터를 누르면 대화를 열거나 넘긴다.
+    // 정화된 도깨비 곁에서 F·클릭를 누르면 대화를 열거나 넘긴다.
     void Update()
     {
         if (combat == null) return;
         if (IsOpen) TalkKeys(false);
-        else if (Near && !combat.Paused && JinaUI.Interact) Talk();
+        else if (Near && !combat.Paused && JinaUI.Interact && Time.time - combat.PurifiedAt > .3f) Talk();   // 정화한 F로 바로 열지 않음
     }
 
     // 도깨비 사연 창과 E 안내를 그린다.
@@ -184,10 +177,10 @@ public class BossTalk : NpcTalk
         if (!IsOpen)
         {
             if (Near && !combat.Paused)
-                JinaUI.Prompt("Enter: 도깨비와 이야기하기");
+                JinaUI.Prompt("F·클릭: 도깨비와 이야기하기");
             return;
         }
-        string hint = (Page + 1) + " / " + lines.Length + "   ·   Enter: " + (Page + 1 < lines.Length ? "다음" : "닫기") + "   Esc: 닫기";
+        string hint = (Page + 1) + " / " + lines.Length + "   ·   F·클릭: " + (Page + 1 < lines.Length ? "다음" : "닫기") + "   Esc: 닫기";
         SpeechBubble.Draw(new Vector3(combat.BossPosition.x, 2.3f, 0), "도깨비", lines[Page], hint);
     }
 }

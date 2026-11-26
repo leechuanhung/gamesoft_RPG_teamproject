@@ -9,6 +9,21 @@ public class Skills : MonoBehaviour
 {
     public Combat combat;
 
+    // 스킬 아이콘: 칸이 아니라 스킬 ID로 찾음 → Q/W/E를 바꿔 끼워도 아이콘이 스킬을 따라감
+    //   그림 위치: Resources/JinaV4/26_Skills/skill_스킬ID.png (예: skill_rush_slash)
+    static readonly System.Collections.Generic.Dictionary<string, Sprite> icons = new System.Collections.Generic.Dictionary<string, Sprite>();
+    public static Sprite IconOf(string skillId)
+    {
+        if (string.IsNullOrEmpty(skillId)) return null;
+        if (!icons.TryGetValue(skillId, out var icon))
+        {
+            // 그림이 없는 스킬은 아이콘 없이 이름만 표시
+            try { icon = JinaArt.Load("26_Skills/skill_" + skillId); } catch { icon = null; }
+            icons[skillId] = icon;
+        }
+        return icon;
+    }
+
     // ── Q 물러서기 ──
     public const float RetreatCooldown = 4f, RetreatInvulnerable = 1.5f, RetreatLength = .25f, RetreatSpeed = 10f;
     // ── W 돌진베기 ──
@@ -72,8 +87,8 @@ public class Skills : MonoBehaviour
     {
         var s = slots[index];
         if (s.empty || Time.time < s.readyAt) return;
-        // 활을 들고 있으면 W(돌진베기)는 못 씀 (스테미너·쿨타임도 안 씀)
-        if (index == 1 && combat.UsingBow) return;
+        // 활을 들고 있으면 돌진베기는 못 씀 (어느 칸에 있든)
+        if (s.skillId == "rush_slash" && combat.UsingBow) return;
         // 강궁은 활을 들고 있을 때만, 이미 준비된 상태면 다시 못 씀
         if (s.skillId == "power_shot" && (!combat.UsingBow || combat.PowerShotReady)) return;
         var p = combat.player;
@@ -132,6 +147,14 @@ public class Skills : MonoBehaviour
             GUI.color = s.empty ? new Color(.12f, .12f, .12f, .9f) : new Color(.18f, .16f, .22f, .95f);
             GUI.DrawTexture(r, Texture2D.whiteTexture);
 
+            // 스킬 아이콘 (이름 글씨 위쪽에)
+            var icon = s.empty ? null : IconOf(s.skillId);
+            if (icon != null)
+            {
+                GUI.color = Color.white;
+                InventoryUI.DrawIcon(icon, new Rect(r.x + 17, r.y + 7, r.width - 26, r.height - 25));
+            }
+
             // 쿨타임: 남은 비율만큼 위에서부터 어둡게 덮고 남은 초 표시
             float remain = s.readyAt - Time.time;
             if (!s.empty && remain > 0)
@@ -145,7 +168,6 @@ public class Skills : MonoBehaviour
 
             // 키 글자(왼쪽 위)와 스킬 이름(아래)
             GUI.color = Color.white;
-            GUI.Label(new Rect(r.x + 5, r.y + 3, r.width, 18), s.key, keyStyle);
             GUI.Label(new Rect(r.x, r.y, r.width, r.height - 4), s.empty ? "비어 있음" : s.name, nameStyle);
 
             // 강궁 준비 중: 금빛으로 칠하고 "준비"
@@ -156,8 +178,8 @@ public class Skills : MonoBehaviour
                 GUI.color = Color.white;
                 GUI.Label(r, "준비", cdStyle);
             }
-            // 활을 들고 있으면 W(돌진베기) 칸, 활이 없으면 강궁 칸을 어둡게 덮고 빨간 X
-            if ((i == 1 && combat.UsingBow) || (s.skillId == "power_shot" && !combat.UsingBow))
+            // 활을 들면 돌진베기 칸, 칼을 들면 강궁 칸을 어둡게 덮고 빨간 X (어느 칸에 있든 스킬을 따라감)
+            if ((s.skillId == "rush_slash" && combat.UsingBow) || (s.skillId == "power_shot" && !combat.UsingBow))
             {
                 GUI.color = new Color(0, 0, 0, .55f);
                 GUI.DrawTexture(r, Texture2D.whiteTexture);
@@ -169,6 +191,19 @@ public class Skills : MonoBehaviour
                 GUI.color = new Color(1f, .25f, .25f);
                 GUI.Label(new Rect(r.x, r.y - 10, r.width, r.height + 20), "X", xStyle);
             }
+
+            // 키 글자(Q·W·E): 왼쪽 위 어두운 네모 위에. 맨 마지막에 그려서 아이콘·X에 가려지지 않음
+            var keyRect = new Rect(r.x + 2, r.y + 2, 18, 18);
+            GUI.color = new Color(0, 0, 0, .75f);
+            GUI.DrawTexture(keyRect, Texture2D.whiteTexture);
+            var keyBadge = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter, fontSize = 13, fontStyle = FontStyle.Bold,
+                padding = new RectOffset(0, 0, 0, 0), clipping = TextClipping.Overflow
+            };
+            GUI.color = new Color(1f, .86f, .45f);
+            GUI.Label(keyRect, s.key, keyBadge);
+            GUI.color = Color.white;
         }
 
         GUI.color = oldColor;

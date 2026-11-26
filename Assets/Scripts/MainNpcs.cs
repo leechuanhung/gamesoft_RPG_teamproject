@@ -5,7 +5,7 @@ using UnityEngine;
 
 // ===== NPC 대화 공통 바탕 (NpcTalk) =====
 // 노인, 콩밭 마을 사람들, 정화된 도깨비, 뱃사공, 주막·보부상이 같이 쓴다.
-// 엔터로 열고 넘기고(타자 중이면 먼저 문장을 다 보임), Esc로 닫는다. 대화 중에는 선비가 멈춘다.
+// F·클릭으로 열고 넘기고(타자 중이면 먼저 문장을 다 보임), Esc로 닫는다. 대화 중에는 선비가 멈춘다.
 // 하위 클래스는 누구와 무엇을 말할지(Begin에 넘기는 대사)와 닫을 때 할 일(Close)만 정한다.
 public abstract class NpcTalk : MonoBehaviour
 {
@@ -22,14 +22,14 @@ public abstract class NpcTalk : MonoBehaviour
     public virtual void Next() { if (++Page >= lines.Length) Close(); }
     // 창을 닫고 선비를 풀어 준다.
     protected virtual void Close() { IsOpen = false; combat.player.CanMove = combat.PlayerHealth > 0; }
-    // 열린 대화의 키: Esc는 닫기, 엔터는 다음(`typing`이면 타자 중인 문장을 먼저 다 보인다).
+    // 열린 대화의 키: Esc는 닫기, F·클릭는 다음(`typing`이면 타자 중인 문장을 먼저 다 보인다).
     protected void TalkKeys(bool typing = true)
     {
         if (Input.GetKeyDown(KeyCode.Escape)) Close();
         else if (JinaUI.Interact && !(typing && JinaUI.FinishTyping(lines[Page]))) Next();
     }
     // 말풍선 대화 아래의 안내.
-    protected string PageHint => "Enter: 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc: 그만 듣기";
+    protected string PageHint => "F·클릭: 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc: 그만 듣기";
 }
 
 // ===== 마을 노인과 비석 (ElderQuest) =====
@@ -49,6 +49,16 @@ public class ElderQuest : NpcTalk
     const float CharmRevealLength = 3.4f;
     public bool RevealingCharm => charmReveal >= 0;
     private Player Player => combat.player;
+
+    // 두 비석 퍼즐이 끝나면 기존 부적 보상 상태와 발견 연출을 이어 준다.
+    public void StelePuzzleSolved()
+    {
+        if (!progress.CompleteStelePuzzle()) return;
+        shrineDialog = true;
+        message = "비석의 봉인이 풀리고 정화 부적 한 장이 드러났다.\n창을 닫고 도깨비 가까이에서 F를 누르세요.";
+        lines = null; Page = 0; IsOpen = true; charmReveal = 0;
+        if (Player != null) Player.CanMove = false;
+    }
 
     // 노인 표시를 만들고 그림을 붙인다.
     void Start()
@@ -94,7 +104,7 @@ public class ElderQuest : NpcTalk
         villager.transform.localScale = new Vector3(1.4f, .35f, 1);
         villager.transform.position = new Vector3(WorldBuilder.Elder.x, -.3f, 0);
     }
-    // 엔터로 노인·비석·쪽지와 상호작용하고, 부적 퍼즐을 처리한다.
+    // F·클릭으로 노인·비석·쪽지와 상호작용하고, 부적 퍼즐을 처리한다.
     void Update()
     {
         if (combat != null && ((combat.Tavern != null && combat.Tavern.IsOpen) || (combat.Peddler != null && combat.Peddler.IsOpen))) return;
@@ -111,20 +121,9 @@ public class ElderQuest : NpcTalk
             if (JinaUI.Interact && !shrineDialog && !progress.ElderDead && JinaUI.FinishTyping(message)) return;
             if (JinaUI.Interact && lines != null && Page + 1 < lines.Length) { message = lines[++Page]; return; }
             if (Input.GetKeyDown(KeyCode.Escape) || JinaUI.Interact) { Close(); return; }
-            if (shrineDialog && progress.HeardClue && !progress.HasCharm && progress.Outcome == EncounterOutcome.Unresolved)
-            {
-                int symbol = Input.GetKeyDown(KeyCode.Alpha1) ? 1 : Input.GetKeyDown(KeyCode.Alpha2) ? 2 : Input.GetKeyDown(KeyCode.Alpha3) ? 3 : 0;
-                if (symbol != 0)
-                {
-                    bool correct = progress.ChooseSymbol(symbol);
-                    if (progress.HasCharm) charmReveal = 0;
-                    message = progress.HasCharm ? "비석의 빛이 잦아들고 부적 한 장이 드러났다.\n[정화 부적 획득] 창을 닫고 도깨비 가까이에서 F를 누르세요."
-                        : correct ? "문양에 희미한 빛이 깃들었다. 다음 문양을 고르세요." : "빛이 사그라들었다. 첫 문양부터 다시 고르세요.";
-                }
-            }
             return;
         }
-        if (!JinaUI.Interact || combat.InventoryPauseActive || (combat.BossTalk != null && combat.BossTalk.IsOpen)) return;
+        if (!JinaUI.Interact || combat.Paused || combat.InventoryPauseActive || (combat.BossTalk != null && combat.BossTalk.IsOpen)) return;
         if (Near(WorldBuilder.Elder))
         {
             shrineDialog = false;
@@ -137,11 +136,27 @@ public class ElderQuest : NpcTalk
         {
             if (combat.Camp != null && !combat.Camp.Cleared) return;
             shrineDialog = true;
-            message = progress.Outcome != EncounterOutcome.Unresolved ? "이곳의 일은 이미 끝났다.\n다른 선택을 해 보려면 R을 눌러 처음부터 시작하세요."
-                : progress.HasCharm ? "정화 부적을 지니고 있다.\n창을 닫고 도깨비 가까이에서 F를 누르세요."
-                : !progress.HeardClue ? "비석에 낯선 문양이 새겨져 있다.\n먼저 갈색 갓을 쓴 마을 노인에게 이야기를 들어 보세요."
-                : "달과 강과 산의 문양이 새겨져 있다.\n노인에게 들은 차례대로 문양을 고르세요.";
-            Begin();
+            if (progress.Outcome != EncounterOutcome.Unresolved)
+            {
+                message = "이곳의 일은 이미 끝났다.\n다른 선택을 해 보려면 R을 눌러 처음부터 시작하세요.";
+                Begin();
+            }
+            else if (progress.HasCharm)
+            {
+                message = "비석에서 얻은 정화 부적을 지니고 있다.\n도깨비 가까이에서 F를 누르면 저주를 풀 수 있다.";
+                Begin();
+            }
+            else if (!progress.HeardClue)
+            {
+                message = "비석에 봉인을 푸는 장치가 있다.\n먼저 마을 촌장에게 비석에 얽힌 이야기를 들어 보자.";
+                Begin();
+            }
+            else if (combat.Puzzles != null)
+            {
+                shrineDialog = false;
+                if (!combat.Puzzles.TutorialSolved) combat.Puzzles.OpenTutorial();
+                else combat.Puzzles.OpenMainPuzzle();
+            }
         }
     }
     // 이야기 진행에 따라 노인이 할 말. 항목 하나가 말풍선 하나.
@@ -154,7 +169,7 @@ public class ElderQuest : NpcTalk
             keepsake ? "그 비녀… 그 집 안주인의 것이로군. 원한은 원한으로 풀리지 않는 법이네. 그 아이를 베기 전에 그것부터 써 보게."
                 : "그 아이를 칼로 베면 끝은 나겠지. 허나 강물이 품은 것이 있다면… 그것이 그 아이를 돌려줄지도 모르네.",
             "주모에게 요기라도 하고, 보부상에게 화살도 넉넉히 사 가게. 서두르게. 그 마을엔 피할 데가 없다네." };
-        if (q.ElderDead) return new[] { "노인은 마지막 힘을 다해 도깨비에게 맞섰으나 끝내 쓰러졌다.\n품에 남은 쪽지에는 ‘달, 강, 산’이라 적혀 있다. 비석으로 가려면 서쪽의 망령을 " + Camp.SealKills + "번 물리쳐야 한다." };
+        if (q.ElderDead) return new[] { "노인은 마지막 힘을 다해 도깨비에게 맞섰으나 끝내 쓰러졌다.\n품에 남은 쪽지에는 ‘옛 비석의 봉인을 풀면 부적이 드러난다’고 적혀 있다. 비석으로 가려면 서쪽의 망령을 " + Camp.SealKills + "번 물리쳐야 한다." };
         if (q.Outcome == EncounterOutcome.Purified) return new[] {
             "그 도깨비를 살려 주셨구려. 어젯밤엔 숲에서 울음소리 대신 솔바람 소리가 내려오더이다.",
             "내 젊어서 저 아이와 씨름도 하고 술도 나눠 마셨다오. …이 늙은이 소원을 선비께서 들어주셨소. 부디 남은 길도 평안히 가시오." };
@@ -167,7 +182,7 @@ public class ElderQuest : NpcTalk
         return new[] {
             "한양 가는 길이시오? 그 길은 지금 막혔소. 동쪽 숲 끝에 가시덤불이 자라 나루터로 가는 길을 틀어막았다오.",
             "숲의 도깨비 짓이오. 본디 산을 지키던 착한 놈이었는데, 망한 나라의 원한이 씌어 저리 되었소.",
-            "저 아이를 꼭 베어야만 한다면 어쩔 수 없겠지. 허나 풀어 줄 길도 있소. 서쪽 비석 터의 옛 비석에 달, 강, 산의 차례로 손을 얹으면 부적이 나온다 하오.",
+            "저 아이를 꼭 베어야만 한다면 어쩔 수 없겠지. 허나 풀어 줄 길도 있소. 서쪽 비석 터의 옛 비석에 새겨진 수수께끼를 풀면 정화 부적을 얻을 수 있을 것이오.",
             "비석 터로 가려면 들판의 망령들을 물리쳐야 하오. 그리고 부디, 도깨비를 마을로 끌어들이지는 마시오. 주민들이 다칠까 두렵소." };
     }
 
@@ -178,27 +193,25 @@ public class ElderQuest : NpcTalk
         KoreanUI.Apply();
         if (!IsOpen && combat.PlayerHealth > 0 && !combat.Paused)
         {
-            if (Near(WorldBuilder.Elder)) JinaUI.Prompt(progress.ElderDead ? "Enter: 노인이 남긴 쪽지 살펴보기" : "Enter: 마을 노인과 대화");
-            else if (Near(WorldBuilder.Stone)) JinaUI.Prompt("Enter: 비석 살펴보기");
+            if (Near(WorldBuilder.Elder)) JinaUI.Prompt(progress.ElderDead ? "F·클릭: 노인이 남긴 쪽지 살펴보기" : "F·클릭: 마을 노인과 대화");
+            else if (Near(WorldBuilder.Stone)) JinaUI.Prompt(progress.HeardClue && !progress.HasCharm && progress.Outcome == EncounterOutcome.Unresolved
+                ? "F·클릭: 비석의 돌 퍼즐 풀기" : "F·클릭: 비석 살펴보기");
         }
         if (!IsOpen) return;
         if (!shrineDialog && !progress.ElderDead)
         {
             // 노인은 초상화 창에서 말하고, 비석과 쪽지는 내레이션 상자로 남는다.
             bool more = lines != null && Page + 1 < lines.Length;
-            JinaUI.TalkWindow("마을 노인", "elder", message, more ? "Enter 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc 닫기" : "Enter / Esc 닫기", false);
+            JinaUI.TalkWindow("마을 노인", "elder", message, more ? "F·클릭 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc 닫기" : "F·클릭 / Esc 닫기", false);
             return;
         }
         // 비석과 쪽지: 글 높이만큼의 한지 창.
         float width = Mathf.Min(760, JinaUI.W - 30), inner = width - JinaUI.WindowPad * 2;
         float textHeight = JinaUI.Height(message, 17, inner);
-        bool puzzle = shrineDialog && progress.HeardClue;
-        float height = JinaUI.TitleHeight + 12 + textHeight + (puzzle ? 34 : 0) + 30 + JinaUI.WindowPad;
+        float height = JinaUI.TitleHeight + 12 + textHeight + 30 + JinaUI.WindowPad;
         var box = new Rect((JinaUI.W - width) / 2, JinaUI.H - height - 14, width, height);
-        var inside = JinaUI.Window(box, shrineDialog ? "오래된 비석" : "노인이 남긴 흔적", "Enter / Esc 닫기");
+        var inside = JinaUI.Window(box, shrineDialog ? "오래된 비석" : "노인이 남긴 흔적", "F·클릭 / Esc 닫기");
         JinaUI.Text(new Rect(inside.x, inside.y, inner, textHeight), message, 17, JinaUI.TextDark);
-        if (puzzle)
-            JinaUI.Text(new Rect(inside.x, inside.y + textHeight + 8, inner, 24), "1: 강     2: 달     3: 산          맞춘 문양: " + progress.PuzzleStep + " / 3", 16, JinaUI.Red, TextAnchor.MiddleLeft, true);
         JinaUI.Text(new Rect(inside.x, box.yMax - JinaUI.WindowPad - 20, inner, 20), "대화 중에는 전투가 멈춥니다.", 13, JinaUI.TextDim);
         if (charmReveal >= 0) DrawCharmReveal(charmReveal);
     }
@@ -689,7 +702,7 @@ public class KongVillage : NpcTalk
         note = "항아리 곁에 떨어진 종이. 보름 잔칫상 차림표다. '젓갈 여섯 독' 아래로 마을 사람 이름이 하나씩 적혀 있다. 맨 끝에는… '선비'.";
     }
 
-    // 엔터 입력, 괴롭힘 장면, 걷기를 처리한다.
+    // F·클릭 입력, 괴롭힘 장면, 걷기를 처리한다.
     void Update()
     {
         if (combat == null || combat.PlayerHealth <= 0) { IsOpen = false; return; }
@@ -771,9 +784,9 @@ public class KongVillage : NpcTalk
         if (NoteAt >= 0 && Time.time - NoteAt < 4.5f)
             JinaUI.Toast(note);
         var near = Nearest();
-        string prompt = near.HasValue ? "Enter: " + Name(near.Value) + "와(과) 이야기하기"
-            : OnPaper ? "Enter: 항아리 곁의 종이 읽기"
-            : Near(WorldBuilder.JangdokX, LookRange) ? "Enter: 장독대 살펴보기" : null;
+        string prompt = near.HasValue ? "F·클릭: " + Name(near.Value) + "와(과) 이야기하기"
+            : OnPaper ? "F·클릭: 항아리 곁의 종이 읽기"
+            : Near(WorldBuilder.JangdokX, LookRange) ? "F·클릭: 장독대 살펴보기" : null;
         if (prompt != null) JinaUI.Prompt(prompt);
     }
 
@@ -784,7 +797,7 @@ public class KongVillage : NpcTalk
     // 본래 모습으로 돌아온 콩쥐는 제 얼굴을 되찾는다(상냥한 얼굴: 슬픈 초상화는 아직 없음).
     public string Portrait => !IsOpen ? null : Speaker == Who.Patjwi ? "patjwi"
         : Speaker == Who.Kongjwi ? (!afterTalk && unmasking && Page >= 1 ? "kongjwi_true" : "kongjwi") : null;
-    void DrawTalk() => TalkWindow(Speaker, Portrait, lines[Page], "Enter 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc 그만 듣기", unmasking && Page >= 1);
+    void DrawTalk() => TalkWindow(Speaker, Portrait, lines[Page], "F·클릭 다음 (" + (Page + 1) + "/" + lines.Length + ")   ·   Esc 그만 듣기", unmasking && Page >= 1);
     // 왼쪽 끝 안에 초상화가 들어간 창. 창의 사각형을 돌려준다.
     public static Rect TalkWindow(Who who, string portrait, string line, string hint, bool menacing, float since = -1, bool toLeft = false)
         => JinaUI.TalkWindow(Name(who), portrait, line, hint, menacing, since, toLeft);

@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // ===== 한양 거리와 과거장 앞 사람들 (HanyangTown) =====
-// 기획서.md 1-3. 어린 임금의 도성은 좌의정 엄탁의 세상이다. 사람들은 엔터로 말을 걸면 말풍선으로 몇 마디 한다.
+// 기획서.md 1-3. 어린 임금의 도성은 좌의정 엄탁의 세상이다. 사람들은 F·클릭으로 말을 걸면 말풍선으로 몇 마디 한다.
 // 선악이 음수면 사람들이 선비를 꺼리고 포졸이 노려본다(이 맵에서는 덤비지 않는다).
 // 무당은 몇 해 전 좌의정 댁 굿에서 내린 공수("업 많은 선비가 네 목을 치리라")를 들려준다.
 // 거리 끝의 청지기가 과거 전날 밤 좌의정 댁 술자리에 선비를 청한다(Invited).
@@ -31,6 +31,7 @@ public class HanyangTown : NpcTalk
     public bool HeardProphecy { get; private set; }
     public Who Speaking { get; private set; }
     private SpriteRenderer[] arts;
+    private bool childOfferOpen;
 
     bool Wicked => combat != null && combat.Quest != null && combat.Quest.progress.Honor < 0;
 
@@ -83,7 +84,7 @@ public class HanyangTown : NpcTalk
         ResetTown();
     }
     void OnDestroy() { if (root != null) Destroy(root); }
-    public void ResetTown() { IsOpen = false; Invited = HeardProphecy = false; Page = 0; lines = null; }
+    public void ResetTown() { childOfferOpen = false; IsOpen = false; Invited = HeardProphecy = false; Page = 0; lines = null; }
 
     // 가장 가까운 사람 번호(없으면 -1).
     public int Near()
@@ -104,11 +105,29 @@ public class HanyangTown : NpcTalk
     public void Talk(int i)
     {
         Speaking = People[i].who;
-        Begin(Lines(Speaking, Wicked, Invited));
+        var say = Lines(Speaking, Wicked, Invited);
+        var quests = GetComponent<QuestSystem>();
+        childOfferOpen = Speaking == Who.Ai && quests != null && quests.CanOfferChild;
+        if (Speaking == Who.Ai && quests != null && !childOfferOpen) say = quests.ChildDialogue(say);
+        Begin(say);
         if (Speaking == Who.Mudang) HeardProphecy = true;
     }
+    // 수락/거절 뒤에는 기존 아이 대사를 이어서 보여 준다.
+    void AnswerChildOffer(bool accept)
+    {
+        if (!childOfferOpen) return;
+        childOfferOpen = false;
+        var quests = GetComponent<QuestSystem>();
+        var original = Lines(Speaking, Wicked, Invited);
+        var say = new string[original.Length + 1];
+        say[0] = quests.AnswerChild(accept);
+        System.Array.Copy(original, 0, say, 1, original.Length);
+        Begin(say);
+    }
+
     protected override void Close()
     {
+        childOfferOpen = false;
         if (Speaking == Who.Cheongji) Invited = true;
         base.Close();
     }
@@ -116,7 +135,16 @@ public class HanyangTown : NpcTalk
     void Update()
     {
         if (combat == null || combat.PlayerHealth <= 0) return;
-        if (IsOpen) { TalkKeys(); return; }
+        if (IsOpen)
+        {
+            if (childOfferOpen)
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha1)) AnswerChildOffer(true);
+                else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Escape)) AnswerChildOffer(false);
+                return;
+            }
+            TalkKeys(); return;
+        }
         if (combat.Paused || !JinaUI.Interact) return;
         int i = Near();
         if (i >= 0) Talk(i);
@@ -144,11 +172,16 @@ public class HanyangTown : NpcTalk
         {
             int i = System.Array.FindIndex(People, p => p.who == Speaking);
             var head = new Vector3(People[i].x, 1.9f, 0);
+            if (childOfferOpen)
+            {
+                GetComponent<QuestSystem>().DrawChildOffer(AnswerChildOffer);
+                return;
+            }
             SpeechBubble.Draw(head, People[i].name, lines[Page], PageHint);
             return;
         }
         if (combat.Paused) return;
         int n = Near();
-        if (n >= 0) JinaUI.Prompt("Enter: 말 걸기 (" + People[n].name + ")");
+        if (n >= 0) JinaUI.Prompt("F·클릭: 말 걸기 (" + People[n].name + ")");
     }
 }

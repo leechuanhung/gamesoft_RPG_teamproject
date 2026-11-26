@@ -50,7 +50,7 @@ python Tools/ArtGen/sheet.py <scratchpad>/out.png 01_Player/player_idle 13_Props
 | 스크립트 | 만드는 그림 | 방식 |
 |---|---|---|
 | `make_props.py` | `13_Props`: 주막, 기와집, 소나무, 비석, 평상, 주모(+`keeper_run_00~03`), 부적, 발판 `ledge_stone`·`ledge_log` | pixlib |
-| `make_backdrops.py` | `13_Props/bg_<stele·camp·village·forest·ferry·pass>_far·_near` | pixlib, 하늘색에 가까운 실루엣 |
+| `make_backdrops.py` | `13_Props/bg_<맵>_far·_near` | pixlib, 하늘색에 가까운 실루엣. 4칸 넓게 그린 뒤 맵 폭 그대로 잘라 저장(옆 맵에 끼어들지 않게) |
 | `make_peddler.py` | `12_Peddler/peddler_idle`, `peddler_run_00~03` | pixlib (다리 위치를 인자로) |
 | `make_run.py` | `11_Player_Run` | 걷기 프레임 기울이기·보폭 |
 | `make_player_down.py` | `01_Player/player_hit_00~01`, `player_corpse` | bend, rot90 (캔버스 좌우 48px 넓힘) |
@@ -61,7 +61,7 @@ python Tools/ArtGen/sheet.py <scratchpad>/out.png 01_Player/player_idle 13_Props
 | `make_night.py` | `18_Night`: 콩밭 마을 하룻밤 연출. 사용자가 GPT로 만든 그림(`source/night/A1~F1, S`, 요청문은 `source/night/요청문.md`)의 가운데 띠를 잘라 2.4:1(1280×533)로 맞추고, 편집본은 원본에 정렬(`FIT`)해 바뀐 부분만 레이어로 뺀다. 문 창호지(그림자가 비치는 곳)와 바닥 달빛은 밝기로 가려낸다. 콩쥐 눈은 1280×720 | 사용자 그림 |
 | `make_ground.py` | `13_Props/ground_<맵>`(한양 가는 길: fort, station, grave, city, hall, manor) (옆으로 이어지는 땅, 320×150, 걷는 면은 위에서 6도트), `sky_<맵>`, `river_deep`, `cloud_0~2` | numpy |
 | `make_fx.py` | `20_Fx`: 칼빛 `arc`, 타격 `spark`, 먼지 `dust`, 충격파 `ring`, `glint`, 봉인 `seal`. 흰색으로 그리고 게임에서 색을 입힌다 | numpy |
-| `make_ui.py` | `19_UI`: 이어지는 결(`grain_paper·wood·night`), 놋쇠 모서리 `corner`, HUD 아이콘, `vignette` | numpy, pixlib |
+| `make_ui.py` | `19_UI`: 이어지는 결(`grain_paper·wood·night`), 놋쇠 모서리 `corner`, HUD 아이콘, `vignette`, 낙관 `seal`, 단청 띠 `dancheong`, 두루마리 축 `roller`, 붓 자국 `brush`. 스킬 아이콘은 그리지 않는다(팀원 몫) | numpy, pixlib |
 | `make_kong.py` | `16_Kong/kongjwi·patjwi·anak·namu·hunjang·yeot·halmi` (보부상 12px 블록, 격자 전체 폭 유지라 발 x=138), 콩쥐의 `kongjwi_sad·kneel·bow`(무릎 꿇고 울기, `bow`는 `framelib.bend`로 숙임), 시체 `<이름>_down`(서 있는 그림을 시계 방향 90° 회전, 잘라서 가운데 발), `13_Props/jangdok·well·laundry·feast_list` | 블록 격자, pixlib |
 | `make_kong_boss.py` | `21_KongBoss/kong_boss_<idle_00·idle_01·crouch·hop·open·tongue·cast·crack·death_00~02>`: 밑 빠진 독에 낀 두꺼비, 콩쥐의 노란 소매가 앞다리. 같은 12px 블록, 모든 프레임이 72×74 블록 캔버스(발은 맨 아래 가운데, 위 8칸은 눈이 넘치지 않게 비움). `13_Props/kong_spit·bean·salt·brine·tongue·tongue_tip·bind`, 뒷산의 `crock·crock_cracked·crock_broken·kong_honey·ledge_roof` | 블록 격자(pixlib), `framelib.scatter` |
 | `make_pass.py` | `13_Props/jangseung·seonang_tree·cairn·boulder` | pixlib |
@@ -75,8 +75,9 @@ python Tools/ArtGen/sheet.py <scratchpad>/out.png 01_Player/player_idle 13_Props
 | `make_road_mobs.py` | `23_Mobs/wisp_*`(도깨비불, 가운데에 걺), `brute_*`(두억시니, 48×46칸, 발은 맨 아래 가운데) | pixlib(선비 도트) |
 | `make_hanyang.py` | `24_Hanyang/sangin·yusaeng·cheongji·ai·mudang·jumo·bangmul`(콩밭 마을과 같은 격자, 발 x=138. 방물장수 `bangmul`은 콩밭 마을 입구에 선다), `13_Props/beacon_off·beacon_on·fort_gate_shut·fort_gate_open·fort_wall·station_house·cart·grave·dead_tree·shop·lantern·hongsal·exam_board·pavilion·drink_table` | 블록 격자, pixlib |
 | `make_final_boss.py` | `25_Final/official_<idle·cup·blank>`(좌의정, 선비 도트), `final_<idle_00·idle_01·open·reach·raise·cast·death_00~02>`(어둑시니 좌의정, 100×112칸, 발은 맨 아래 가운데), `13_Props/final_ink·coin·hand·seal·mark` | pixlib, `framelib.scatter` |
+| `make_clubs.py` | `04_Weapons/dokkaebi_club`(정화하면 얻는 도깨비 방망이), `dokkaebi_club_blood`(토벌하면 얻는 피 묻은 것). 명검과 같은 528px 캔버스, 12px 도트 44칸, 45°. 쥐는 점(`--grip`)은 `Weapon.cs`의 grip | pixlib(도깨비 몽둥이 색) |
 | `make_elder.py` | `08_Village_Elder/elder_cane·startle·draw_00~01·hit_00~01·down·corpse` | 지팡이 잘라 내기, bend, 갓 내리기, rot90 |
-| `make_sound.py` (+ `soundlib.py`) | `Resources/JinaSound`의 `bgm_<pass·hill·kong_fight·fort·station·grave·city·hall·manor·final_fight·ending>`, `sfx_<charm·keepsake·beacon·…>`, 무기 `sfx_w_<myeonggeom·saingeom·byeokjo·dagger>` | 그림이 아니라 소리. 가야금·대금·해금·피리·나발·장구·북·징·꽹과리·종을 numpy로 흉내 내 합성(고정 시드). 배경 음악은 끝 여운과 메아리를 앞에 접어 이음매 없이 되풀이. 팀원 wav는 건드리지 않음. 다른 컴퓨터의 소수점 오차(2 이하)로는 다시 쓰지 않음. `--only 이름`으로 하나만 |
+| `make_sound.py` (+ `soundlib.py`) | `Resources/JinaSound`의 `bgm_<pass·hill·kong_fight·fort·station·grave·city·hall·manor·final_fight·ending>`, `sfx_<charm·keepsake·beacon·…>`, 무기 `sfx_w_<myeonggeom·saingeom·byeokjo·dagger>`, 보스 공격 `sfx_dk_*`(도깨비)·`sfx_kong_*`(콩쥐 요괴)·`sfx_fb_*`(좌의정). 새 wav의 .meta는 `sfx_hit.wav.meta`를 본떠 normalize를 끈다 | 그림이 아니라 소리. 가야금·대금·해금·피리·나발·장구·북·징·꽹과리·종을 numpy로 흉내 내 합성(고정 시드). 배경 음악은 끝 여운과 메아리를 앞에 접어 이음매 없이 되풀이. 팀원 wav는 건드리지 않음. 다른 컴퓨터의 소수점 오차(2 이하)로는 다시 쓰지 않음. `--only 이름`으로 하나만 |
 
 ## 새 그림을 게임에 넣을 때
 

@@ -6,7 +6,11 @@ public static partial class JinaPlayChecks
     static void Items()
     {
         combat.Restart();
-        Check(JinaItems.All.Length==6 && System.Array.TrueForAll(JinaItems.All,i=>i.Icon!=null && i.price>0),"Every item has its icon and price");
+        // 효과음마다 소리 파일이 있다(보스의 공격 소리 포함).
+        var files=(System.Collections.Generic.Dictionary<GameAudio.Sfx,string>)typeof(GameAudio).GetField("Files",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static).GetValue(null);
+        foreach(GameAudio.Sfx sfx in System.Enum.GetValues(typeof(GameAudio.Sfx)))
+            Check(files.ContainsKey(sfx) && Resources.Load<AudioClip>("JinaSound/"+files[sfx])!=null,"A sound for "+sfx);
+        Check(System.Array.TrueForAll(JinaItems.All,i=>i.Icon!=null) && System.Array.TrueForAll(JinaItems.ForSale,i=>i.price>0),"Every item has its icon, and what is sold its price");
         var bag=JinaItems.Inventory; var ui=bag.GetComponent<InventoryUI>(); var wallet=combat.Tavern.wallet;
         Check(bag!=null && ui!=null && bag.Slots.Count==0,"The inventory starts empty");
 
@@ -135,11 +139,11 @@ public static partial class JinaPlayChecks
             player.position=new Vector3(WorldBuilder.Spawn.x,player.position.y,0); Call(river);
             player.position=new Vector3(WorldBuilder.Ferryman.x,player.position.y,0); Call(river);
             Check(river.Remaining==3,"The water ghosts rise again on coming back, round "+round);
-            foreach(var m in river.mobs) if(combat.RiverFelled<Combat.KeepsakeAt) river.Hit(m,Camp.GhostHealth);
+            foreach(var m in river.mobs) if(combat.RiverFelled<Combat.KeepsakeAt) river.Hit(m,Camp.GhostHealth+m.defense);
         }
         Check(combat.RiverFelled==Combat.KeepsakeAt && bag.GetQuantity(JinaItems.Keepsake)==1 && combat.KeepsakeFreedAt>=0,"The tenth frees the drowned mother's keepsake");
         string kept; Check(!JinaItems.Keepsake.Use(combat,out kept) && bag.GetQuantity(JinaItems.Keepsake)==1,"The keepsake is kept, not spent");
-        river.Hit(river.mobs[2],Camp.GhostHealth);
+        river.Hit(river.mobs[2],Camp.GhostHealth+river.mobs[2].defense);
         Check(bag.GetQuantity(JinaItems.Keepsake)==1,"Only one keepsake a run");
         Capture("river-ghosts",new Vector3(90,1,-10),5.5f);
         combat.Restart();

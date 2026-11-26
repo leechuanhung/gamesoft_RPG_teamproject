@@ -14,7 +14,7 @@ public class WorldBuilder : MonoBehaviour
     // 그러면 오래된 구운 세계로 실행할 때 다시 구우라고 알린다(다시 구워도 씬에서 옮긴 기물은 남는다).
     public bool Baked;
     public int BakedLayout;
-    public const int Layout = 1;
+    public const int Layout = 2;
     public const string GroundGroup = "땅과 하늘 (지형에 맞춰져 있음)", BackdropGroup = "배경", PropGroup = "기물", LedgeGroup = "발판";
     // 실행할 때 쓸 세계: 씬에 구운 것이 있으면 그것, 없으면 코드로 새로 짓는다.
     public static WorldBuilder Ensure(Sprite square)
@@ -91,7 +91,8 @@ public class WorldBuilder : MonoBehaviour
     // 과거장으로 가는 금빛 표식은 맨 끝에 있다.
     public const float FortStart = HillEnd, FortEnd = 292f, StationEnd = 338f, GraveEnd = 384f, CityEnd = 430f, HallEnd = 470f;
     public const float ManorStart = HallEnd, ManorEnd = 520f, WorldEnd = ManorEnd;
-    public const float FortGateX = 289f, OfficialX = 503f;
+    // 산성 문은 산성 맵 오른쪽 끝에 붙는다(그림 폭 4.47, 오른쪽 끝이 FortEnd).
+    public const float FortGateX = FortEnd - 2.235f, OfficialX = 503f;
     // 첫 마을 밖의 가게: 콩밭 마을 입구의 방물장수, 한양 잡화전 상인과 국밥집 주모(Shops.cs).
     public static readonly Vector2 Bangmul = new Vector2(111.2f, .2f), Sangin = new Vector2(393.5f, .2f), Gukbap = new Vector2(414.5f, .2f);
     // 산성과 무덤길의 높낮이: (왼쪽, 오른쪽, 윗면).
@@ -102,7 +103,8 @@ public class WorldBuilder : MonoBehaviour
     public static readonly Vector2[] StationLedges = { new Vector2(299, 1.3f), new Vector2(304, 2.9f), new Vector2(321, 1.3f), new Vector2(326.5f, 2.9f) };
     public static readonly Vector2[] GraveLedges = { new Vector2(349, 2.5f), new Vector2(358, 1.3f), new Vector2(367, 2.8f), new Vector2(377, 1.3f) };
     public static readonly float[] Graves = { 342f, 356f, 361f, 374f, 381f };
-    public const float GoalX = WorldEnd - 3f;
+    // 과거장으로 나가는 좌의정 댁 뒷문(오른쪽 끝에 붙음)의 문간, 금빛 표식이 있는 곳. 솟을대문 그림의 폭은 5.35.
+    public const float GoalX = WorldEnd - 2.675f;
     public static readonly Vector2 Ferryman = new Vector2(77f, .2f);
     // 물 띠의 바닥. 수면은 둑과 배 갑판보다 조금 아래.
     public const float WaterBottom = -1.5f;
@@ -164,7 +166,8 @@ public class WorldBuilder : MonoBehaviour
             Tile("무덤길 땅", (left + right) / 2, (top - 1.5f) / 2, right - left, top + 1.5f, new Color(.32f,.28f,.34f), sprite, true);
         Tile("한양 땅", (GraveEnd + WorldEnd) / 2, -1, WorldEnd - GraveEnd, 1, new Color(.56f,.55f,.53f), sprite, true);
         Tile("오른쪽 끝", WorldEnd + .5f, 3, 1, 8, new Color(.4f,.38f,.3f), sprite, true);
-        Tile("과거장으로 가는 길", GoalX, 1, .4f, 3, new Color(1,.75f,.2f), sprite, false);
+        // 뒷문 문간을 채운 금빛.
+        Tile("과거장으로 가는 길", GoalX, .95f, .6f, 2.9f, new Color(1, .8f, .35f, .6f), sprite, false);
         Solids();
         for (int i = 0; i < 5; i++) Prop("숲 소나무", "pine", 32 + i * 6, -10, i % 2 == 1);
         Prop("마을 기와집", "house", 4.5f, -10);
@@ -219,7 +222,10 @@ public class WorldBuilder : MonoBehaviour
         Prop("봉수 군령판", "exam_board", BeaconFort.BoardX, -6);
         Prop("산성 소나무", "pine", 249.5f, -10);
         Prop("무너진 성가퀴", "fort_wall_broken", 255f, -10).transform.position = new Vector3(255f, Top(255f), 0);
-        Prop("산성 성벽", "fort_wall", 263f, -12).transform.position = new Vector3(263f, Top(263f), 0);
+        // 가장 높은 봉수대의 돌판은 성벽 위에 얹혀 있다(성벽 윗면 = 돌판 그림 아랫면, 성벽 발은 땅 띠 뒤에 묻힘).
+        var wall = Prop("산성 성벽", "fort_wall", FortPeak.x, -12);
+        float slabBottom = FortPeak.y + 2 / JinaArt.PropPixelsPerUnit - JinaArt.Prop("ledge_stone").bounds.size.y;
+        wall.transform.position = new Vector3(FortPeak.x, slabBottom - wall.sprite.bounds.size.y, 0);
         Prop("산성 우물", "well", 275.8f, -6);
         Prop("버려진 역참", "station_house", 311f, -10);
         Prop("부서진 수레", "cart", 300.5f, -6);
@@ -230,11 +236,13 @@ public class WorldBuilder : MonoBehaviour
         Prop("한양 가게", "shop", 390.5f, -10);
         Prop("한양 기와집", "house", 403f, -10);
         Prop("한양 가게", "shop", 416.5f, -10, true);
-        foreach (var x in new[] { 397f, 413.2f, 423f, 451f, 467f, 479f, 487f, 516f }) Prop("청사초롱", "lantern", x, -5);
+        foreach (var x in new[] { 397f, 413.2f, 423f, 451f, 467f, 479f, 487f, 512.5f }) Prop("청사초롱", "lantern", x, -5);
         Prop("홍살문", "hongsal", 437f, -10);
         Prop("과거 방", "exam_board", 447.5f, -6);
         Prop("과거장 기와집", "house", 461f, -10);
-        Prop("좌의정 댁 솟을대문", "manor_gate", 473.5f, -10);
+        // 대문은 맵 왼쪽 끝에, 과거장으로 나가는 뒷문은 오른쪽 끝에 붙는다(그림 폭 5.35).
+        Prop("좌의정 댁 솟을대문", "manor_gate", ManorStart + 2.675f, -10);
+        Prop("좌의정 댁 뒷문", "manor_gate", GoalX, -10, true);
         foreach (var x in new[] { 483.5f, 494.5f }) Prop("석등", "stone_lantern", x, -6);
         Prop("좌의정 댁 누각", "pavilion", 504f, -12);
     }

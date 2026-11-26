@@ -18,6 +18,7 @@ public class InventoryUI : MonoBehaviour
     public const int Columns = 5, PageSize = 20, PageCount = 3;
     private int selected, itemPage, collectionPage;
     private int selectedWeapon;
+    private Vector2 keyItemScroll;
     private string message = "";
     public bool IsOpen => isOpen;
     public int Selected => selected;
@@ -192,6 +193,8 @@ public class InventoryUI : MonoBehaviour
                    : id == "myeonggeom" ? UnlockWeapon("myeonggeom", "명검", "이름을 잃은 장수의 칼. 망한 나라가 무너지던 날, 성문 앞에서 끝까지 버텼다고 한다. 칼은 주인보다 오래 살아남아 지금도 들판의 망령들 사이를 떠돈다.\n환도보다 무겁고 길다. 세 번 이어 벤다", "icon_sword", true)
                    : id == "saingeom" ? UnlockWeapon("saingeom", "사인검", "범의 해, 범의 달, 범의 날, 범의 시에만 벼린다는 칼. 칼날에 새긴 별자리가 사귀를 벤다. 마음이 더럽혀진 자의 손에서는 그저 쇠붙이일 뿐이다.\n세 번 이어 벤다. 악행 20 이상이면 쥘 수 없다", "icon_sword", true)
                    : id == "byeokjogung" ? UnlockWeapon("byeokjogung", "벽조궁", "벼락 맞은 대추나무로 만든 활. 벽조목은 예로부터 귀신이 꺼리는 나무라 했다. 시위를 당기면 그날의 벼락이 아직 나무 속에서 운다.\n활보다 피해가 5할 높다. 화살을 소비한다", "icon_bow", true)
+                   : id == "dokkaebi_club" ? UnlockWeapon("dokkaebi_club", "도깨비 방망이", "숲의 주인이 휘두르던 쇠징 박힌 방망이. 저주가 풀린 도깨비가 더는 쓸 일이 없다며 내려놓았다. 두드리면 금이 나온다는 옛말은 믿지 마라. 나오는 것은 혹뿐이다.\n무겁고 느리다. 기력을 많이 쓰는 대신 크게 내려친다", "icon_sword", true)
+                   : id == "blood_club" ? UnlockWeapon("blood_club", "피 묻은 도깨비 방망이", "쓰러진 도깨비의 손에서 빼낸 방망이. 주인의 피가 마르지 않고 나뭇결마다 배어 있다. 쥘 때마다 손바닥이 따끔한 것은, 방망이가 새 주인의 피도 맛보고 있기 때문이다.\n도깨비 방망이보다 세다. 다섯 번 휘두를 때마다 체력 1을 잃는다", "icon_sword", true)
                    : false;
         if (!added) return false;
         for (int i = 0; i < 2; i++) if (equippedWeapons[i] == null) { EquipWeapon(id, i); break; }
@@ -255,7 +258,7 @@ public class InventoryUI : MonoBehaviour
         var result = new List<InventorySlot>();
         if (inventory == null) return result;
         foreach (var slot in inventory.Slots)
-            if (!(slot.Item is JinaItem item && (item.effect == JinaItem.Effect.Keepsake || item.effect == JinaItem.Effect.QuestWisp))) result.Add(slot);
+            if (!(slot.Item is JinaItem item && (item.effect == JinaItem.Effect.Keepsake || item.effect == JinaItem.Effect.QuestWisp || item.effect == JinaItem.Effect.QuestOrb))) result.Add(slot);
         return result;
     }
 
@@ -297,6 +300,7 @@ public class InventoryUI : MonoBehaviour
         previousCanMove = combat.player.CanMove;
         previousTimeScale = Time.timeScale < .5f ? 1f : Time.timeScale;
         isOpen = true;
+        keyItemScroll = Vector2.zero;
         message = "";
         Select(selected);
         combat.InventoryPauseActive = true;
@@ -343,6 +347,7 @@ public class InventoryUI : MonoBehaviour
         float gridHeight = 4 * cell + 3 * gap;
         float width = gridWidth + WindowPad * 2;
         float height = TitleHeight + 12 + gridHeight + 12 + 88 + WindowPad;
+        if (tab == PageTab.KeyItems) height = Mathf.Min(height, JinaUI.H - 63);
         var window = new Rect(JinaUI.W - width - 12, 51, width, height);
 
         string[] tabNames = { "보따리", "귀중품", "스킬", "무기" };
@@ -350,7 +355,7 @@ public class InventoryUI : MonoBehaviour
         for (int i = 0; i < tabNames.Length; i++)
         {
             var r = new Rect(window.x + i * tabWidth, window.y - 38, tabWidth - 3, 34);
-            if (Button(r, tabNames[i])) { tab = (PageTab)i; collectionPage = 0; message = ""; }
+            if (Button(r, tabNames[i])) { tab = (PageTab)i; collectionPage = 0; keyItemScroll = Vector2.zero; message = ""; }
         }
         var inside = Window(window, tabNames[(int)tab], "I / Esc 닫기");
         Rect content = new Rect(inside.x, inside.y, gridWidth, gridHeight);
@@ -358,7 +363,7 @@ public class InventoryUI : MonoBehaviour
         switch (tab)
         {
             case PageTab.Items: DrawOrdinary(window, content, cell, gap); break;
-            case PageTab.KeyItems: DrawKeyItems(content); break;
+            case PageTab.KeyItems: DrawKeyItems(inside); break;
             case PageTab.Skills: DrawSkills(content); break;
             case PageTab.Weapons: DrawWeapons(window, content); break;
         }
@@ -410,32 +415,73 @@ public class InventoryUI : MonoBehaviour
         bool hasHairpin = inventory.GetQuantity(JinaItems.Keepsake) > 0;
         bool hasWisp = inventory.GetQuantity(JinaItems.Wisp) > 0;
         bool hasCharm = combat != null && combat.Quest != null && combat.Quest.progress.HasCharm;
-        float y = content.y;
+        var items = new List<(string name, string description, Sprite icon)>();
         if (hasHairpin)
-        {
-            string description = JinaItems.Keepsake.Description;
-            y += DrawKeyItemRecord(new Rect(content.x, y, content.width, 0), "은비녀", description, JinaItems.Keepsake.Icon);
-        }
+            items.Add(("은비녀", JinaItems.Keepsake.Description, JinaItems.Keepsake.Icon));
         if (hasWisp)
-            y += DrawKeyItemRecord(new Rect(content.x, y, content.width, 0), JinaItems.Wisp.ItemName, JinaItems.Wisp.Description, JinaItems.Wisp.Icon);
+            items.Add((JinaItems.Wisp.ItemName, JinaItems.Wisp.Description, JinaItems.Wisp.Icon));
         if (hasCharm)
         {
             string description = "망한 나라의 옛 비석이 품고 있던 부적. 비석을 세운 이들은 나라와 함께 사라졌으나, 그들이 남긴 글씨는 아직 저주를 알아본다. 숲의 주인에게 씌운 것은 본디 그들의 원한이었다.\n도깨비 가까이에서 F를 눌러 정화한다.";
-            y += DrawKeyItemRecord(new Rect(content.x, y, content.width, 0), "정화 부적", description, JinaArt.Prop("charm"));
+            items.Add(("정화 부적", description, JinaArt.Prop("charm")));
         }
+
+        if (inventory.GetQuantity(JinaItems.SuspiciousOrb) > 0)
+            items.Add((JinaItems.SuspiciousOrb.ItemName, JinaItems.SuspiciousOrb.Description, JinaItems.SuspiciousOrb.Icon));
+
+        float width = content.width;
+        float totalHeight = 0;
+        foreach (var item in items) totalHeight += KeyItemHeight(item.description, width) + 8;
+        bool scroll = totalHeight > content.height;
+        if (scroll)
+        {
+            width -= 20;
+            totalHeight = 0;
+            foreach (var item in items) totalHeight += KeyItemHeight(item.description, width) + 8;
+            keyItemScroll.x = 0;
+            keyItemScroll.y = Mathf.Clamp(keyItemScroll.y, 0, totalHeight - content.height);
+            keyItemScroll = GUI.BeginScrollView(content, keyItemScroll,
+                new Rect(0, 0, width, totalHeight), false, true);
+        }
+        else keyItemScroll = Vector2.zero;
+
+        float x = scroll ? 0 : content.x, y = scroll ? 0 : content.y;
+        foreach (var item in items)
+            y += DrawKeyItemRecord(new Rect(x, y, width, 0), item.name, item.description, item.icon);
+        if (scroll) GUI.EndScrollView();
+    }
+
+    // 스크롤 내부에서는 JinaUI.Text처럼 GUI.matrix를 초기화하지 않는다.
+    GUIStyle KeyItemStyle(int size, bool bold = false)
+    {
+        var style = new GUIStyle(GUI.skin.label)
+        {
+            font = KoreanUI.Font, fontSize = size,
+            fontStyle = bold ? FontStyle.Bold : FontStyle.Normal,
+            alignment = bold ? TextAnchor.MiddleLeft : TextAnchor.UpperLeft,
+            wordWrap = !bold, richText = false, clipping = TextClipping.Clip,
+            padding = new RectOffset(0, 0, 0, 0)
+        };
+        style.normal.textColor = TextDark;
+        return style;
+    }
+
+    float KeyItemHeight(string description, float width)
+    {
+        float bodyHeight = Mathf.Ceil(KeyItemStyle(12).CalcHeight(new GUIContent(description), width - 62));
+        return Mathf.Max(68, bodyHeight + 42);
     }
 
     float DrawKeyItemRecord(Rect place, string name, string description, Sprite sprite)
     {
         const float pad = 8;
         float textWidth = place.width - 62;
-        float bodyHeight = Height(description, 12, textWidth);
-        float rowHeight = Mathf.Max(68, bodyHeight + 34);
+        float rowHeight = KeyItemHeight(description, place.width);
         var r = new Rect(place.x, place.y, place.width, rowHeight);
         Box(r, PaperLight, SlotEdge, 1);
         if (sprite != null) DrawIcon(sprite, new Rect(r.x + 6, r.y + 7, 43, 43));
-        Text(new Rect(r.x + 55, r.y + 5, textWidth, 22), name, 15, TextDark, TextAnchor.MiddleLeft, true);
-        Text(new Rect(r.x + 55, r.y + 29, textWidth, bodyHeight), description, 12, TextDark);
+        GUI.Label(new Rect(r.x + 55, r.y + 5, textWidth, 22), name, KeyItemStyle(15, true));
+        GUI.Label(new Rect(r.x + 55, r.y + 29, textWidth, rowHeight - 37), description, KeyItemStyle(12));
         return rowHeight + pad;
     }
 
@@ -453,7 +499,9 @@ public class InventoryUI : MonoBehaviour
             var skill = ownedSkills[i];
             var r = new Rect(content.x, content.y + 24 + (i % perPage) * 30, content.width, 28);
             Box(r, PaperDark, SlotEdge, 1);
-            Text(new Rect(r.x + 7, r.y, 123, r.height), skill.name, 13, TextDark, TextAnchor.MiddleLeft);
+            var skillIcon = Skills.IconOf(skill.id);
+            if (skillIcon != null) DrawIcon(skillIcon, new Rect(r.x + 3, r.y + 2, 24, 24));
+            Text(new Rect(r.x + 31, r.y, 99, r.height), skill.name, 13, TextDark, TextAnchor.MiddleLeft);
             for (int slot = 0; slot < 3; slot++)
             {
                 int index = slot;
@@ -484,7 +532,7 @@ public class InventoryUI : MonoBehaviour
             var weapon = weapons[i];
             var r = new Rect(content.x, content.y + 28 + (i % perPage) * 38, content.width, 36);
             Box(r, PaperDark, SlotEdge, 1);
-            Icon(weapon.icon, r.x + 4, r.y + 4, 1f);
+            DrawIcon(WeaponArt(weapon.id), new Rect(r.x + 3, r.y + 3, 30, 30));
             if (GUI.Button(new Rect(r.x + 4, r.y + 2, 158, r.height - 4), "", GUIStyle.none)) { selectedWeapon = i; message = ""; }
             Text(new Rect(r.x + 37, r.y, 125, r.height), weapon.name, 14, TextDark, TextAnchor.MiddleLeft);
             for (int slot = 0; slot < 2; slot++)
@@ -521,7 +569,8 @@ public class InventoryUI : MonoBehaviour
         var iconBox = new Rect(left, y, 80, 80);
         Box(iconBox, PaperDark, SlotEdge, 1);
         // 실제 무기 스프라이트를 왼쪽 창에 크게 그린다.
-        string art = stats.id == "bow" ? "04_Weapons/bow" : stats.art ?? "04_Weapons/hwando";
+        //   활 종류는 전용 활 그림(벽조궁 등)이 있으면 그것, 없으면 기본 활. 칼은 전용 그림이 없으면 환도.
+        string art = stats.ranged ? stats.bowArt ?? "04_Weapons/bow" : stats.art ?? "04_Weapons/hwando";
         DrawIcon(JinaArt.Load(art), new Rect(iconBox.x + 6, iconBox.y + 6, 68, 68));
         Text(new Rect(left + 92, y + 5, inner - 92, 30), weapon.name, 19, TextDark, TextAnchor.MiddleLeft, true);
         Text(new Rect(left + 92, y + 42, inner - 92, 26), "보유 중", 13, TextDim, TextAnchor.MiddleLeft);
@@ -601,6 +650,13 @@ public class InventoryUI : MonoBehaviour
         Text(new Rect(left + 116, y, inner - 116, hintHeight), hint, 12, TextDim, TextAnchor.MiddleLeft);
         y += hintHeight + 10;
         Text(new Rect(left, y, inner, messageHeight), message, 14, Red);
+    }
+
+        // 무기 실제 그림: 활 종류는 활 그림(벽조궁은 벽조궁), 칼은 전용 그림, 없으면 환도
+    public static Sprite WeaponArt(string id)
+    {
+        var s = Weapon.Get(id);
+        return JinaArt.Load(s.ranged ? (s.bowArt ?? "04_Weapons/bow") : s.art ?? "04_Weapons/hwando");
     }
 
     public static void DrawIcon(Sprite icon, Rect area)

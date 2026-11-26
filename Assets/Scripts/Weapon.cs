@@ -27,6 +27,8 @@ public class Weapon : MonoBehaviour
         public string bowArt;         // 활 무기: 전용 활 그림 (없으면 기본 활 그림)
         public bool hwandoSlash;      // 전용 그림 무기라도 칼빛·이펙트는 환도와 똑같이
         public int evilLimit;         // 악행이 이만큼 쌓이면 장착 불가 (0이면 제한 없음)
+        public bool heavy;            // 거대 둔기(도깨비 방망이): 넓게 내려치고 땅이 울림
+        public int bloodPrice;        // 이만큼 휘두를 때마다 선비 체력 1을 잃음 (0이면 없음)
 
         // 이번 타(step 0·1·2)에 걸리는 시간, 맞는 시점, 데미지
         public float Swing(int step) => combo ? (comboInterval > 0 ? comboInterval : SeonbiVisual.SwordLength(step)) : interval;
@@ -63,6 +65,15 @@ public class Weapon : MonoBehaviour
             damage = 18, comboDamage = new[] { 13, 15, 18 }, comboInterval = .4f,
             stamina = 10, reach = 1.4f, carryScale = 1.84f, dropChance = .01f,
             art = "04_Weapons/myeonggeom", sheathedArt = "04_Weapons/myeonggeom_sheathed", grip = new Vector2(126, 150) },
+        // 도깨비 방망이(거대 둔기): 데미지 26 / 스테미너 24 / 사거리 1.6칸 / 0.9초마다 / 도깨비를 정화하면 남김
+        //   그림은 make_clubs.py, 쥐는 점은 감은 천의 가운데
+        ["dokkaebi_club"] = new Stats { id = "dokkaebi_club", name = "도깨비 방망이", heavy = true,
+            damage = 26, stamina = 24, reach = 1.6f, interval = .9f, hitDelay = .45f, carryScale = 1.9f, alwaysDrawn = true,
+            art = "04_Weapons/dokkaebi_club", grip = new Vector2(142, 142) },
+        // 피 묻은 도깨비 방망이: 데미지 32, 나머지는 도깨비 방망이와 같음 / 다섯 번 휘두를 때마다 체력 1 / 도깨비를 토벌하면 남김
+        ["blood_club"] = new Stats { id = "blood_club", name = "피 묻은 도깨비 방망이", heavy = true, bloodPrice = 5,
+            damage = 32, stamina = 24, reach = 1.6f, interval = .9f, hitDelay = .45f, carryScale = 1.9f, alwaysDrawn = true,
+            art = "04_Weapons/dokkaebi_club_blood", grip = new Vector2(142, 142) },
     };
 
     // id로 무기 정보 찾기 (모르는 id면 환도)

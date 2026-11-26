@@ -7,7 +7,7 @@ public class JinaItem : ItemData
 {
     // 은비녀: 물에 빠져 죽은 어머니의 비녀. 콩쥐 요괴 체력이 절반 아래일 때 가까이서 쓰면 정화한다
     // (KongBoss.TryPurify). 그 밖에서는 지니고만 있는다.
-    public enum Effect { Heal, Arrows, Ward, Haste, Keepsake, AttackBoost, BindDefense, StaminaBoost, DefenseBoost, QuestWisp }
+    public enum Effect { Heal, Arrows, Ward, Haste, Keepsake, AttackBoost, BindDefense, StaminaBoost, DefenseBoost, QuestWisp, QuestOrb }
     public Effect effect;
     public int amount, price;
     public string id;
@@ -24,6 +24,7 @@ public class JinaItem : ItemData
     // 선비에게 쓴다: 무슨 일이 있었는지와 소모됐는지(체력이나 화살통이 가득하면 남는다).
     public bool Use(Combat combat, out string message)
     {
+        if (effect == Effect.QuestOrb) { message = "수상한 사람이 찾던 구슬입니다."; return false; }
         if (effect == Effect.QuestWisp) { message = "도깨비불이 선비와 함께하고 있습니다."; return false; }
         if (effect == Effect.Keepsake)
         {
@@ -79,6 +80,7 @@ public static class JinaItems
     // 팔지 않는다: 강의 물귀신에게서 풀려난 것(Combat.FellWaterGhost).
     public static readonly JinaItem Keepsake = JinaItem.Make("binyeo", "은비녀", "콩밭 마을 부잣집 안주인이 강으로 나가던 날 꽂고 있던 은비녀. 물귀신들 사이에서 한 여인의 넋이 내어 주었다. 그날 밤 이후 그 집 맏딸은 이 비녀 곁에 다가서지 못한다. 강물에 잠긴 어미의 마음이 아직 은빛에 남은 까닭이다.\n요괴의 기운이 절반 아래로 꺾였을 때 가까이에서 쓰면(F) 사로잡힌 이를 되찾는다", JinaItem.Effect.Keepsake, 0, 0, 1);
     public static readonly JinaItem Wisp = JinaItem.Make("dokkabibol", "동행 도깨비불", "선돌 곁에서 떨고 있던 작은 도깨비불. 숲의 주인이 미혹되던 밤, 홀로 길을 잃었다. 도깨비불은 주인을 잊지 않는다. 다만 주인이 저를 잊었을까 두려워할 뿐이다.\n숲의 주인에게 데려다주기로 했다.", JinaItem.Effect.QuestWisp, 0, 0, 1);
+    public static readonly JinaItem SuspiciousOrb = JinaItem.Make("yeoyuglass", "수상한 구슬", "뱃사공의 오두막에서 가져온 구슬. 콩밭 마을 초가의 수상한 사람이 이 물건을 찾고 있다.\n초가집으로 가져가자.", JinaItem.Effect.QuestOrb, 0, 0, 1);
     public static JinaItem Get(string id) => System.Array.Find(All, i => i.id == id);
     // 기존 여섯 물건과 약과만 판매한다. 드랍/퀘스트 전용 아이템은 상점 목록에 포함하지 않는다.
     public static readonly JinaItem[] ForSale = { All[0], All[1], All[2], All[3], All[4], All[5], All[8] };

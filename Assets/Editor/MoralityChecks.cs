@@ -35,10 +35,12 @@ public static class MoralityChecks
         Require(!gate.gameObject.activeSelf && camp.Cleared && camp.Kills == Camp.SealKills, "Enough kills open the gate");
         camp.ResetCamp();
         Require(camp.Remaining == 3 && gate.gameObject.activeSelf, "Restart restores gate and monsters");
+        // 몬스터에게는 방어력이 있다: 한 번에 깎이는 양은 칼 피해에서 방어력을 뺀 만큼.
+        int cut = Combat.CalcDamage(Combat.SwordDamage, Combat.MonsterDefense);
         camp.Hit(camp.mobs[0], Combat.SwordDamage);
-        Require(camp.mobs[0].hp == Camp.GhostHealth - Combat.SwordDamage, "A sword hit deals its damage");
-        for (int i = 1; i * Combat.SwordDamage < Camp.GhostHealth; i++) camp.Hit(camp.mobs[0], Combat.SwordDamage);
-        Require(camp.mobs[0].hp == 0 && camp.Remaining == 2, "Enough sword hits fell a monster");
+        Require(camp.mobs[0].hp == Camp.GhostHealth - cut, "A sword hit deals its damage, less the monster's defense");
+        for (int i = 1; i * cut < Camp.GhostHealth; i++) camp.Hit(camp.mobs[0], Combat.SwordDamage);
+        Require(camp.mobs[0].hp <= 0 && camp.Remaining == 2, "Enough sword hits fell a monster");
         camp.ResetCamp();
         UnityEngine.Object.DestroyImmediate(camp.gameObject);
         WorldChecks.Run();

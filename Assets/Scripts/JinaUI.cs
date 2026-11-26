@@ -17,6 +17,11 @@ public static class JinaUI
     public static readonly Color TextDark = new Color(.16f, .11f, .08f), TextDim = new Color(.42f, .34f, .26f), Red = new Color(.66f, .16f, .13f), Green = new Color(.08f, .4f, .18f);
     // 나무나 밤 배경 위 글자색.
     public static readonly Color Bright = new Color(.97f, .94f, .86f), Gold = new Color(1f, .86f, .52f), Faint = new Color(.74f, .69f, .6f);
+    // 놋쇠(게이지 마구리, 테두리 장식)와 HUD 막대 색: 체력은 주홍, 기력은 쪽빛, 경험은 금빛.
+    public static readonly Color Brass = new Color(.84f, .67f, .33f), BrassLight = new Color(.96f, .84f, .54f), BrassDark = new Color(.55f, .4f, .18f);
+    public static readonly Color Health = new Color(.8f, .17f, .13f), Stamina = new Color(.22f, .47f, .8f), Exp = new Color(.9f, .7f, .24f);
+    // 그리는 모든 것에 곱하는 투명도(사라지는 카드 등). 쓴 뒤 1로 돌려놓는다.
+    public static float Alpha = 1;
 
     // 레이아웃 1단위의 화면 픽셀 크기와 레이아웃 크기. 작은 창에서도 글자가 읽힐 만큼만 줄어든다.
     public static float Scale => Mathf.Max(.75f, Screen.height / 720f);
@@ -84,7 +89,7 @@ public static class JinaUI
     // 사각형을 한 색으로 채운다.
     public static void Fill(Rect r, Color c)
     {
-        var saved = GUI.color; GUI.color = c;
+        var saved = GUI.color; c.a *= Alpha; GUI.color = c;
         GUI.DrawTexture(r, Texture2D.whiteTexture);
         GUI.color = saved;
     }
@@ -104,7 +109,7 @@ public static class JinaUI
     {
         var t = Art(grain);
         if (t == null) { Fill(r, c); return; }
-        var saved = GUI.color; GUI.color = c;
+        var saved = GUI.color; c.a *= Alpha; GUI.color = c;
         // 텍셀 하나가 레이아웃 2단위: 무늬의 도트가 그림 도트와 맞는다.
         GUI.DrawTextureWithTexCoords(r, t, new Rect(r.x / (t.width * 2), r.y / (t.height * 2), r.width / (t.width * 2), r.height / (t.height * 2)));
         GUI.color = saved;
@@ -114,7 +119,7 @@ public static class JinaUI
     {
         var t = Art(name);
         if (t == null) return;
-        var saved = GUI.color; GUI.color = new Color(1, 1, 1, alpha);
+        var saved = GUI.color; GUI.color = new Color(1, 1, 1, alpha * Alpha);
         GUI.DrawTexture(new Rect(x, y, t.width * dot, t.height * dot), t);
         GUI.color = saved;
     }
@@ -140,10 +145,12 @@ public static class JinaUI
         var t = Art("corner");
         if (t == null) return;
         float s = t.width * dot;
+        var saved = GUI.color; GUI.color = new Color(1, 1, 1, Alpha);
         GUI.DrawTextureWithTexCoords(new Rect(r.x, r.y, s, s), t, new Rect(0, 0, 1, 1));
         GUI.DrawTextureWithTexCoords(new Rect(r.xMax - s, r.y, s, s), t, new Rect(1, 0, -1, 1));
         GUI.DrawTextureWithTexCoords(new Rect(r.x, r.yMax - s, s, s), t, new Rect(0, 1, 1, -1));
         GUI.DrawTextureWithTexCoords(new Rect(r.xMax - s, r.yMax - s, s, s), t, new Rect(1, 1, -1, -1));
+        GUI.color = saved;
     }
     // 상시 HUD용 어두운 옻칠 판.
     public static void HudPanel(Rect r)
@@ -159,8 +166,10 @@ public static class JinaUI
         Fill(new Rect(r.x + 5, r.y + 6, r.width, r.height), new Color(0, 0, 0, .28f));
         Box(r, Paper, Wood, 3);
         Tile(new Rect(r.x + 2, r.y + 2, r.width - 4, TitleHeight - 2), "grain_wood", Wood);
-        Fill(new Rect(r.x + 2, r.y + TitleHeight - 2, r.width - 4, 2), new Color(0, 0, 0, .35f));
         Fill(new Rect(r.x + 2, r.y + 2, r.width - 4, 1), new Color(1, .86f, .6f, .22f));
+        // 제목줄은 처마 밑 도리처럼 단청 띠로 끝난다.
+        Dancheong(new Rect(r.x + 2, r.y + TitleHeight - 2, r.width - 4, 6));
+        Fill(new Rect(r.x + 2, r.y + TitleHeight + 4, r.width - 4, 2), new Color(0, 0, 0, .18f));
         Corners(r, 2);
         Text(new Rect(r.x + WindowPad, r.y + 3, r.width - WindowPad * 2, TitleHeight - 6), title, 18, Gold, TextAnchor.MiddleLeft, true);
         if (right != null) Text(new Rect(r.x + WindowPad, r.y + 3, r.width - WindowPad * 2, TitleHeight - 6), right, 13, Bright, TextAnchor.MiddleRight);
@@ -168,9 +177,15 @@ public static class JinaUI
     }
     // 밝은 글자는 그림자를 넣어 어디서나 또렷하게, 한지 위 어두운 글자는 그림자 없이. `visible`은
     // 그만큼의 글자만 그린다. 줄은 전체 글 기준으로 이미 끊어 두어 글자가 나타나면서 단어가 튀지 않는다.
-    public static void Text(Rect r, string s, int size, Color colour, TextAnchor anchor = TextAnchor.UpperLeft, bool bold = false, int visible = -1)
+    public static void Text(Rect r, string s, int size, Color colour, TextAnchor anchor = TextAnchor.UpperLeft, bool bold = false, int visible = -1) =>
+        Draw(r, s, size, colour, anchor, bold, visible, false);
+    // 먹 외곽선을 두른 글자: 세상 위에 바로 쓰는 이름처럼 바탕이 무엇이든 읽혀야 할 때.
+    public static void Outlined(Rect r, string s, int size, Color colour, TextAnchor anchor = TextAnchor.MiddleCenter, bool bold = true) =>
+        Draw(r, s, size, colour, anchor, bold, -1, true);
+    static void Draw(Rect r, string s, int size, Color colour, TextAnchor anchor, bool bold, int visible, bool outline)
     {
         if (string.IsNullOrEmpty(s)) return;
+        colour.a *= Alpha;
         float k = Scale; int px = Px(size);
         // 정수 픽셀: 소수 위치면 그림자나 잰 높이와 줄바꿈이 달라질 수 있다.
         r = new Rect(Mathf.Round(r.x * k), Mathf.Round(r.y * k), Mathf.Round(r.width * k), Mathf.Round(r.height * k));
@@ -178,7 +193,15 @@ public static class JinaUI
         if (visible >= 0 && visible < s.Length) s = Cut(s, visible);
         var style = Style(px, anchor, bold);
         var matrix = GUI.matrix; GUI.matrix = Matrix4x4.identity;
-        if (colour.grayscale > .5f)
+        if (outline)
+        {
+            float o = Mathf.Max(1, Mathf.Round(k));
+            style.normal.textColor = new Color(.03f, .02f, .03f, .92f * colour.a);
+            for (int dx = -1; dx <= 1; dx++)
+                for (int dy = -1; dy <= 1; dy++)
+                    if (dx != 0 || dy != 0) GUI.Label(new Rect(r.x + dx * o, r.y + dy * o, r.width, r.height), s, style);
+        }
+        else if (colour.grayscale > .5f)
         {
             float shadow = Mathf.Max(1, Mathf.Round(k));
             style.normal.textColor = new Color(0, 0, 0, .9f * colour.a);
@@ -212,9 +235,17 @@ public static class JinaUI
         return Visible(s, now - seen.first);
     }
 
-    // 타자 중인 줄에서 엔터를 누를 때: 타자 중이었으면 true를 돌려주고 전체를 보여 준다.
-    // 대화·조사·다음 넘기기 키(엔터). 숫자판 엔터도 받는다.
-    public static bool Interact => Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter);
+    // 타자 중인 줄에서 F·클릭를 누를 때: 타자 중이었으면 true를 돌려주고 전체를 보여 준다.
+    // 대화·조사·다음 넘기기: F 또는 마우스 왼쪽 클릭. 창의 버튼 위를 누른 클릭은 그 버튼 몫이라 상호작용이 아니다.
+    public const string InteractKey = "F·클릭";
+    public static bool Interact => Input.GetKeyDown(KeyCode.F) || (Input.GetMouseButtonDown(0) && !OverButton);
+    // 지난 화면에서 마우스가 창의 버튼(Button, Good, MarkButton) 위에 있었는지.
+    static int overButtonFrame = -10;
+    public static bool OverButton => Time.frameCount - overButtonFrame <= 1;
+    public static void MarkButton(Rect r) { if (r.Contains(Event.current.mousePosition)) overButtonFrame = Time.frameCount; }
+    // 지난 화면에 상호작용 안내("F·클릭: 말 걸기")가 떠 있었는지. 떠 있으면 클릭은 공격이 아니라 상호작용이다(Combat).
+    static int offerFrame = -10;
+    public static bool Offering => Time.frameCount - offerFrame <= 1;
     public static bool FinishTyping(string s)
     {
         if (string.IsNullOrEmpty(s) || !typing.TryGetValue(s, out var seen)) return false;
@@ -227,6 +258,7 @@ public static class JinaUI
     public static bool Button(Rect r, string label, bool enabled = true)
     {
         bool over = enabled && r.Contains(Event.current.mousePosition);
+        MarkButton(r);
         Box(r, !enabled ? Gone : over ? WoodLight : Wood, over ? Gold : WoodLight, 1);
         Text(r, label, 15, enabled ? Bright : PaperDark, TextAnchor.MiddleCenter, true);
         return GUI.Button(r, "", GUIStyle.none) && enabled;
@@ -239,6 +271,7 @@ public static class JinaUI
     public static bool Good(Rect r, Sprite icon, string name, string price, string effect, bool open)
     {
         bool over = open && r.Contains(Event.current.mousePosition);
+        MarkButton(r);
         Box(r, over ? PaperLight : open ? PaperDark : Gone, over ? Red : SlotEdge, over ? 2 : 1);
         float x = r.x + 12;
         if (icon != null)
@@ -276,6 +309,180 @@ public static class JinaUI
         Text(r, label, 13, Bright, TextAnchor.MiddleCenter, true);
     }
 
+    // ===== 시대 장식: 낙관, 단청, 놋쇠 게이지, 두루마리, 붓 자국 (19_UI, make_ui.py) =====
+
+    // 붉은 낙관(도장) 위에 흰 글자 하나: 체(體)·기(氣) 같은 한자나 누를 키.
+    public static void Seal(Rect r, string letter, int size)
+    {
+        var t = Art("seal");
+        if (t == null) Fill(r, new Color(.77f, .18f, .14f));
+        else { var saved = GUI.color; GUI.color = new Color(1, 1, 1, Alpha); GUI.DrawTexture(r, t); GUI.color = saved; }
+        Text(new Rect(r.x, r.y - 1, r.width, r.height), letter, size, new Color(1f, .96f, .9f), TextAnchor.MiddleCenter, true);
+    }
+    // 처마 밑 단청 띠를 가로로 이어 깐다(그림 6도트가 r의 높이).
+    public static void Dancheong(Rect r)
+    {
+        var t = Art("dancheong");
+        if (t == null) { Fill(r, new Color(.7f, .2f, .16f)); return; }
+        float dot = r.height / t.height;
+        var saved = GUI.color; GUI.color = new Color(1, 1, 1, Alpha);
+        GUI.DrawTextureWithTexCoords(r, t, new Rect(0, 0, r.width / (t.width * dot), 1));
+        GUI.color = saved;
+    }
+
+    // 잃은 만큼 잠시 남는 옅은 구간: 값이 줄면 그 자리에 .45초 머물렀다가 천천히 따라 내려간다. 키마다 따로 기억한다.
+    static readonly Dictionary<string, (float shown, float target, float hold, float last)> lags = new Dictionary<string, (float, float, float, float)>();
+    public static float Lag(string key, float value)
+    {
+        float now = Time.unscaledTime;
+        if (!lags.TryGetValue(key, out var l) || value >= l.shown || now - l.last > 1)
+        {
+            if (lags.Count > 200) lags.Clear();
+            lags[key] = (value, value, now, now);
+            return value;
+        }
+        float hold = value < l.target - .0001f ? now + .45f : l.hold;
+        float shown = now > hold ? Mathf.Max(value, l.shown - (now - l.last) * .8f) : l.shown;
+        lags[key] = (shown, value, hold, now);
+        return shown;
+    }
+
+    // 놋쇠 마구리를 끼운 게이지: 먹 테두리, 어두운 홈, 방금 잃은 만큼의 옅은 구간(`lag`), 위가 밝고 아래가 어두운 막대,
+    // `ticks`칸 눈금, 왼쪽 이름과 오른쪽 수.
+    public static void Gauge(Rect r, float full, Color colour, string left = null, string right = null, float lag = 0, int ticks = 0, int size = 13)
+    {
+        full = Mathf.Clamp01(full);
+        Fill(new Rect(r.x, r.y + 2, r.width, r.height - 4), Ink);
+        Fill(new Rect(r.x + 2, r.y, r.width - 4, r.height), Ink);
+        var inner = new Rect(r.x + 2, r.y + 2, r.width - 4, r.height - 4);
+        Fill(inner, new Color(.1f, .075f, .07f));
+        Fill(new Rect(inner.x, inner.y, inner.width, 2), new Color(0, 0, 0, .5f));
+        if (lag > full) Fill(new Rect(inner.x + Mathf.Round(inner.width * full), inner.y, Mathf.Round(inner.width * (Mathf.Clamp01(lag) - full)), inner.height), new Color(1f, .9f, .74f, .85f));
+        if (full > 0)
+        {
+            var filled = new Rect(inner.x, inner.y, Mathf.Max(2, Mathf.Round(inner.width * full)), inner.height);
+            float hi = Mathf.Max(2, Mathf.Round(inner.height * .3f)), lo = Mathf.Max(2, Mathf.Round(inner.height * .24f));
+            Fill(filled, colour);
+            Fill(new Rect(filled.x, filled.y, filled.width, hi), Color.Lerp(colour, Color.white, .32f));
+            Fill(new Rect(filled.x, filled.yMax - lo, filled.width, lo), Color.Lerp(colour, Color.black, .32f));
+            Fill(new Rect(filled.xMax - 2, filled.y, 2, filled.height), Color.Lerp(colour, Color.white, .55f));
+        }
+        for (int i = 1; i < ticks; i++) Fill(new Rect(Mathf.Round(inner.x + inner.width * i / ticks) - 1, inner.y + 2, 2, inner.height - 2), new Color(0, 0, 0, .3f));
+        // 양 끝을 감싼 놋쇠 띠.
+        foreach (float x in new[] { r.x - 2, r.xMax - 4 })
+        {
+            Fill(new Rect(x, r.y - 2, 6, r.height + 4), Ink);
+            Fill(new Rect(x + 2, r.y, 2, r.height), Brass);
+            Fill(new Rect(x + 2, r.y, 2, 2), BrassLight);
+        }
+        if (left != null) Text(new Rect(inner.x + 8, inner.y - 1, inner.width - 16, inner.height), left, size, Bright, TextAnchor.MiddleLeft, true);
+        if (right != null) Text(new Rect(inner.x + 8, inner.y - 1, inner.width - 16, inner.height), right, size, Bright, TextAnchor.MiddleRight, true);
+    }
+
+    // 위 가운데 보스 막대: 양 끝 나무 축 사이에 펼친 두루마리, 한지에 먹으로 쓴 이름과 붉은 막대.
+    // `mark`(0~1)는 막대 위 표시(콩쥐 요괴의 절반: 그 아래면 은비녀가 닿는다). 보스 막대가 차지하는 아래 끝 높이를 돌려준다.
+    public const float BossBarTop = 12;
+    public static float BossBar(string name, float full, Color colour, string numbers, float mark = -1)
+    {
+        float w = Mathf.Clamp(W - 620, 320, 640), h = 34, x = (W - w) / 2, y = BossBarTop + 4;
+        const float rollerW = 15, rollerH = 39;
+        var paper = new Rect(x + rollerW / 2, y, w - rollerW, h);
+        Fill(new Rect(paper.x + 4, paper.y + 5, paper.width, paper.height), new Color(0, 0, 0, .3f));
+        Fill(new Rect(paper.x, paper.y - 2, paper.width, paper.height + 4), Ink);
+        Tile(paper, "grain_paper", Paper);
+        Fill(new Rect(paper.x, paper.yMax - 3, paper.width, 3), PaperDark);
+        var roller = Art("roller");
+        foreach (float rx in new[] { x, x + w - rollerW })
+        {
+            var rr = new Rect(rx, y + h / 2 - rollerH / 2, rollerW, rollerH);
+            if (roller != null) { var saved = GUI.color; GUI.color = new Color(1, 1, 1, Alpha); GUI.DrawTexture(rr, roller); GUI.color = saved; }
+            else Fill(rr, Wood);
+        }
+        float nameW = Width(name, 16, true), left = paper.x + 16;
+        Text(new Rect(left, paper.y, nameW + 4, h - 2), name, 16, TextDark, TextAnchor.MiddleLeft, true);
+        var bar = new Rect(left + nameW + 14, paper.y + 8, paper.xMax - 16 - (left + nameW + 14), h - 16);
+        Gauge(bar, full, colour, null, numbers, Lag("boss " + name, full), 0, 12);
+        if (mark > 0 && mark < 1)
+        {
+            float mx = Mathf.Round(bar.x + 2 + (bar.width - 4) * mark);
+            Fill(new Rect(mx - 2, bar.y - 5, 4, bar.height + 10), Ink);
+            Fill(new Rect(mx - 1, bar.y - 4, 2, bar.height + 8), BrassLight);
+        }
+        return y + rollerH;
+    }
+
+    // 머리 위 작은 체력 막대와 외곽선 두른 이름(유령, 길의 몬스터, 관군). `key`는 몬스터마다 다른 값(잃은 만큼 표시).
+    public static void MobBar(Vector3 head, float full, Color colour, string name, Color nameColour, int key)
+    {
+        var cam = Camera.main;
+        if (cam == null) return;
+        var p = FromWorld(cam, head);
+        if (p.z < 0 || p.x < -60 || p.x > W + 60) return;
+        const float w = 62, h = 9;
+        var r = new Rect(Mathf.Round(p.x - w / 2), Mathf.Round(p.y - h), w, h);
+        full = Mathf.Clamp01(full);
+        float lag = Lag("mob " + key, full);
+        Fill(new Rect(r.x - 2, r.y, r.width + 4, r.height), Ink);
+        Fill(new Rect(r.x, r.y - 2, r.width, r.height + 4), Ink);
+        Fill(r, new Color(.12f, .08f, .08f, .9f));
+        if (lag > full) Fill(new Rect(r.x + Mathf.Round(w * full), r.y, Mathf.Round(w * (lag - full)), h), new Color(1f, .9f, .74f, .85f));
+        if (full > 0)
+        {
+            var f = new Rect(r.x, r.y, Mathf.Max(2, Mathf.Round(w * full)), h);
+            Fill(f, colour);
+            Fill(new Rect(f.x, f.y, f.width, 3), Color.Lerp(colour, Color.white, .35f));
+            Fill(new Rect(f.x, f.yMax - 2, f.width, 2), Color.Lerp(colour, Color.black, .3f));
+        }
+        Outlined(new Rect(p.x - 110, r.y - 22, 220, 18), name, 13, nameColour, TextAnchor.LowerCenter);
+    }
+
+    // 큰 요괴의 이름 카드(조우·변신): 왼쪽에서 그어지는 마른 붓 자국 위에 큰 이름, 그 위에 별호, 이름 끝에 낙관 하나.
+    // `card`는 0~1(밀려 들어오고 사라지는 정도), `bottom`은 카드가 놓일 아래 끝(보통 아래 검은 띠 위).
+    public static void NameCard(string epithet, string name, Color accent, float card, float bottom, string seal)
+    {
+        if (card <= 0) return;
+        Alpha = card;
+        float nameW = Width(name, 43, true), x = 60 - (1 - card) * 80, y = bottom - 116;
+        var brush = Art("brush");
+        if (brush != null)
+        {
+            float full = nameW + 150, shown = full * Mathf.Clamp01(card * 1.3f);
+            var saved = GUI.color; GUI.color = new Color(0, 0, 0, .86f * card);
+            GUI.DrawTextureWithTexCoords(new Rect(x - 46, y + 30, shown, 70), brush, new Rect(0, 0, shown / full, 1));
+            GUI.color = saved;
+        }
+        Text(new Rect(x, y, W, 30), epithet, 18, new Color(.92f, .9f, .85f), TextAnchor.MiddleLeft);
+        Text(new Rect(x, y + 34, W, 62), name, 43, accent, TextAnchor.MiddleLeft, true);
+        if (!string.IsNullOrEmpty(seal)) Seal(new Rect(x + nameW + 16, y + 46, 38, 38), seal, 24);
+        Alpha = 1;
+    }
+
+    // 맵 이름 현판: 단청 띠를 위아래로 두른 검은 옻칠 판에 금빛 글자, 아래에 한 줄 설명. `fade`로 나타나고 사라진다.
+    public static void Signboard(string name, string line, float top, float fade)
+    {
+        if (fade <= 0) return;
+        Alpha = fade;
+        float bw = Width(name, 28, true) + 110, bh = 66, x = Mathf.Round((W - bw) / 2);
+        var board = new Rect(x, top, bw, bh);
+        Fill(new Rect(board.x + 5, board.y + 6, bw, bh), new Color(0, 0, 0, .3f));
+        Fill(new Rect(board.x, board.y + 2, bw, bh - 4), Ink);
+        Fill(new Rect(board.x + 2, board.y, bw - 4, bh), Ink);
+        Tile(new Rect(board.x + 2, board.y + 2, bw - 4, bh - 4), "grain_wood", new Color(.42f, .27f, .15f));
+        Dancheong(new Rect(board.x + 2, board.y + 2, bw - 4, 12));
+        Dancheong(new Rect(board.x + 2, board.yMax - 14, bw - 4, 12));
+        var face = new Rect(board.x + 12, board.y + 16, bw - 24, bh - 32);
+        Fill(new Rect(face.x - 2, face.y - 2, face.width + 4, face.height + 4), Ink);
+        Tile(face, "grain_night", new Color(.13f, .1f, .09f));
+        Fill(new Rect(face.x, face.y, face.width, 2), new Color(1, 1, 1, .06f));
+        Corners(board, 2);
+        Text(face, name, 28, Gold, TextAnchor.MiddleCenter, true);
+        float lw = Mathf.Min(Width(line, 15) + 40, W - 40), lh = Height(line, 15, lw - 24) + 10;
+        var under = new Rect((W - lw) / 2, board.yMax + 8, lw, lh);
+        Fill(under, new Color(0, 0, 0, .42f));
+        Text(new Rect(under.x + 12, under.y + 5, lw - 24, lh - 10), line, 15, Bright, TextAnchor.UpperCenter);
+        Alpha = 1;
+    }
+
     // 알림 칸이 시작하는 높이(HUD가 보스 막대 아래로 옮김)와 양쪽 판 사이에서 쓸 수 있는 너비.
     public static float ToastTop = 14;
     public static float CenterWidth => Mathf.Clamp(W - 640, 240, 560);
@@ -292,23 +499,34 @@ public static class JinaUI
         Text(new Rect(r.x + 14, r.y + 9, w - 28, h - 18), s, 15, Bright, TextAnchor.UpperCenter);
         toastY += h + 6;
     }
-    // 지금 여기서 할 수 있는 행동, 아래 가운데. 한 프레임에 두 스크립트가 부르면 먼저 부른 쪽이 이긴다.
-    // "Enter: 말 걸기"는 키를 작은 키캡으로 글 앞에 그린다.
-    public const float PromptBottom = 44;
-    // 화면 아래 가운데에 행동 안내를 띄운다.
+    // 아래 가운데 스킬창 줄: 팀원의 Skills.cs가 화면 픽셀로 그린다(가운데 Combat.HudWidth 폭, 칸 64, 아래 여백 20). 레이아웃 단위로 돌려준다.
+    public static Rect SkillRow => new Rect((Screen.width - Combat.HudWidth) / 2f / Scale, (Screen.height - 20 - 64) / Scale, Combat.HudWidth / Scale, 64 / Scale);
+    // 아래 가운데 상(床, Hud.DrawTray): 스킬창 줄과 그 위의 체력·기력 게이지(TrayAbove만큼). 왼쪽 아래 칸이 이 자리를 피한다.
+    public const float TrayAbove = 61;
+    public static Rect Tray { get { var row = SkillRow; return new Rect(row.x, row.y - TrayAbove, row.width, H - row.y + TrayAbove); } }
+    // 지난 화면에 상이 보였는지(Hud가 그릴 때마다 정한다).
+    public static bool TrayShown;
+    // 상 왼쪽에 남는 너비. 왼쪽 아래 칸(길 안내, 행동 안내)은 여기에 들어가면 화면 맨 아래에, 아니면 상 위에 놓는다.
+    public static float SideRoom => TrayShown ? Tray.x - 22 : W - 40;
+    public static float LeftBottom(float width) => width <= SideRoom ? H - 8 : Tray.y - 8;
+    // 지금 여기서 할 수 있는 행동, 왼쪽 아래 길 안내 바로 위. 한 프레임에 두 스크립트가 부르면 먼저 부른 쪽이 이긴다.
+    // "F·클릭: 말 걸기"는 키를 작은 키캡으로 글 앞에 그린다. 이 안내가 뜬 동안 클릭은 공격이 아니다(Offering).
     public static void Prompt(string s)
     {
+        if (s != null && s.StartsWith(InteractKey + ":")) offerFrame = Time.frameCount;
         if (Event.current.type != EventType.Repaint || promptFrame == Time.frameCount) return;
         promptFrame = Time.frameCount;
         string key = null, words = s;
         int colon = s.IndexOf(": ");
         if (colon > 0 && colon <= 5) { key = s.Substring(0, colon); words = s.Substring(colon + 2); }
         float keyWidth = key == null ? 0 : Mathf.Max(24, Width(key, 14, true) + 12) + 10;
-        float w = Mathf.Min(Width(words, 15) + keyWidth + 36, W - 40), h = Height(words, 15, w - 28 - keyWidth) + 16;
+        // 상 옆이 좁으면(220 미만) 상 위에, 아니면 그 너비 안에서 줄을 바꿔 상 옆에.
+        float room = SideRoom >= 220 ? SideRoom : W - 40;
+        float w = Mathf.Min(Width(words, 15, true) + keyWidth + 36, room), h = Height(words, 15, w - 28 - keyWidth, true) + 16;
         h = Mathf.Max(h, 36);
-        // 왼쪽 아래, 맵 이름 칸 바로 위
-        var r = new Rect(16, H - 38 - h, w, h);   // 왼쪽 아래, 맵 이름 칸 바로 위
+        var r = new Rect(16, LeftBottom(SideRoom >= 220 ? 0 : float.MaxValue) - 30 - h, w, h);
         Box(r, Wood, Gold, 1);
+        Corners(r, 1);
         float x = r.x + 14;
         if (key != null)
         {

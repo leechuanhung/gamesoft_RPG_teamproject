@@ -104,13 +104,13 @@ public class TavernShop : NpcTalk
         return "과거 보러 온 선비시오? 한양 장국밥 한 그릇 들고 가시오. 내일 시험엔 배가 든든해야지.";
     }
     string Greeting() => Here == 0 ? Greeting(Progress) : HanyangGreeting(Progress);
-    // 엔터로 주막 창을 열고 닫는다.
+    // F·클릭으로 주막 창을 열고, F·Esc로 닫는다.
     void Update()
     {
         if (combat == null || combat.PlayerHealth <= 0) return;
         if (IsOpen)
         {
-            if (JinaUI.Interact || Input.GetKeyDown(KeyCode.Escape)) { Close(); return; }
+            if (Input.GetKeyDown(KeyCode.F) || Input.GetKeyDown(KeyCode.Escape)) { Close(); return; }   // 창 안 클릭으로는 닫지 않음
             if (Input.GetKeyDown(KeyCode.Alpha1)) Purchase(0);
             if (Input.GetKeyDown(KeyCode.Alpha2)) Purchase(1);
             if (Input.GetKeyDown(KeyCode.Alpha3)) Purchase(2);
@@ -146,7 +146,7 @@ public class TavernShop : NpcTalk
         if (combat == null) return;
         KoreanUI.Apply();
         int near = NearStall();
-        if (near >= 0 && !IsOpen && combat.PlayerHealth > 0 && !combat.Paused) JinaUI.Prompt("Enter: " + Stalls[near].prompt);
+        if (near >= 0 && !IsOpen && combat.PlayerHealth > 0 && !combat.Paused) JinaUI.Prompt("F·클릭: " + Stalls[near].prompt);
         if (!IsOpen) return;
         var stall = Stalls[Here];
         bool special = ShopRules.MenuOpen(ShopRules.SpecialMenu, Progress, Mourning);
@@ -156,7 +156,7 @@ public class TavernShop : NpcTalk
         float say = JinaUI.SayHeight(stall.keeper + ":  " + message, w - JinaUI.WindowPad * 2);
         float h = JinaUI.TitleHeight + 12 + say + gap + rows * (JinaUI.GoodHeight + gap) + 28 + JinaUI.WindowPad;
         var box = new Rect((JinaUI.W - w) / 2, JinaUI.H - h - 14, w, h);
-        var inside = JinaUI.Window(box, stall.title, "엽전 " + wallet.Coins + "문" + (discount > 0 ? "   ·   선행 덕에 " + discount + "% 할인" : "") + "   ·   Enter / Esc 나가기");
+        var inside = JinaUI.Window(box, stall.title, "엽전 " + wallet.Coins + "문" + (discount > 0 ? "   ·   선행 덕에 " + discount + "% 할인" : "") + "   ·   F / Esc 나가기");
         JinaUI.Say(new Rect(inside.x, inside.y, inside.width, say), stall.keeper, message);
         for (int menu = 0; menu < rows; menu++)
         {
@@ -256,13 +256,13 @@ public class PeddlerShop : NpcTalk
         : Here == Hanyang ? HanyangGreeting(Progress) : Greeting(Progress);
     // 가게 `stall`을 바로 연다(검사, 스크린샷).
     public void OpenAt(int stall) { Here = stall; Begin(); message = Greeting(); }
-    // 엔터로 보부상 창을 열고 닫는다.
+    // F·클릭으로 보부상 창을 열고, F·Esc로 닫는다.
     void Update()
     {
         if (combat == null || combat.PlayerHealth <= 0) return;
         if (IsOpen)
         {
-            if (JinaUI.Interact || Input.GetKeyDown(KeyCode.Escape)) { Close(); return; }
+            if (Input.GetKeyDown(KeyCode.F) || Input.GetKeyDown(KeyCode.Escape)) { Close(); return; }   // 창 안 클릭으로는 닫지 않음
             if (Input.GetKeyDown(KeyCode.Alpha1)) Purchase(false);
             if (Input.GetKeyDown(KeyCode.Alpha2)) Purchase(true);
             for (int i = 0; i < JinaItems.ForSale.Length; i++)
@@ -319,7 +319,7 @@ public class PeddlerShop : NpcTalk
         if (combat == null) return;
         KoreanUI.Apply();
         int near = NearStall();
-        if (near >= 0 && !IsOpen && combat.PlayerHealth > 0 && !combat.Paused) JinaUI.Prompt("Enter: " + Stalls[near].prompt);
+        if (near >= 0 && !IsOpen && combat.PlayerHealth > 0 && !combat.Paused) JinaUI.Prompt("F·클릭: " + Stalls[near].prompt);
         if (!IsOpen) return;
         var stall = Stalls[Here];
         // 화살, 그다음 한 줄에 둘씩 물건: 아이콘, 이름, 가격, 효과.
@@ -329,7 +329,7 @@ public class PeddlerShop : NpcTalk
         float say = JinaUI.SayHeight(stall.keeper + ":  " + message, w - JinaUI.WindowPad * 2);
         float h = JinaUI.TitleHeight + 12 + say + gap + rows * (JinaUI.GoodHeight + gap) + 28 + JinaUI.WindowPad;
         var box = new Rect((JinaUI.W - w) / 2, JinaUI.H - h - 14, w, h);
-        var inside = JinaUI.Window(box, stall.title, "엽전 " + Wallet.Coins + "문   ·   화살 " + combat.Arrows + "/" + ShopRules.MaxArrows + (discount > 0 ? "   ·   " + discount + "% 할인" : "") + "   ·   Enter / Esc 나가기");
+        var inside = JinaUI.Window(box, stall.title, "엽전 " + Wallet.Coins + "문   ·   화살 " + combat.Arrows + "/" + ShopRules.MaxArrows + (discount > 0 ? "   ·   " + discount + "% 할인" : "") + "   ·   F / Esc 나가기");
         JinaUI.Say(new Rect(inside.x, inside.y, inside.width, say), stall.keeper, message);
         float top = inside.y + say + gap;
         bool bundle = ShopRules.BundleOpen(Progress, Mourning);

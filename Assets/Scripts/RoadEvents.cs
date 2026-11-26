@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // ===== 고개: 굴러오는 바위·서낭당 (MountainPass) =====
 // 나루터 너머 고개(WorldBuilder.PassStart..PassEnd). 선비가 꼭대기 아래를 오르는 동안
 // 몇 초마다 바위가 계단을 굴러 내려온다: 뛰어넘거나 백스텝(K)으로 통과한다.
-// 고원의 서낭당에서 한 판에 한 번 돌탑에 돌을 얹으면(엔터) 체력이 다 찬다.
+// 고원의 서낭당에서 한 판에 한 번 돌탑에 돌을 얹으면(F·클릭) 체력이 다 찬다.
 public class MountainPass : MonoBehaviour
 {
     public Combat combat;
@@ -75,7 +75,7 @@ public class MountainPass : MonoBehaviour
         return true;
     }
 
-    // 때가 되면 바위를 굴리고, 서낭당에서 엔터를 받는다.
+    // 때가 되면 바위를 굴리고, 서낭당에서 F·클릭를 받는다.
     void Update()
     {
         if (combat == null || combat.PlayerHealth <= 0 || combat.Paused) return;
@@ -96,7 +96,7 @@ public class MountainPass : MonoBehaviour
         KoreanUI.Apply();
         if (ShrineAt >= 0 && Time.time - ShrineAt < 3f)
             JinaUI.Toast(shrineSaid);
-        if (NearShrine && !ShrineUsed) JinaUI.Prompt("Enter: 서낭당 돌무더기에 돌 얹기");
+        if (NearShrine && !ShrineUsed) JinaUI.Prompt("F·클릭: 서낭당 돌무더기에 돌 얹기");
     }
 
     void OnDestroy() { foreach (var r in rocks) if (r.art != null) Destroy(r.art.gameObject); }
@@ -210,6 +210,7 @@ public class RoadsideLore : MonoBehaviour
     private float wispBobOffset;
     private float wispGlimmer;
     private bool wispAbsorbed;
+    private bool wispQuestClosed;
     private bool wispApproachingBoss;
     private Vector3 wispApproachStart;
     private const float WispAbsorbAfter = 1.5f; // 추가 연출(2.2초) 중 도깨비에게 닿는 시점
@@ -329,7 +330,7 @@ public class RoadsideLore : MonoBehaviour
                 new Vector2(.5f, .5f), texture.height / 1.5f);
             questMarker.sortingOrder = 9;
         }
-        questMarker.enabled = !WispFollowing && !wispAbsorbed && !WispAsking;
+        questMarker.enabled = !WispFollowing && !wispAbsorbed && !WispAsking && !wispQuestClosed;
         if (questMarker.enabled)
             questMarker.transform.position = new Vector3(Spots[WispStoneIndex].x,
                 WorldBuilder.Top(Spots[WispStoneIndex].x) + 1.85f + Mathf.Sin(Time.time * 2f) * .09f, 0);
@@ -340,13 +341,13 @@ public class RoadsideLore : MonoBehaviour
     public void ResetLore()
     {
         saidAt = -1; said = "";
-        WispAsking = WispFollowing = wispAbsorbed = wispApproachingBoss = false;
+        WispAsking = WispFollowing = wispAbsorbed = wispApproachingBoss = wispQuestClosed = false;
         wispBob = wispBobOffset = 0f;
         if (wisp != null) { Destroy(wisp.gameObject); wisp = null; }
         if (questMarker != null) { Destroy(questMarker.gameObject); questMarker = null; }
     }
 
-    // 엔터로 조사 지점을 읽는다.
+    // F·클릭으로 조사 지점을 읽는다.
     void Update()
     {
         if (combat == null || combat.PlayerHealth <= 0) return;
@@ -366,7 +367,23 @@ public class RoadsideLore : MonoBehaviour
     // 조사 지점 `i`의 글을 연다.
     public void Read(int i)
     {
-        if (i == WispStoneIndex && !WispFollowing) { AskWisp(); return; }
+        if (i == WispStoneIndex && !WispFollowing)
+        {
+            var outcome = combat.Quest != null ? combat.Quest.progress.Outcome : EncounterOutcome.Unresolved;
+            if (outcome != EncounterOutcome.Unresolved)
+            {
+                if (!wispQuestClosed)
+                {
+                    said = outcome == EncounterOutcome.Slain
+                        ? "선돌에 희미한 빛이 머물다 사라졌다. 어딘가에서 누군가가 슬퍼하는 듯하다."
+                        : "선돌에 따스한 빛이 스쳤다. 어딘가에서 누군가가 기뻐하는 듯하다.";
+                    wispQuestClosed = true;
+                    saidAt = Time.time;
+                    return;
+                }
+            }
+            else if (!wispQuestClosed) { AskWisp(); return; }
+        }
         var s = Spots[i];
         said = s.afterNight != null && combat.Kong != null && combat.Kong.Stayed ? s.afterNight : s.said;
         saidAt = Time.time;
@@ -393,7 +410,7 @@ public class RoadsideLore : MonoBehaviour
         if (saidAt >= 0 && Time.time - saidAt < ShowFor) JinaUI.Toast(said);
         int i = Near();
         if (i >= 0 && !SomeoneElseHere())
-            JinaUI.Prompt(i == WispStoneIndex && WispFollowing ? (wispAbsorbed ? "도깨비불의 빛은 숲의 주인에게 스며들었다." : "도깨비불이 선비와 함께하고 있다.") : "Enter: " + Spots[i].prompt);
+            JinaUI.Prompt(i == WispStoneIndex && WispFollowing ? (wispAbsorbed ? "도깨비불의 빛은 숲의 주인에게 스며들었다." : "도깨비불이 선비와 함께하고 있다.") : "F·클릭: " + Spots[i].prompt);
     }
 
     void OnDestroy() { if (wisp != null) Destroy(wisp.gameObject); if (questMarker != null) Destroy(questMarker.gameObject); }

@@ -4,6 +4,7 @@
 #   19_UI/corner                                 8 x 8, top-left (flipped for the other corners)
 #   19_UI/icon_<sword,bow,arrow,coin,charm,ward,sandal,goal>   16 x 16 with outlines (pixlib rules)
 #   19_UI/vignette                               160 x 90, black with alpha
+#   19_UI/puzzle_gem_0·1, puzzle_socket, puzzle_seonbi   16 x 16, the stele puzzle's gems (red, blue), socket and seonbi
 # Usage: python make_ui.py Assets/Resources/JinaV4/19_UI
 import sys, os, math; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
@@ -119,6 +120,46 @@ def icons():
     c.layer(c.poly([(6, 8), (8, 10), (4, 14), (2, 14), (2, 12)]), (34, 28, 34))
     save(c, "icon_goal")
 
+def puzzle():
+    # 비석 퍼즐(SeonbiGridPuzzle)의 밀어 옮기는 돌: 팔각으로 깎은 보석. 0은 홍옥, 1은 청옥.
+    #   가운데 판은 밝고, 왼쪽 위 면은 더 밝고, 오른쪽 아래 면은 어둡고, 반짝이는 점 둘.
+    gems = [((206, 54, 62), (240, 112, 110), (255, 196, 186), (128, 24, 40)),
+            ((52, 128, 196), (104, 182, 232), (196, 236, 255), (26, 66, 124))]
+    outline = [(5, 1), (10, 1), (14, 5), (14, 10), (10, 14), (5, 14), (1, 10), (1, 5)]
+    for i, (base, light, shine, dark) in enumerate(gems):
+        c = Canvas(16, 16)
+        gem = c.poly(outline)
+        c.layer(gem, base)
+        c.paint(gem & c.poly([(1, 5), (5, 1), (10, 1), (8, 5), (5, 8), (1, 10)]), light)
+        c.paint(gem & c.poly([(14, 5), (14, 10), (10, 14), (5, 14), (8, 11), (11, 8)]), dark)
+        c.paint(c.rect(5, 5, 10, 10), base)
+        c.paint(c.rect(5, 5, 9, 6) | c.rect(5, 7, 6, 9), light)
+        c.paint(c.rect(4, 3, 5, 3) | c.rect(3, 4, 3, 5) | c.rect(7, 6, 7, 6), shine)
+        save(c, f"puzzle_gem_{i}")
+    # 보석을 놓을 문양 칸: 바닥에 판 팔각 홈과 금테
+    c = Canvas(16, 16)
+    hole = c.poly(outline)
+    c.paint(hole, (214, 170, 84), inside=False)
+    inner = c.poly([(5, 2), (10, 2), (13, 5), (13, 10), (10, 13), (5, 13), (2, 10), (2, 5)])
+    c.paint(inner, (92, 70, 48), inside=False)
+    c.paint(inner & c.poly([(2, 10), (2, 5), (5, 2), (10, 2), (9, 4), (4, 9)]), (62, 46, 32), inside=False)
+    c.paint(c.rect(7, 5, 8, 10) | c.rect(5, 7, 10, 8), (150, 112, 58), inside=False)   # 홈 바닥의 십자 문양
+    save(c, "puzzle_socket")
+    # 퍼즐 판 위의 선비: 앞을 보는 작은 선비(검은 갓, 흰 도포, 남색 세조대). 색은 선비 그림(player_idle)에서 땄다.
+    HAT, HAT2, SKIN, ROBE, ROBE2, SASH = (44, 44, 58), (72, 72, 90), (248, 196, 132), (250, 248, 228), (214, 208, 184), (44, 44, 66)
+    c = Canvas(16, 16)
+    c.layer(c.poly([(3, 9), (12, 9), (13, 14), (2, 14)]), ROBE)          # 도포
+    c.paint(c.rect(9, 10, 12, 14) & c.a, ROBE2)
+    c.paint(c.rect(7, 9, 8, 14), SASH)                                   # 세조대
+    c.layer(c.rect(1, 11, 2, 12) | c.rect(13, 11, 14, 12), SKIN)          # 두 손
+    c.layer(c.rect(5, 5, 10, 8), SKIN)                                   # 얼굴
+    c.paint(c.rect(5, 5, 10, 5) | c.rect(5, 6, 5, 6) | c.rect(10, 6, 10, 6), HAT)   # 머리카락
+    c.paint(c.rect(6, 7, 6, 7) | c.rect(9, 7, 9, 7), K)                  # 눈
+    c.layer(c.rect(1, 4, 14, 4), HAT)                                    # 갓 양태
+    c.layer(c.rect(5, 1, 10, 3), HAT)                                    # 갓 모자
+    c.paint(c.rect(6, 1, 7, 2), HAT2)
+    save(c, "puzzle_seonbi")
+
 def vignette():
     w, h = 160, 90
     Y, X = np.mgrid[:h, :w]
@@ -127,4 +168,64 @@ def vignette():
     img = np.zeros((h, w, 4), np.uint8); img[..., 3] = alpha.astype(np.uint8)
     Image.fromarray(img).save(f"{OUT}/vignette.png")
 
-paper(); wood(); night(); corner(); icons(); vignette()
+def seal():
+    # A cinnabar stamp: square, the ink thinner at the edges and missing in a few places like a real impression.
+    rng = np.random.default_rng(5)
+    c = Canvas(14, 14)
+    RED, RED2, RED3 = (196, 46, 36), (156, 30, 26), (222, 84, 62)
+    c.paint(c.rect(0, 0, 13, 13), RED2, inside=False)
+    c.paint(c.rect(1, 1, 12, 12), RED, inside=False)
+    c.paint(c.rect(1, 1, 12, 1) | c.rect(1, 1, 1, 12), RED3, inside=False)
+    for _ in range(9):
+        x, y = int(rng.integers(0, 14)), int(rng.integers(0, 14))
+        if x in (0, 13) or y in (0, 13): c.a[y, x] = False
+        else: c.c[y, x] = RED2
+    for x, y in ((0, 0), (13, 0), (0, 13), (13, 13)): c.a[y, x] = False
+    save(c, "seal")
+
+def dancheong():
+    # The painted band under the eaves: red, a green and a blue panel with white rims and a yellow bead, black lines.
+    c = Canvas(16, 6)
+    RED, GREEN, BLUE, WHITE, YELLOW = (178, 52, 40), (58, 140, 96), (52, 104, 168), (236, 230, 210), (238, 196, 72)
+    c.paint(c.rect(0, 0, 15, 5), RED, inside=False)
+    c.paint(c.rect(0, 0, 15, 0) | c.rect(0, 5, 15, 5), K, inside=False)
+    c.paint(c.rect(1, 1, 6, 4), WHITE, inside=False); c.paint(c.rect(2, 2, 5, 3), GREEN, inside=False)
+    c.paint(c.rect(9, 1, 14, 4), WHITE, inside=False); c.paint(c.rect(10, 2, 13, 3), BLUE, inside=False)
+    c.paint(c.rect(3, 2, 4, 3) | c.rect(11, 2, 12, 3), YELLOW, inside=False)
+    save(c, "dancheong")
+
+def roller():
+    # A scroll's roller seen end-on from the front: a dark wood rod with brass knobs above and below.
+    c = Canvas(10, 26)
+    WOOD, WOOD2, WOOD3 = (110, 66, 38), (76, 44, 26), (150, 98, 58)
+    BRASS, BRASS2, BRASS3 = (214, 170, 84), (150, 108, 48), (246, 214, 138)
+    rod = c.rect(2, 3, 7, 22)
+    c.layer(rod, WOOD)
+    c.paint(c.rect(6, 3, 7, 22), WOOD2); c.paint(c.rect(3, 3, 3, 22), WOOD3)
+    for y0, y1 in ((0, 3), (22, 25)):
+        knob = c.rect(1, y0, 8, y1)
+        c.layer(knob, BRASS)
+        c.paint(c.rect(7, y0, 8, y1), BRASS2); c.paint(c.rect(2, y0, 2, y1), BRASS3)
+    save(c, "roller")
+
+def brush():
+    # One stroke of a dry brush: full and wet at the left, splitting into hairs towards the right.
+    rng = np.random.default_rng(8)
+    w, h = 120, 18
+    a = np.zeros((h, w), bool)
+    for y in range(h):
+        d = abs(y - h / 2 + .5) / (h / 2)
+        start = int(2 + 5 * d * d + rng.integers(0, 2))
+        end = int(w - 4 - 30 * d ** 1.5 - rng.integers(0, 6))
+        a[y, start:end] = True
+        # Dry streaks: gaps that grow towards the end of the stroke.
+        x = start + 40 + int(rng.integers(0, 20))
+        while x < end:
+            gap = int(rng.integers(1, 3 + (x - start) // 25))
+            a[y, x:x + gap] = False
+            x += gap + int(rng.integers(4, 14))
+    img = np.zeros((h, w, 4), np.uint8); img[..., :3] = K; img[..., 3] = np.where(a, 255, 0)
+    Image.fromarray(img).save(f"{OUT}/brush.png")
+
+paper(); wood(); night(); corner(); icons(); vignette(); puzzle()
+seal(); dancheong(); roller(); brush()
